@@ -49,7 +49,7 @@ async def index(request: Request):
 @app.get("/api/sessions/live")
 async def get_live_sessions():
     """List active fleet agents with their current status."""
-    agents = discover_fleet_agents()
+    agents = await discover_fleet_agents()
     results = []
     for agent in agents:
         log_info = get_log_status(agent["log_path"])
@@ -181,7 +181,7 @@ async def ws_fleet(websocket: WebSocket):
     last_state = None
     try:
         while True:
-            agents = discover_fleet_agents()
+            agents = await discover_fleet_agents()
             results = []
             for agent in agents:
                 log_info = get_log_status(agent["log_path"])

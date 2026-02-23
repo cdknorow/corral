@@ -48,18 +48,54 @@ def clean_match(text: str) -> str:
     return " ".join(text.split())
 
 
-def discover_fleet_agents() -> list[dict[str, Any]]:
-    """Return list of agent dicts from fleet log files, sorted by name."""
+async def discover_fleet_agents() -> list[dict[str, Any]]:
+    """Return list of agent dicts from fleet log files, sorted by name.
+
+    Cross-references log files against live tmux sessions and removes
+    stale log files whose sessions no longer exist.
+    """
+    panes = await list_tmux_sessions()
+    live_sessions = {s["session_name"].lower() for s in panes}
+    # Also collect pane titles and working-dir basenames for matching
+    live_tokens: set[str] = set()
+    for s in panes:
+        live_tokens.add(s["pane_title"].lower())
+        live_tokens.add(s["session_name"].lower())
+        path_base = os.path.basename(s.get("current_path", "").rstrip("/")).lower()
+        if path_base:
+            live_tokens.add(path_base)
+
     results = []
     for log_path in sorted(glob(LOG_PATTERN)):
         p = Path(log_path)
         match = re.search(r"([^_]+)_fleet_(.+)", p.stem)
-        if match:
+        if not match:
+            continue
+
+        agent_type = match.group(1)
+        agent_name = match.group(2)
+        agent_low = agent_name.lower()
+        norm_name = agent_name.replace("_", "-").lower()
+
+        # Check if any live tmux pane matches this agent
+        alive = any(
+            agent_low in tok or norm_name in tok
+            for tok in live_tokens
+        )
+
+        if alive:
             results.append({
-                "agent_type": match.group(1),
-                "agent_name": match.group(2),
+                "agent_type": agent_type,
+                "agent_name": agent_name,
                 "log_path": str(p),
             })
+        else:
+            # Stale log — remove it
+            try:
+                p.unlink()
+            except OSError:
+                pass
+
     return results
 
 
