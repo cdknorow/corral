@@ -1,6 +1,6 @@
 # Agent Fleet
 
-<img width="1483" height="855" alt="image" src="https://github.com/user-attachments/assets/c6bb192f-12f4-4acc-8f39-d356149c0b2a" />
+<img width="1512" height="824" alt="image" src="https://github.com/user-attachments/assets/0e1b1291-f288-4e13-baae-5ed382f88e84" />
 
 A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
 
