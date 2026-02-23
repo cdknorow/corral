@@ -64,14 +64,14 @@ async def get_live_sessions():
 
 
 @app.get("/api/sessions/live/{name}")
-async def get_live_session_detail(name: str):
+async def get_live_session_detail(name: str, agent_type: str | None = None):
     """Get detailed info for a specific live session."""
-    log_path = get_agent_log_path(name)
+    log_path = get_agent_log_path(name, agent_type)
     if not log_path:
         return {"error": f"Agent '{name}' not found"}
 
     snapshot = get_log_snapshot(str(log_path))
-    pane_text = await capture_pane(name)
+    pane_text = await capture_pane(name, agent_type=agent_type)
 
     return {
         "name": name,
@@ -84,9 +84,9 @@ async def get_live_session_detail(name: str):
 
 
 @app.get("/api/sessions/live/{name}/capture")
-async def get_pane_capture(name: str):
+async def get_pane_capture(name: str, agent_type: str | None = None):
     """Capture current tmux pane content."""
-    text = await capture_pane(name)
+    text = await capture_pane(name, agent_type=agent_type)
     if text is None:
         return {"error": f"Could not capture pane for '{name}'"}
     return {"name": name, "capture": text}
@@ -114,7 +114,8 @@ async def send_command(name: str, body: dict):
     if not command:
         return {"error": "No command provided"}
 
-    error = await send_to_tmux(name, command)
+    agent_type = body.get("agent_type") or None
+    error = await send_to_tmux(name, command, agent_type=agent_type)
     if error:
         return {"error": error}
     return {"ok": True, "command": command}
@@ -127,7 +128,8 @@ async def send_keys(name: str, body: dict):
     if not keys or not isinstance(keys, list):
         return {"error": "keys must be a non-empty list of tmux key names"}
 
-    error = await send_raw_keys(name, keys)
+    agent_type = body.get("agent_type") or None
+    error = await send_raw_keys(name, keys, agent_type=agent_type)
     if error:
         return {"error": error}
     return {"ok": True, "keys": keys}

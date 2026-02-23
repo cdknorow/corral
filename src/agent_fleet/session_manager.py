@@ -61,14 +61,22 @@ def discover_fleet_agents() -> list[dict[str, Any]]:
     return results
 
 
-def get_agent_log_path(agent_name: str) -> Path | None:
-    """Find the log file for a given agent name."""
+def get_agent_log_path(agent_name: str, agent_type: str | None = None) -> Path | None:
+    """Find the log file for a given agent name.
+
+    When *agent_type* is provided the match is narrowed to the log whose
+    prefix matches (e.g. ``claude_fleet_X`` vs ``gemini_fleet_X``).
+    """
+    best: Path | None = None
     for log_path in glob(LOG_PATTERN):
         p = Path(log_path)
         match = re.search(r"([^_]+)_fleet_(.+)", p.stem)
         if match and match.group(2) == agent_name:
-            return p
-    return None
+            if agent_type and match.group(1).lower() == agent_type.lower():
+                return p  # exact match — return immediately
+            if best is None:
+                best = p  # keep as fallback
+    return best
 
 
 def get_log_status(log_path: str | Path) -> dict[str, Any]:
@@ -129,15 +137,23 @@ async def list_tmux_sessions() -> list[dict[str, str]]:
         return []
 
 
-async def find_pane_target(agent_name: str) -> str | None:
+async def find_pane_target(agent_name: str, agent_type: str | None = None) -> str | None:
     """Find the tmux pane target address for a given agent name.
 
     Matches against pane title, session name, and current working directory
     to handle cases where the pane title is changed by the running program.
+
+    When *agent_type* is provided (e.g. ``"gemini"``), panes whose title or
+    session name also contain the agent type are preferred.  This disambiguates
+    the case where Claude and Gemini both run on the same worktree folder.
+    Falls back to the first name-only match when no type-qualified match exists.
     """
     sessions = await list_tmux_sessions()
     agent_low = agent_name.lower()
     norm_name = agent_name.replace("_", "-").lower()
+    type_low = agent_type.lower() if agent_type else None
+
+    fallback: str | None = None
 
     for s in sessions:
         title_low = s["pane_title"].lower()
@@ -145,19 +161,31 @@ async def find_pane_target(agent_name: str) -> str | None:
         path_low = s.get("current_path", "").lower()
         path_base = os.path.basename(path_low.rstrip("/"))
 
-        if (agent_low in title_low or
-                norm_name in title_low or
-                agent_low in session_low or
-                norm_name in session_low or
-                agent_low == path_base or
-                norm_name == path_base):
+        name_match = (agent_low in title_low or
+                      norm_name in title_low or
+                      agent_low in session_low or
+                      norm_name in session_low or
+                      agent_low == path_base or
+                      norm_name == path_base)
+
+        if not name_match:
+            continue
+
+        # If agent_type requested, prefer panes that also mention it
+        if type_low:
+            if type_low in title_low or type_low in session_low:
+                return s["target"]  # exact type match — use immediately
+            if fallback is None:
+                fallback = s["target"]  # keep first name-only match
+        else:
             return s["target"]
-    return None
+
+    return fallback
 
 
-async def send_to_tmux(agent_name: str, command: str) -> str | None:
+async def send_to_tmux(agent_name: str, command: str, agent_type: str | None = None) -> str | None:
     """Send a command to the tmux pane for the given agent. Returns error string or None."""
-    target = await find_pane_target(agent_name)
+    target = await find_pane_target(agent_name, agent_type)
     if not target:
         return f"Pane '{agent_name}' not found in any tmux session"
 
@@ -188,9 +216,9 @@ async def send_to_tmux(agent_name: str, command: str) -> str | None:
         return str(e)
 
 
-async def send_raw_keys(agent_name: str, keys: list[str]) -> str | None:
+async def send_raw_keys(agent_name: str, keys: list[str], agent_type: str | None = None) -> str | None:
     """Send raw tmux key names (e.g. BTab, Escape) to a pane. Returns error string or None."""
-    target = await find_pane_target(agent_name)
+    target = await find_pane_target(agent_name, agent_type)
     if not target:
         return f"Pane '{agent_name}' not found in any tmux session"
 
@@ -209,9 +237,9 @@ async def send_raw_keys(agent_name: str, keys: list[str]) -> str | None:
         return str(e)
 
 
-async def capture_pane(agent_name: str, lines: int = 200) -> str | None:
+async def capture_pane(agent_name: str, lines: int = 200, agent_type: str | None = None) -> str | None:
     """Capture the current content of a tmux pane. Returns text or None on error."""
-    target = await find_pane_target(agent_name)
+    target = await find_pane_target(agent_name, agent_type)
     if not target:
         return None
 
@@ -229,11 +257,8 @@ async def capture_pane(agent_name: str, lines: int = 200) -> str | None:
         return None
 
 
-def load_history_sessions() -> list[dict[str, Any]]:
-    """Load Claude session history from ~/.claude/projects/**/history.jsonl files.
-
-    Returns list of session summaries sorted by last timestamp descending.
-    """
+def _load_claude_history_sessions() -> list[dict[str, Any]]:
+    """Load Claude session history from ~/.claude/projects/**/history.jsonl files."""
     sessions: dict[str, dict[str, Any]] = {}
     history_base = Path.home() / ".claude" / "projects"
 
@@ -263,6 +288,7 @@ def load_history_sessions() -> list[dict[str, Any]]:
                             "first_timestamp": entry.get("timestamp"),
                             "last_timestamp": entry.get("timestamp"),
                             "source_file": str(history_file),
+                            "source_type": "claude",
                             "summary": None,
                         }
 
@@ -283,7 +309,6 @@ def load_history_sessions() -> list[dict[str, Any]]:
         summary_marker = ""
         first_human = ""
         for msg in data["messages"]:
-            # Look for ||SUMMARY:|| in assistant messages
             if not summary_marker and msg.get("type") == "assistant":
                 content = msg.get("message", {}).get("content", "")
                 text = ""
@@ -298,7 +323,6 @@ def load_history_sessions() -> list[dict[str, Any]]:
                 if m:
                     summary_marker = clean_match(m.group(1))
 
-            # Fall back: first human message
             if not first_human and msg.get("type") == "human":
                 content = msg.get("message", {}).get("content", "")
                 if isinstance(content, str):
@@ -310,16 +334,88 @@ def load_history_sessions() -> list[dict[str, Any]]:
                             break
         data["summary"] = summary_marker or first_human or "(no messages)"
         data["message_count"] = len(data["messages"])
-        # Don't include full messages in the listing
         listing = {k: v for k, v in data.items() if k != "messages"}
         result.append(listing)
 
+    return result
+
+
+GEMINI_HISTORY_BASE = Path.home() / ".gemini" / "tmp"
+
+
+def _extract_gemini_text(content: list[dict]) -> str:
+    """Extract plain text from a Gemini message content array."""
+    parts = []
+    for item in content:
+        if isinstance(item, dict) and item.get("text"):
+            parts.append(item["text"])
+    return "\n".join(parts)
+
+
+def _load_gemini_history_sessions() -> list[dict[str, Any]]:
+    """Load Gemini session history from ~/.gemini/tmp/*/chats/session-*.json."""
+    if not GEMINI_HISTORY_BASE.exists():
+        return []
+
+    result = []
+    for session_file in GEMINI_HISTORY_BASE.rglob("session-*.json"):
+        try:
+            data = json.loads(session_file.read_text(errors="replace"))
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        session_id = data.get("sessionId")
+        if not session_id:
+            continue
+
+        messages = data.get("messages", [])
+        first_ts = data.get("startTime")
+        last_ts = data.get("lastUpdated")
+
+        # Build summary: prefer ||SUMMARY:|| in gemini messages, fall back to first user message
+        summary_marker = ""
+        first_user = ""
+        for msg in messages:
+            msg_type = msg.get("type", "")
+            content = msg.get("content", [])
+            if not isinstance(content, list):
+                continue
+
+            text = _extract_gemini_text(content)
+
+            if not summary_marker and msg_type == "gemini":
+                m = SUMMARY_RE.search(text)
+                if m:
+                    summary_marker = clean_match(m.group(1))
+
+            if not first_user and msg_type == "user":
+                first_user = text[:100]
+
+        result.append({
+            "session_id": session_id,
+            "first_timestamp": first_ts,
+            "last_timestamp": last_ts,
+            "source_file": str(session_file),
+            "source_type": "gemini",
+            "summary": summary_marker or first_user or "(no messages)",
+            "message_count": len(messages),
+        })
+
+    return result
+
+
+def load_history_sessions() -> list[dict[str, Any]]:
+    """Load session history from both Claude and Gemini.
+
+    Returns list of session summaries sorted by last timestamp descending.
+    """
+    result = _load_claude_history_sessions() + _load_gemini_history_sessions()
     result.sort(key=lambda x: x.get("last_timestamp") or "", reverse=True)
     return result
 
 
-def load_history_session_messages(session_id: str) -> list[dict[str, Any]]:
-    """Load all messages for a specific historical session."""
+def _load_claude_session_messages(session_id: str) -> list[dict[str, Any]]:
+    """Load all messages for a specific Claude historical session."""
     history_base = Path.home() / ".claude" / "projects"
     if not history_base.exists():
         return []
@@ -341,8 +437,64 @@ def load_history_session_messages(session_id: str) -> list[dict[str, Any]]:
         except OSError:
             continue
 
-    messages.sort(key=lambda x: x.get("timestamp") or "")
     return messages
+
+
+def _normalize_gemini_message(msg: dict) -> dict[str, Any]:
+    """Convert a Gemini message to the Claude-compatible format used by the UI."""
+    msg_type = msg.get("type", "unknown")
+    content = msg.get("content", [])
+    text = _extract_gemini_text(content) if isinstance(content, list) else ""
+
+    # Map Gemini types to the human/assistant convention the UI expects
+    if msg_type == "user":
+        role = "human"
+    elif msg_type in ("gemini", "error", "info"):
+        role = "assistant"
+    else:
+        role = "assistant"
+
+    return {
+        "sessionId": msg.get("id", ""),
+        "timestamp": msg.get("timestamp"),
+        "type": role,
+        "message": {"content": text},
+    }
+
+
+def _load_gemini_session_messages(session_id: str) -> list[dict[str, Any]]:
+    """Load all messages for a specific Gemini historical session."""
+    if not GEMINI_HISTORY_BASE.exists():
+        return []
+
+    for session_file in GEMINI_HISTORY_BASE.rglob("session-*.json"):
+        try:
+            data = json.loads(session_file.read_text(errors="replace"))
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        if data.get("sessionId") != session_id:
+            continue
+
+        return [_normalize_gemini_message(m) for m in data.get("messages", [])]
+
+    return []
+
+
+def load_history_session_messages(session_id: str) -> list[dict[str, Any]]:
+    """Load all messages for a specific historical session (Claude or Gemini)."""
+    # Try Claude first
+    messages = _load_claude_session_messages(session_id)
+    if messages:
+        messages.sort(key=lambda x: x.get("timestamp") or "")
+        return messages
+
+    # Try Gemini
+    messages = _load_gemini_session_messages(session_id)
+    if messages:
+        return messages
+
+    return []
 
 
 async def launch_claude_session(working_dir: str, agent_type: str = "claude") -> dict[str, str]:

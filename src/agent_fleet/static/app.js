@@ -59,9 +59,11 @@ async function loadHistorySessions() {
     }
 }
 
-async function loadLiveSessionDetail(name) {
+async function loadLiveSessionDetail(name, agentType) {
     try {
-        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(name)}`);
+        let url = `/api/sessions/live/${encodeURIComponent(name)}`;
+        if (agentType) url += `?agent_type=${encodeURIComponent(agentType)}`;
+        const resp = await fetch(url);
         return await resp.json();
     } catch (e) {
         console.error("Failed to load session detail:", e);
@@ -93,7 +95,7 @@ async function sendCommand() {
         const resp = await fetch(`/api/sessions/live/${encodeURIComponent(currentSession.name)}/send`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ command }),
+            body: JSON.stringify({ command, agent_type: currentSession.agent_type }),
         });
         if (!resp.ok) {
             const text = await resp.text();
@@ -305,7 +307,9 @@ async function refreshCapture() {
     if (!currentSession || currentSession.type !== "live") return;
 
     try {
-        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(currentSession.name)}/capture`);
+        let captureUrl = `/api/sessions/live/${encodeURIComponent(currentSession.name)}/capture`;
+        if (currentSession.agent_type) captureUrl += `?agent_type=${encodeURIComponent(currentSession.agent_type)}`;
+        const resp = await fetch(captureUrl);
         const data = await resp.json();
         const el = document.getElementById("pane-capture");
         const text = data.capture || data.error || "No capture available";
@@ -377,10 +381,11 @@ function renderLiveSessions(sessions) {
 
     list.innerHTML = sessions.map(s => {
         const dotClass = getDotClass(s.staleness_seconds);
-        const isActive = currentSession && currentSession.type === "live" && currentSession.name === s.name;
+        const isActive = currentSession && currentSession.type === "live" && currentSession.name === s.name && currentSession.agent_type === s.agent_type;
+        const typeTag = s.agent_type && s.agent_type !== "claude" ? ` <span class="badge ${escapeHtml(s.agent_type)}">${escapeHtml(s.agent_type)}</span>` : "";
         return `<li class="${isActive ? 'active' : ''}" onclick="selectLiveSession('${escapeHtml(s.name)}', '${escapeHtml(s.agent_type)}')">
             <span class="session-dot ${dotClass}"></span>
-            <span class="session-label">${escapeHtml(s.name)}</span>
+            <span class="session-label">${escapeHtml(s.name)}${typeTag}</span>
         </li>`;
     }).join("");
 }
@@ -398,8 +403,9 @@ function renderHistorySessions(sessions) {
         const label = s.summary || s.session_id;
         const truncated = label.length > 40 ? label.substring(0, 40) + "..." : label;
         const isActive = currentSession && currentSession.type === "history" && currentSession.name === s.session_id;
+        const typeTag = s.source_type === "gemini" ? ' <span class="badge gemini">gemini</span>' : "";
         return `<li class="${isActive ? 'active' : ''}" onclick="selectHistorySession('${escapeHtml(s.session_id)}')">
-            <span class="session-label" title="${escapeHtml(label)}">${escapeHtml(truncated)}</span>
+            <span class="session-label" title="${escapeHtml(label)}">${escapeHtml(truncated)}${typeTag}</span>
         </li>`;
     }).join("");
 }
@@ -445,7 +451,7 @@ function renderHistoryChat(messages) {
 async function selectLiveSession(name, agentType) {
     stopCaptureRefresh();
 
-    currentSession = { type: "live", name };
+    currentSession = { type: "live", name, agent_type: agentType || null };
 
     // Show live view, hide others
     document.getElementById("welcome-screen").style.display = "none";
@@ -459,7 +465,7 @@ async function selectLiveSession(name, agentType) {
     badge.className = `badge ${(agentType || "claude").toLowerCase()}`;
 
     // Load detail for status/summary
-    const detail = await loadLiveSessionDetail(name);
+    const detail = await loadLiveSessionDetail(name, agentType);
     if (detail) {
         updateSessionStatus(detail.status);
         updateSessionSummary(detail.summary);
@@ -586,7 +592,7 @@ async function sendRawKeys(keys) {
         const resp = await fetch(`/api/sessions/live/${encodeURIComponent(currentSession.name)}/keys`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ keys }),
+            body: JSON.stringify({ keys, agent_type: currentSession ? currentSession.agent_type : null }),
         });
         const result = await resp.json();
         if (result.error) {
