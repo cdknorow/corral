@@ -21,6 +21,7 @@ from agent_fleet.session_manager import (
     send_to_tmux,
     send_raw_keys,
     capture_pane,
+    kill_session,
     open_terminal_attached,
     load_history_sessions,
     load_history_session_messages,
@@ -134,6 +135,16 @@ async def send_keys(name: str, body: dict):
     if error:
         return {"error": error}
     return {"ok": True, "keys": keys}
+
+
+@app.post("/api/sessions/live/{name}/kill")
+async def kill_live_session(name: str, body: dict | None = None):
+    """Kill the tmux session for a live agent."""
+    agent_type = (body or {}).get("agent_type") or None
+    error = await kill_session(name, agent_type=agent_type)
+    if error:
+        return {"error": error}
+    return {"ok": True}
 
 
 @app.post("/api/sessions/live/{name}/attach")

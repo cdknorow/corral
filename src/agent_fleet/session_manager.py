@@ -260,6 +260,26 @@ async def capture_pane(agent_name: str, lines: int = 200, agent_type: str | None
         return None
 
 
+async def kill_session(agent_name: str, agent_type: str | None = None) -> str | None:
+    """Kill the tmux session for a given agent. Returns error string or None."""
+    pane = await _find_pane(agent_name, agent_type)
+    if not pane:
+        return f"Pane '{agent_name}' not found in any tmux session"
+
+    session_name = pane["session_name"]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "tmux", "kill-session", "-t", session_name,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            return f"kill-session failed: {stderr.decode().strip()}"
+        return None
+    except Exception as e:
+        return str(e)
+
+
 async def open_terminal_attached(agent_name: str, agent_type: str | None = None) -> str | None:
     """Open a local terminal window attached to the agent's tmux session.
 

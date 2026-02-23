@@ -581,6 +581,7 @@ function renderQuickActions() {
         <button class="btn btn-small btn-danger" onclick="sendResetCommand()">Reset</button>
         <span class="quick-actions-divider"></span>
         <button class="btn btn-small btn-primary" onclick="attachTerminal()" title="Open in terminal">Attach</button>
+        <button class="btn btn-small btn-danger" onclick="killSession()" title="Kill tmux session">Kill</button>
     `;
 }
 
@@ -629,6 +630,40 @@ async function attachTerminal() {
     } catch (e) {
         showToast("Failed to open terminal", true);
         console.error("attachTerminal exception:", e);
+    }
+}
+
+async function killSession() {
+    if (!currentSession || currentSession.type !== "live") {
+        showToast("No live session selected", true);
+        return;
+    }
+
+    if (!confirm(`Kill session "${currentSession.name}"? This will terminate the agent.`)) {
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(currentSession.name)}/kill`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agent_type: currentSession.agent_type }),
+        });
+        const result = await resp.json();
+        if (result.error) {
+            showToast(result.error, true);
+        } else {
+            showToast(`Killed: ${currentSession.name}`);
+            stopCaptureRefresh();
+            currentSession = null;
+            document.getElementById("live-session-view").style.display = "none";
+            document.getElementById("welcome-screen").style.display = "flex";
+            // Refresh sidebar after short delay
+            setTimeout(loadLiveSessions, 1000);
+        }
+    } catch (e) {
+        showToast("Failed to kill session", true);
+        console.error("killSession exception:", e);
     }
 }
 
