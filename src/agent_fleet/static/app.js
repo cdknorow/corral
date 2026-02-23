@@ -653,13 +653,16 @@ async function killSession() {
         if (result.error) {
             showToast(result.error, true);
         } else {
-            showToast(`Killed: ${currentSession.name}`);
+            const killedName = currentSession.name;
+            const killedType = currentSession.agent_type;
+            showToast(`Killed: ${killedName}`);
             stopCaptureRefresh();
             currentSession = null;
             document.getElementById("live-session-view").style.display = "none";
             document.getElementById("welcome-screen").style.display = "flex";
-            // Refresh sidebar after short delay
-            setTimeout(loadLiveSessions, 1000);
+            // Remove from cached list and re-render immediately
+            liveSessions = liveSessions.filter(s => !(s.name === killedName && s.agent_type === killedType));
+            renderLiveSessions(liveSessions);
         }
     } catch (e) {
         showToast("Failed to kill session", true);

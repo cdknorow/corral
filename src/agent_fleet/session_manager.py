@@ -261,7 +261,10 @@ async def capture_pane(agent_name: str, lines: int = 200, agent_type: str | None
 
 
 async def kill_session(agent_name: str, agent_type: str | None = None) -> str | None:
-    """Kill the tmux session for a given agent. Returns error string or None."""
+    """Kill the tmux session for a given agent and remove its log file.
+
+    Returns error string or None.
+    """
     pane = await _find_pane(agent_name, agent_type)
     if not pane:
         return f"Pane '{agent_name}' not found in any tmux session"
@@ -275,6 +278,15 @@ async def kill_session(agent_name: str, agent_type: str | None = None) -> str | 
         _, stderr = await proc.communicate()
         if proc.returncode != 0:
             return f"kill-session failed: {stderr.decode().strip()}"
+
+        # Remove the log file so the agent disappears from discover_fleet_agents
+        log_path = get_agent_log_path(agent_name, agent_type)
+        if log_path:
+            try:
+                log_path.unlink()
+            except OSError:
+                pass
+
         return None
     except Exception as e:
         return str(e)
