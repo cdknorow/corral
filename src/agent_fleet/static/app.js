@@ -32,6 +32,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const { scrollTop, scrollHeight, clientHeight } = capture;
         autoScroll = (scrollHeight - scrollTop - clientHeight) < 50;
     });
+
+    // Sidebar resize handle
+    initSidebarResize();
 });
 
 // ── REST API Calls ─────────────────────────────────────────────────────────
@@ -124,32 +127,173 @@ function isUserPromptLine(line) {
     return /^\s*[❯›>$]\s+\S/.test(line);
 }
 
+// Detect code fence markers from Claude Code output (e.g. "  1 │ ...", tool headers)
+const CODE_FENCE_RE = /^(\s*\d+\s*[│|])/;
+// Diff lines: "  185 -  old code" or "  185 +  new code" (number then +/-)
+const DIFF_ADD_RE = /^(\s*\d+\s*\+)/;
+const DIFF_DEL_RE = /^(\s*\d+\s*-)/;
+// Diff summary line: "Added N lines, removed M lines"
+const DIFF_SUMMARY_RE = /^\s*Added \d+ lines?,\s*removed \d+ lines?/;
+const TOOL_HEADER_RE = /^⏺\s+(Read|Write|Edit|Bash|Glob|Grep|NotebookEdit|Task)\b/;
+const TOOL_RESULT_RE = /^\s*⎿\s*/;
+
+// Syntax highlighting patterns applied inside code lines
+const SYNTAX_RULES = [
+    // Comments (# ..., // ..., /* ... */, <!-- ... -->)
+    { re: /(#[^!].*|\/\/.*|\/\*.*?\*\/|<!--.*?-->)/, cls: "sh-comment" },
+    // Strings (double-quoted and single-quoted)
+    { re: /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/, cls: "sh-string" },
+    // Keywords (common across Python, JS, TS, Go, Rust, shell, etc.)
+    { re: /\b(function|const|let|var|return|if|else|elif|for|while|class|def|import|from|export|default|async|await|try|catch|except|finally|raise|throw|new|this|self|yield|match|case|fn|pub|mod|use|impl|struct|enum|trait|interface|type|extends|implements|package|func|go|defer|select|chan)\b/, cls: "sh-keyword" },
+    // Built-in values
+    { re: /\b(true|false|True|False|null|None|undefined|nil)\b/, cls: "sh-builtin" },
+    // Numbers
+    { re: /\b(\d+\.?\d*(?:e[+-]?\d+)?|0x[0-9a-fA-F]+|0b[01]+|0o[0-7]+)\b/, cls: "sh-number" },
+    // Decorators / annotations
+    { re: /(@\w+)/, cls: "sh-decorator" },
+];
+
+function highlightCodeLine(text) {
+    // Build a list of {start, end, cls} spans, non-overlapping
+    const spans = [];
+
+    for (const rule of SYNTAX_RULES) {
+        const global = new RegExp(rule.re.source, "g");
+        let m;
+        while ((m = global.exec(text)) !== null) {
+            const start = m.index;
+            const end = start + m[0].length;
+            // Only add if it doesn't overlap with existing spans
+            const overlaps = spans.some(s => start < s.end && end > s.start);
+            if (!overlaps) {
+                spans.push({ start, end, cls: rule.cls });
+            }
+        }
+    }
+
+    if (spans.length === 0) return null; // no highlighting needed
+
+    spans.sort((a, b) => a.start - b.start);
+
+    const frag = document.createDocumentFragment();
+    let pos = 0;
+    for (const span of spans) {
+        if (span.start > pos) {
+            frag.appendChild(document.createTextNode(text.slice(pos, span.start)));
+        }
+        const el = document.createElement("span");
+        el.className = span.cls;
+        el.textContent = text.slice(span.start, span.end);
+        frag.appendChild(el);
+        pos = span.end;
+    }
+    if (pos < text.length) {
+        frag.appendChild(document.createTextNode(text.slice(pos)));
+    }
+    return frag;
+}
+
 function renderCaptureText(el, text) {
     el.innerHTML = "";
     const lines = text.split("\n");
     let inUserBlock = false;
+    let inCodeBlock = false;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const div = document.createElement("div");
         div.className = "capture-line";
 
+        const diffAddMatch = line.match(DIFF_ADD_RE);
+        const diffDelMatch = !diffAddMatch && line.match(DIFF_DEL_RE);
+        const isDiffSummary = DIFF_SUMMARY_RE.test(line);
+        const isNumberedCode = !diffAddMatch && !diffDelMatch && CODE_FENCE_RE.test(line);
+        const isToolHeader = TOOL_HEADER_RE.test(line);
+        const isToolResult = TOOL_RESULT_RE.test(line);
+
         if (isSeparatorLine(line)) {
-            // Check if this separator is adjacent to user input
             const prevIsUser = i > 0 && isUserPromptLine(lines[i - 1]);
             const nextIsUser = i < lines.length - 1 && isUserPromptLine(lines[i + 1]);
             if (prevIsUser || nextIsUser || inUserBlock) {
                 div.classList.add("capture-separator");
                 inUserBlock = nextIsUser;
             }
+            inCodeBlock = false;
         } else if (isUserPromptLine(line)) {
             div.classList.add("capture-user-input");
             inUserBlock = true;
+            inCodeBlock = false;
         } else if (inUserBlock && line.trim() !== "") {
-            // Continuation of user input (multi-line messages)
             div.classList.add("capture-user-input");
-        } else {
+        } else if (isDiffSummary) {
+            div.classList.add("capture-diff-summary");
             inUserBlock = false;
+            inCodeBlock = false;
+        } else if (diffAddMatch) {
+            // Diff addition: "  185 +  new code"
+            div.classList.add("capture-diff-add");
+            inUserBlock = false;
+            inCodeBlock = false;
+            const gutter = diffAddMatch[1];
+            const code = line.slice(gutter.length);
+            const gutterSpan = document.createElement("span");
+            gutterSpan.className = "sh-diff-gutter-add";
+            gutterSpan.textContent = gutter;
+            div.appendChild(gutterSpan);
+            const highlighted = highlightCodeLine(code);
+            if (highlighted) {
+                div.appendChild(highlighted);
+            } else {
+                div.appendChild(document.createTextNode(code));
+            }
+            el.appendChild(div);
+            continue;
+        } else if (diffDelMatch) {
+            // Diff deletion: "  185 -  old code"
+            div.classList.add("capture-diff-del");
+            inUserBlock = false;
+            inCodeBlock = false;
+            const gutter = diffDelMatch[1];
+            const code = line.slice(gutter.length);
+            const gutterSpan = document.createElement("span");
+            gutterSpan.className = "sh-diff-gutter-del";
+            gutterSpan.textContent = gutter;
+            div.appendChild(gutterSpan);
+            div.appendChild(document.createTextNode(code));
+            el.appendChild(div);
+            continue;
+        } else if (isToolHeader) {
+            div.classList.add("capture-tool-header");
+            inUserBlock = false;
+            inCodeBlock = false;
+        } else if (isToolResult) {
+            div.classList.add("capture-tool-result");
+            inUserBlock = false;
+        } else if (isNumberedCode) {
+            div.classList.add("capture-code");
+            inUserBlock = false;
+            inCodeBlock = true;
+            // Highlight the code portion after the line number gutter
+            const match = line.match(CODE_FENCE_RE);
+            const gutter = match[1];
+            const code = line.slice(gutter.length);
+            const gutterSpan = document.createElement("span");
+            gutterSpan.className = "sh-gutter";
+            gutterSpan.textContent = gutter;
+            div.appendChild(gutterSpan);
+            const highlighted = highlightCodeLine(code);
+            if (highlighted) {
+                div.appendChild(highlighted);
+            } else {
+                div.appendChild(document.createTextNode(code));
+            }
+            el.appendChild(div);
+            continue;
+        } else {
+            if (inUserBlock && line.trim() === "") {
+                inUserBlock = false;
+            }
+            inCodeBlock = false;
         }
 
         div.textContent = line;
@@ -347,7 +491,7 @@ async function selectHistorySession(sessionId) {
     document.getElementById("live-session-view").style.display = "none";
     document.getElementById("history-session-view").style.display = "flex";
 
-    document.getElementById("history-session-title").textContent = `Session: ${sessionId.substring(0, 12)}...`;
+    document.getElementById("history-session-title").textContent = `Session: ${sessionId}`;
 
     updateSidebarActive();
 
@@ -534,6 +678,37 @@ function getDotClass(staleness) {
     if (staleness < 60) return "active";
     if (staleness < 300) return "recent";
     return "stale";
+}
+
+// ── Sidebar Resize ─────────────────────────────────────────────────────────
+
+function initSidebarResize() {
+    const handle = document.getElementById("sidebar-resize-handle");
+    const sidebar = document.querySelector(".sidebar");
+
+    let dragging = false;
+
+    handle.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        dragging = true;
+        handle.classList.add("dragging");
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+    });
+
+    document.addEventListener("mousemove", (e) => {
+        if (!dragging) return;
+        const newWidth = Math.min(Math.max(e.clientX, 140), window.innerWidth * 0.5);
+        sidebar.style.width = newWidth + "px";
+    });
+
+    document.addEventListener("mouseup", () => {
+        if (!dragging) return;
+        dragging = false;
+        handle.classList.remove("dragging");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+    });
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────

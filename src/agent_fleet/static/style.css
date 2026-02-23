@@ -58,12 +58,27 @@ body {
 /* Sidebar */
 .sidebar {
     width: 260px;
-    min-width: 260px;
+    min-width: 140px;
+    max-width: 50vw;
     background: var(--bg-secondary);
-    border-right: 1px solid var(--border);
+    border-right: none;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
+}
+
+.sidebar-resize-handle {
+    width: 4px;
+    cursor: col-resize;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle.dragging {
+    background: var(--accent);
 }
 
 .sidebar-section {
@@ -273,6 +288,82 @@ body {
 .capture-user-input {
     color: #c9a0ff;
     font-weight: 500;
+}
+
+.capture-tool-header {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.capture-tool-result {
+    color: var(--text-muted);
+}
+
+.capture-code {
+    background: rgba(110, 118, 129, 0.1);
+    border-radius: 2px;
+}
+
+.capture-diff-add {
+    background: rgba(63, 185, 80, 0.15);
+    border-radius: 2px;
+    color: #3fb950;
+}
+
+.capture-diff-del {
+    background: rgba(248, 81, 73, 0.15);
+    border-radius: 2px;
+    color: #f85149;
+    text-decoration: line-through;
+    text-decoration-color: rgba(248, 81, 73, 0.4);
+}
+
+.capture-diff-summary {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.sh-diff-gutter-add {
+    color: #3fb950;
+    font-weight: 700;
+    user-select: none;
+}
+
+.sh-diff-gutter-del {
+    color: #f85149;
+    font-weight: 700;
+    user-select: none;
+}
+
+/* Syntax highlighting */
+.sh-gutter {
+    color: var(--text-muted);
+    user-select: none;
+}
+
+.sh-keyword {
+    color: #ff7b72;
+}
+
+.sh-string {
+    color: #a5d6ff;
+}
+
+.sh-comment {
+    color: #8b949e;
+    font-style: italic;
+}
+
+.sh-number {
+    color: #79c0ff;
+}
+
+.sh-builtin {
+    color: #ffa657;
+}
+
+.sh-decorator {
+    color: #d2a8ff;
 }
 
 /* Command Bar */
