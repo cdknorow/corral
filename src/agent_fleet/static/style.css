@@ -204,6 +204,39 @@ body {
 .badge.claude { background: var(--badge-claude); color: #fff; }
 .badge.gemini { background: var(--badge-gemini); color: #fff; }
 
+/* Busy Indicator */
+.busy-indicator {
+    font-size: 12px;
+    color: var(--success);
+    font-weight: 600;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.status-dot.busy {
+    background: var(--success);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Session Info Chips */
+.session-info {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.info-chip {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
 .session-meta {
     display: flex;
     flex-direction: column;
@@ -224,35 +257,6 @@ body {
     background: var(--success);
 }
 
-/* Tabs */
-.output-tabs {
-    display: flex;
-    gap: 0;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-}
-
-.tab {
-    padding: 8px 20px;
-    font-size: 13px;
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.15s;
-}
-
-.tab:hover {
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
-}
-
-.tab.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-}
-
 /* Output Area */
 .output-area {
     flex: 1;
@@ -268,26 +272,131 @@ body {
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
     font-size: 12px;
     line-height: 1.6;
+}
+
+/* Output Blocks */
+.output-block {
+    margin-bottom: 4px;
+}
+
+.output-block.text-block {
     white-space: pre-wrap;
     word-break: break-word;
+    padding: 2px 0;
 }
 
-.output-scroll .line {
-    padding: 1px 0;
+.output-block.error-block {
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--error);
+    padding: 2px 0;
 }
 
-.output-scroll .line.status-line {
+/* Tool Use Blocks */
+.tool-use-block {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin: 6px 0;
+    overflow: hidden;
+}
+
+.tool-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    font-size: 12px;
     color: var(--accent);
-    font-weight: 600;
+    user-select: none;
 }
 
-.output-scroll .line.summary-line {
-    color: var(--warning);
-    font-weight: 600;
+.tool-header:hover {
+    background: var(--bg-hover);
 }
 
-.capture-text {
+.tool-icon {
+    font-size: 14px;
+}
+
+.tool-details {
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    font-size: 11px;
+    line-height: 1.5;
     color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+    border-top: 1px solid var(--border);
+}
+
+/* Tool Result Blocks */
+.tool-result-block {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin: 2px 0 6px;
+    overflow: hidden;
+}
+
+.tool-result-block.tool-error {
+    border-color: var(--error);
+}
+
+.tool-result-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+.tool-result-header:hover {
+    background: var(--bg-hover);
+}
+
+.result-icon {
+    color: var(--success);
+    font-weight: bold;
+}
+
+.result-icon.error-icon {
+    color: var(--error);
+}
+
+.tool-result-content {
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+    border-top: 1px solid var(--border);
+}
+
+.tool-error .tool-result-content {
+    color: var(--error);
+}
+
+/* Result Summary Block */
+.result-summary-block {
+    padding: 8px 12px;
+    margin: 8px 0;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
 }
 
 /* Command Bar */
@@ -440,7 +549,7 @@ body {
 .btn-small {
     padding: 4px 10px;
     font-size: 12px;
-    margin: 8px 20px;
+    margin: 0;
 }
 
 /* Modal */

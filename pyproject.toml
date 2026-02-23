@@ -5,14 +5,15 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "agent-fleet"
 version = "0.1.0"
-description = "A multi-agent orchestration system for Claude and Gemini agents in tmux."
+description = "A multi-agent orchestration system for Claude agents using the claude-agent-sdk."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "textual>=0.75.0",
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "jinja2>=3.1.0",
+    "claude-agent-sdk>=0.1.0",
 ]
 authors = [
     { name = "Chris Knorowski" }
@@ -21,6 +22,7 @@ authors = [
 [project.scripts]
 agent-fleet = "agent_fleet.dashboard:main"
 agent-fleet-web = "agent_fleet.web_server:main"
+agent-fleet-launch = "agent_fleet.agent_manager:launch_fleet_cli"
 
 [tool.setuptools.package-data]
 agent_fleet = ["PROTOCOL.md", "launch_agents.sh", "templates/*.html", "static/*.css", "static/*.js"]

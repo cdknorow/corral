@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -13,21 +14,26 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
+from agent_fleet.agent_manager import AgentManager
 from agent_fleet.session_manager import (
-    COMMAND_MAP,
-    discover_fleet_agents,
-    get_agent_log_path,
-    get_log_status,
-    send_to_tmux,
-    capture_pane,
     load_history_sessions,
     load_history_session_messages,
-    launch_claude_session,
 )
-from agent_fleet.log_streamer import tail_log, get_log_snapshot
 
 BASE_DIR = Path(__file__).parent
-app = FastAPI(title="Claude Fleet Web Dashboard")
+
+# Module-level singleton
+agent_manager = AgentManager()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup/shutdown lifecycle for the app."""
+    yield
+    await agent_manager.stop_all()
+
+
+app = FastAPI(title="Claude Fleet Web Dashboard", lifespan=lifespan)
 
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
@@ -46,49 +52,16 @@ async def index(request: Request):
 @app.get("/api/sessions/live")
 async def get_live_sessions():
     """List active fleet agents with their current status."""
-    agents = discover_fleet_agents()
-    results = []
-    for agent in agents:
-        log_info = get_log_status(agent["log_path"])
-        results.append({
-            "name": agent["agent_name"],
-            "agent_type": agent["agent_type"],
-            "log_path": agent["log_path"],
-            "status": log_info["status"],
-            "summary": log_info["summary"],
-            "staleness_seconds": log_info["staleness_seconds"],
-            "commands": COMMAND_MAP.get(agent["agent_type"].lower(), COMMAND_MAP["claude"]),
-        })
-    return results
+    return agent_manager.list_agents()
 
 
 @app.get("/api/sessions/live/{name}")
 async def get_live_session_detail(name: str):
     """Get detailed info for a specific live session."""
-    log_path = get_agent_log_path(name)
-    if not log_path:
+    snapshot = agent_manager.get_agent_snapshot(name)
+    if not snapshot:
         return {"error": f"Agent '{name}' not found"}
-
-    snapshot = get_log_snapshot(str(log_path))
-    pane_text = await capture_pane(name)
-
-    return {
-        "name": name,
-        "status": snapshot["status"],
-        "summary": snapshot["summary"],
-        "recent_lines": snapshot["recent_lines"],
-        "staleness_seconds": snapshot["staleness_seconds"],
-        "pane_capture": pane_text,
-    }
-
-
-@app.get("/api/sessions/live/{name}/capture")
-async def get_pane_capture(name: str):
-    """Capture current tmux pane content."""
-    text = await capture_pane(name)
-    if text is None:
-        return {"error": f"Could not capture pane for '{name}'"}
-    return {"name": name, "capture": text}
+    return snapshot
 
 
 @app.get("/api/sessions/history")
@@ -108,27 +81,57 @@ async def get_history_session_detail(session_id: str):
 
 @app.post("/api/sessions/live/{name}/send")
 async def send_command(name: str, body: dict):
-    """Send a command to a live tmux session."""
+    """Send a command to a live agent session."""
     command = body.get("command", "").strip()
     if not command:
         return {"error": "No command provided"}
 
-    error = await send_to_tmux(name, command)
-    if error:
-        return {"error": error}
+    result = await agent_manager.send_command(name, command)
+    if result.get("error"):
+        return result
     return {"ok": True, "command": command}
+
+
+@app.post("/api/sessions/live/{name}/interrupt")
+async def interrupt_session(name: str):
+    """Interrupt a running agent."""
+    return await agent_manager.interrupt_agent(name)
+
+
+@app.delete("/api/sessions/live/{name}")
+async def delete_session(name: str):
+    """Stop and remove an agent."""
+    return await agent_manager.stop_agent(name)
 
 
 @app.post("/api/sessions/launch")
 async def launch_session(body: dict):
-    """Launch a new Claude/Gemini session."""
+    """Launch a new agent session via the SDK."""
     working_dir = body.get("working_dir", "").strip()
-    agent_type = body.get("agent_type", "claude").strip()
+    name = body.get("name", "").strip()
 
     if not working_dir:
         return {"error": "working_dir is required"}
 
-    result = await launch_claude_session(working_dir, agent_type)
+    # Auto-generate name from directory basename if not provided
+    if not name:
+        name = Path(working_dir).name
+
+    # Deduplicate names
+    existing = set(agent_manager.list_agents_names())
+    if name in existing:
+        idx = 2
+        while f"{name}-{idx}" in existing:
+            idx += 1
+        name = f"{name}-{idx}"
+
+    result = await agent_manager.launch_agent(
+        name=name,
+        working_dir=working_dir,
+        model=body.get("model"),
+    )
+    if result.get("ok"):
+        result["session_name"] = name
     return result
 
 
@@ -137,54 +140,59 @@ async def launch_session(body: dict):
 
 @app.websocket("/ws/session/{name}")
 async def ws_session(websocket: WebSocket, name: str):
-    """Stream real-time log events for a specific session."""
+    """Stream real-time SDK events for a specific session."""
     await websocket.accept()
 
-    log_path = get_agent_log_path(name)
-    if not log_path:
+    snapshot = agent_manager.get_agent_snapshot(name)
+    if not snapshot:
         await websocket.send_json({"type": "error", "text": f"Agent '{name}' not found"})
         await websocket.close()
         return
 
+    # Send initial snapshot
+    await websocket.send_json({"type": "snapshot", **snapshot})
+
+    # Subscribe to live events
+    q = agent_manager.subscribe_agent(name)
     try:
-        async for event in tail_log(str(log_path)):
+        while True:
+            event = await q.get()
+            if event is None:
+                break  # agent was stopped
             await websocket.send_json(event)
     except WebSocketDisconnect:
         pass
     except Exception:
         pass
+    finally:
+        agent_manager.unsubscribe_agent(name, q)
 
 
 @app.websocket("/ws/fleet")
 async def ws_fleet(websocket: WebSocket):
-    """Stream fleet-wide session list updates (polls every 3s)."""
+    """Stream fleet-wide session list updates via pub/sub."""
     await websocket.accept()
 
-    last_state = None
+    # Send initial state
+    await websocket.send_json({
+        "type": "fleet_update",
+        "sessions": agent_manager.list_agents(),
+    })
+
+    # Subscribe to live updates
+    q = agent_manager.subscribe_fleet()
     try:
         while True:
-            agents = discover_fleet_agents()
-            results = []
-            for agent in agents:
-                log_info = get_log_status(agent["log_path"])
-                results.append({
-                    "name": agent["agent_name"],
-                    "agent_type": agent["agent_type"],
-                    "status": log_info["status"],
-                    "summary": log_info["summary"],
-                    "staleness_seconds": log_info["staleness_seconds"],
-                })
-
-            current_state = json.dumps(results, sort_keys=True)
-            if current_state != last_state:
-                await websocket.send_json({"type": "fleet_update", "sessions": results})
-                last_state = current_state
-
-            await asyncio.sleep(3)
+            event = await q.get()
+            if event is None:
+                break
+            await websocket.send_json(event)
     except WebSocketDisconnect:
         pass
     except Exception:
         pass
+    finally:
+        agent_manager.unsubscribe_fleet(q)
 
 
 # ── Entry Point ──────────────────────────────────────────────────────────────

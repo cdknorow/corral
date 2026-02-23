@@ -1,4 +1,4 @@
-/* Claude Fleet Web Dashboard — Client-side JavaScript */
+/* Claude Fleet Web Dashboard — Client-side JavaScript (SDK edition) */
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -7,7 +7,6 @@ let sessionWs = null;            // WebSocket for current live session
 let fleetWs = null;              // WebSocket for fleet updates
 let autoScroll = true;
 let liveSessions = [];           // cached live session list
-let currentCommands = {};        // commands for current session's agent type
 
 // ── Initialization ─────────────────────────────────────────────────────────
 
@@ -54,16 +53,6 @@ async function loadHistorySessions() {
     }
 }
 
-async function loadLiveSessionDetail(name) {
-    try {
-        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(name)}`);
-        return await resp.json();
-    } catch (e) {
-        console.error("Failed to load session detail:", e);
-        return null;
-    }
-}
-
 async function loadHistoryMessages(sessionId) {
     try {
         const resp = await fetch(`/api/sessions/history/${encodeURIComponent(sessionId)}`);
@@ -93,13 +82,11 @@ async function sendCommand() {
         if (!resp.ok) {
             const text = await resp.text();
             showToast(`Server error ${resp.status}: ${text}`, true);
-            console.error("Send failed:", resp.status, text);
             return;
         }
         const result = await resp.json();
         if (result.error) {
             showToast(result.error, true);
-            console.error("Send error:", result.error);
         } else {
             input.value = "";
             showToast(`Sent: ${command}`);
@@ -110,22 +97,47 @@ async function sendCommand() {
     }
 }
 
-async function refreshCapture() {
-    if (!currentSession || currentSession.type !== "live") return;
+async function interruptAgent() {
+    if (!currentSession || currentSession.type !== "live") {
+        showToast("No live session selected", true);
+        return;
+    }
 
     try {
-        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(currentSession.name)}/capture`);
-        const data = await resp.json();
-        const el = document.getElementById("pane-capture");
-        el.textContent = data.capture || data.error || "No capture available";
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(currentSession.name)}/interrupt`, {
+            method: "POST",
+        });
+        const result = await resp.json();
+        if (result.error) {
+            showToast(result.error, true);
+        } else {
+            showToast("Agent interrupted");
+        }
     } catch (e) {
-        console.error("Failed to refresh capture:", e);
+        showToast("Failed to interrupt agent", true);
+        console.error("Interrupt exception:", e);
+    }
+}
+
+async function stopAgent(name) {
+    try {
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(name)}`, {
+            method: "DELETE",
+        });
+        const result = await resp.json();
+        if (result.error) {
+            showToast(result.error, true);
+        } else {
+            showToast(`Stopped: ${name}`);
+            loadLiveSessions();
+        }
+    } catch (e) {
+        showToast("Failed to stop agent", true);
     }
 }
 
 async function launchSession() {
     const dir = document.getElementById("launch-dir").value.trim();
-    const type = document.getElementById("launch-type").value;
 
     if (!dir) {
         showToast("Working directory is required", true);
@@ -136,16 +148,15 @@ async function launchSession() {
         const resp = await fetch("/api/sessions/launch", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ working_dir: dir, agent_type: type }),
+            body: JSON.stringify({ working_dir: dir }),
         });
         const result = await resp.json();
         if (result.error) {
             showToast(result.error, true);
         } else {
-            showToast(`Launched: ${result.session_name}`);
+            showToast(`Launched: ${result.session_name || result.name}`);
             hideLaunchModal();
-            // Reload sessions after short delay
-            setTimeout(loadLiveSessions, 2000);
+            setTimeout(loadLiveSessions, 1000);
         }
     } catch (e) {
         showToast("Failed to launch session", true);
@@ -163,9 +174,9 @@ function renderLiveSessions(sessions) {
     }
 
     list.innerHTML = sessions.map(s => {
-        const dotClass = getDotClass(s.staleness_seconds);
+        const dotClass = s.is_busy ? "active" : "stale";
         const isActive = currentSession && currentSession.type === "live" && currentSession.name === s.name;
-        return `<li class="${isActive ? 'active' : ''}" onclick="selectLiveSession('${escapeHtml(s.name)}', '${escapeHtml(s.agent_type)}')">
+        return `<li class="${isActive ? 'active' : ''}" onclick="selectLiveSession('${escapeHtml(s.name)}')">
             <span class="session-dot ${dotClass}"></span>
             <span class="session-label">${escapeHtml(s.name)}</span>
         </li>`;
@@ -229,7 +240,7 @@ function renderHistoryChat(messages) {
 
 // ── Session Selection ──────────────────────────────────────────────────────
 
-async function selectLiveSession(name, agentType) {
+async function selectLiveSession(name) {
     // Close existing WebSocket
     if (sessionWs) {
         sessionWs.close();
@@ -245,44 +256,19 @@ async function selectLiveSession(name, agentType) {
 
     // Update header
     document.getElementById("session-name").textContent = name;
-    const badge = document.getElementById("session-type-badge");
-    badge.textContent = agentType || "claude";
-    badge.className = `badge ${(agentType || "claude").toLowerCase()}`;
 
-    // Load detail
-    const detail = await loadLiveSessionDetail(name);
-    if (detail) {
-        updateSessionStatus(detail.status);
-        updateSessionSummary(detail.summary);
-
-        // Populate initial output
-        const output = document.getElementById("session-output");
-        output.innerHTML = "";
-        if (detail.recent_lines) {
-            for (const line of detail.recent_lines) {
-                appendOutputLine(line, "raw");
-            }
-        }
-
-        // Set up pane capture
-        if (detail.pane_capture) {
-            document.getElementById("pane-capture").textContent = detail.pane_capture;
-        }
-    }
+    // Clear output
+    const output = document.getElementById("session-output");
+    output.innerHTML = "";
 
     // Set up quick action buttons
-    const agent = liveSessions.find(s => s.name === name);
-    currentCommands = (agent && agent.commands) || { compress: "/compact", clear: "/clear" };
     renderQuickActions();
 
     // Highlight in sidebar
     updateSidebarActive();
 
-    // Connect WebSocket for streaming
+    // Connect WebSocket for streaming (snapshot will arrive first)
     connectSessionWs(name);
-
-    // Switch to stream tab
-    switchTab("stream");
 }
 
 async function selectHistorySession(sessionId) {
@@ -317,16 +303,7 @@ function connectSessionWs(name) {
 
     sessionWs.onmessage = (event) => {
         const data = JSON.parse(event.data);
-
-        if (data.type === "status") {
-            updateSessionStatus(data.text);
-        } else if (data.type === "summary") {
-            updateSessionSummary(data.text);
-        }
-
-        if (data.type === "raw" || data.type === "status" || data.type === "summary") {
-            appendOutputLine(data.text, data.type);
-        }
+        handleSessionEvent(data);
     };
 
     sessionWs.onclose = () => {
@@ -338,6 +315,69 @@ function connectSessionWs(name) {
     sessionWs.onerror = () => {
         // Will trigger onclose
     };
+}
+
+function handleSessionEvent(data) {
+    switch (data.type) {
+        case "snapshot":
+            // Initial load: populate state and recent messages
+            updateSessionStatus(data.status);
+            updateSessionSummary(data.summary);
+            updateBusyIndicator(data.is_busy);
+            updateSessionInfo(data.total_cost_usd, data.session_id);
+            if (data.recent_messages) {
+                for (const msg of data.recent_messages) {
+                    renderEvent(msg);
+                }
+            }
+            break;
+
+        case "text":
+            appendOutputBlock("text-block", data.text);
+            break;
+
+        case "status":
+            updateSessionStatus(data.text);
+            break;
+
+        case "summary":
+            updateSessionSummary(data.text);
+            break;
+
+        case "tool_use":
+            appendToolUseBlock(data.tool, data.input, data.tool_use_id);
+            break;
+
+        case "tool_result":
+            appendToolResultBlock(data.content, data.is_error, data.tool_use_id);
+            break;
+
+        case "result":
+            appendResultBlock(data);
+            updateSessionInfo(data.total_cost_usd, data.session_id);
+            updateBusyIndicator(false);
+            break;
+
+        case "system":
+            // System init messages — update session_id
+            if (data.session_id) {
+                updateSessionInfo(null, data.session_id);
+            }
+            break;
+
+        case "error":
+            appendOutputBlock("error-block", data.text);
+            break;
+
+        case "stream":
+            // Partial stream events — currently a no-op in the UI
+            break;
+    }
+}
+
+function renderEvent(msg) {
+    // Re-dispatch stored events from the snapshot's recent_messages
+    handleSessionEvent(msg);
 }
 
 function connectFleetWs() {
@@ -365,18 +405,109 @@ function connectFleetWs() {
 
 // ── UI Helpers ─────────────────────────────────────────────────────────────
 
-function appendOutputLine(text, type) {
+function appendOutputBlock(className, text) {
     const output = document.getElementById("session-output");
-    const line = document.createElement("div");
-    line.className = `line ${type === "status" ? "status-line" : type === "summary" ? "summary-line" : ""}`;
-    line.textContent = text;
-    output.appendChild(line);
+    const block = document.createElement("div");
+    block.className = `output-block ${className}`;
+    block.textContent = text;
+    output.appendChild(block);
+    trimOutput(output);
+    scrollIfNeeded(output);
+}
 
-    // Limit DOM size
+function appendToolUseBlock(toolName, input, toolUseId) {
+    const output = document.getElementById("session-output");
+    const block = document.createElement("div");
+    block.className = "output-block tool-use-block";
+    if (toolUseId) block.dataset.toolUseId = toolUseId;
+
+    const header = document.createElement("div");
+    header.className = "tool-header";
+    header.innerHTML = `<span class="tool-icon">&#9881;</span> <strong>${escapeHtml(toolName)}</strong>`;
+    header.onclick = () => {
+        details.style.display = details.style.display === "none" ? "" : "none";
+    };
+
+    const details = document.createElement("pre");
+    details.className = "tool-details";
+    details.textContent = formatToolInput(toolName, input);
+    details.style.display = "none";
+
+    block.appendChild(header);
+    block.appendChild(details);
+    output.appendChild(block);
+    trimOutput(output);
+    scrollIfNeeded(output);
+}
+
+function formatToolInput(toolName, input) {
+    if (!input) return "";
+    // Show relevant fields based on tool type
+    if (toolName === "Read" && input.file_path) return input.file_path;
+    if (toolName === "Write" && input.file_path) return input.file_path;
+    if (toolName === "Edit" && input.file_path) return `${input.file_path}\n-${(input.old_string || "").substring(0, 200)}\n+${(input.new_string || "").substring(0, 200)}`;
+    if (toolName === "Bash" && input.command) return input.command;
+    if (toolName === "Glob" && input.pattern) return input.pattern;
+    if (toolName === "Grep" && input.pattern) return `${input.pattern}${input.path ? " in " + input.path : ""}`;
+    return JSON.stringify(input, null, 2);
+}
+
+function appendToolResultBlock(content, isError, toolUseId) {
+    const output = document.getElementById("session-output");
+    const block = document.createElement("div");
+    block.className = `output-block tool-result-block ${isError ? "tool-error" : ""}`;
+    if (toolUseId) block.dataset.toolUseId = toolUseId;
+
+    // Truncate long results
+    const displayContent = content && content.length > 2000
+        ? content.substring(0, 2000) + "\n... (truncated)"
+        : content || "";
+
+    const header = document.createElement("div");
+    header.className = "tool-result-header";
+    header.innerHTML = isError
+        ? '<span class="result-icon error-icon">&#10007;</span> Error'
+        : '<span class="result-icon">&#10003;</span> Result';
+    header.onclick = () => {
+        details.style.display = details.style.display === "none" ? "" : "none";
+    };
+
+    const details = document.createElement("pre");
+    details.className = "tool-result-content";
+    details.textContent = displayContent;
+    details.style.display = "none";
+
+    block.appendChild(header);
+    block.appendChild(details);
+    output.appendChild(block);
+    trimOutput(output);
+    scrollIfNeeded(output);
+}
+
+function appendResultBlock(data) {
+    const output = document.getElementById("session-output");
+    const block = document.createElement("div");
+    block.className = "output-block result-summary-block";
+
+    const parts = [];
+    if (data.num_turns) parts.push(`${data.num_turns} turns`);
+    if (data.duration_ms) parts.push(`${(data.duration_ms / 1000).toFixed(1)}s`);
+    if (data.total_cost_usd != null) parts.push(`$${data.total_cost_usd.toFixed(4)}`);
+    if (data.is_error) parts.push("(error)");
+
+    block.textContent = `Done: ${parts.join(" | ")}`;
+    output.appendChild(block);
+    trimOutput(output);
+    scrollIfNeeded(output);
+}
+
+function trimOutput(output) {
     while (output.children.length > 2000) {
         output.removeChild(output.firstChild);
     }
+}
 
+function scrollIfNeeded(output) {
     if (autoScroll) {
         output.scrollTop = output.scrollHeight;
     }
@@ -400,16 +531,36 @@ function updateSessionSummary(summary) {
     }
 }
 
+function updateBusyIndicator(isBusy) {
+    const el = document.getElementById("busy-indicator");
+    el.style.display = isBusy ? "" : "none";
+
+    const dot = document.querySelector("#session-status .status-dot");
+    if (dot) {
+        dot.className = `status-dot ${isBusy ? "busy" : ""}`;
+    }
+}
+
+function updateSessionInfo(cost, sessionId) {
+    const infoEl = document.getElementById("session-info");
+
+    if (cost != null) {
+        document.getElementById("session-cost").textContent = `Cost: $${cost.toFixed(4)}`;
+    }
+    if (sessionId) {
+        document.getElementById("session-id-display").textContent = `Session: ${sessionId.substring(0, 12)}...`;
+    }
+
+    if (cost != null || sessionId) {
+        infoEl.style.display = "";
+    }
+}
+
 function renderQuickActions() {
     const container = document.getElementById("quick-actions");
     container.innerHTML = `
-        <button class="btn btn-small" onclick="sendQuickCommand('${escapeAttr(currentCommands.compress || "/compact")}')">
-            ${escapeHtml(currentCommands.compress || "/compact")}
-        </button>
-        <button class="btn btn-small btn-warning" onclick="sendQuickCommand('${escapeAttr(currentCommands.clear || "/clear")}')">
-            ${escapeHtml(currentCommands.clear || "/clear")}
-        </button>
-        <button class="btn btn-small btn-danger" onclick="sendResetCommand()">Reset</button>
+        <button class="btn btn-small" onclick="sendQuickCommand('/compact')">/compact</button>
+        <button class="btn btn-small btn-danger" onclick="stopCurrentAgent()">Stop</button>
     `;
 }
 
@@ -418,33 +569,14 @@ function sendQuickCommand(command) {
     sendCommand();
 }
 
-function sendResetCommand() {
-    const compress = currentCommands.compress || "/compact";
-    const clear = currentCommands.clear || "/clear";
-    // Send compress first, then clear after a delay
-    document.getElementById("command-input").value = compress;
-    sendCommand();
-    setTimeout(() => {
-        document.getElementById("command-input").value = clear;
-        sendCommand();
-    }, 1000);
-}
-
-function switchTab(tabName) {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add("active");
-
-    document.getElementById("tab-stream").style.display = tabName === "stream" ? "" : "none";
-    document.getElementById("tab-capture").style.display = tabName === "capture" ? "" : "none";
-
-    if (tabName === "capture") {
-        refreshCapture();
+function stopCurrentAgent() {
+    if (currentSession && currentSession.type === "live") {
+        stopAgent(currentSession.name);
     }
 }
 
 function updateSidebarActive() {
     document.querySelectorAll(".session-list li").forEach(li => li.classList.remove("active"));
-    // Re-render will set active class
     if (liveSessions.length) renderLiveSessions(liveSessions);
 }
 
@@ -452,12 +584,10 @@ function editAndResubmit(btn) {
     const bubble = btn.closest(".chat-bubble");
     const text = bubble.querySelector(".message-text").textContent;
 
-    // Switch to a live session if one exists
     if (liveSessions.length > 0 && (!currentSession || currentSession.type !== "live")) {
-        selectLiveSession(liveSessions[0].name, liveSessions[0].agent_type);
+        selectLiveSession(liveSessions[0].name);
     }
 
-    // If we're viewing a live session, just populate the input
     if (currentSession && currentSession.type === "live") {
         document.getElementById("command-input").value = text;
         document.getElementById("command-input").focus();
@@ -465,13 +595,6 @@ function editAndResubmit(btn) {
     } else {
         showToast("No live session available to send to", true);
     }
-}
-
-function getDotClass(staleness) {
-    if (staleness === null || staleness === undefined) return "stale";
-    if (staleness < 60) return "active";
-    if (staleness < 300) return "recent";
-    return "stale";
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────
@@ -516,8 +639,4 @@ function escapeHtml(str) {
     const div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
-}
-
-function escapeAttr(str) {
-    return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
 }
