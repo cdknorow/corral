@@ -277,12 +277,29 @@ def load_history_sessions() -> list[dict[str, Any]]:
         except OSError:
             continue
 
-    # Build summaries (use first human message as preview)
+    # Build summaries: prefer ||SUMMARY:|| marker, fall back to first human message
     result = []
     for sid, data in sessions.items():
+        summary_marker = ""
         first_human = ""
         for msg in data["messages"]:
-            if msg.get("type") == "human":
+            # Look for ||SUMMARY:|| in assistant messages
+            if not summary_marker and msg.get("type") == "assistant":
+                content = msg.get("message", {}).get("content", "")
+                text = ""
+                if isinstance(content, str):
+                    text = content
+                elif isinstance(content, list):
+                    text = " ".join(
+                        b.get("text", "") for b in content
+                        if isinstance(b, dict) and b.get("type") == "text"
+                    )
+                m = SUMMARY_RE.search(text)
+                if m:
+                    summary_marker = clean_match(m.group(1))
+
+            # Fall back: first human message
+            if not first_human and msg.get("type") == "human":
                 content = msg.get("message", {}).get("content", "")
                 if isinstance(content, str):
                     first_human = content[:100]
@@ -291,9 +308,7 @@ def load_history_sessions() -> list[dict[str, Any]]:
                         if isinstance(block, dict) and block.get("type") == "text":
                             first_human = block.get("text", "")[:100]
                             break
-                if first_human:
-                    break
-        data["summary"] = first_human or "(no messages)"
+        data["summary"] = summary_marker or first_human or "(no messages)"
         data["message_count"] = len(data["messages"])
         # Don't include full messages in the listing
         listing = {k: v for k, v in data.items() if k != "messages"}
