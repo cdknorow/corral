@@ -579,6 +579,8 @@ function renderQuickActions() {
             ${escapeHtml(currentCommands.clear || "/clear")}
         </button>
         <button class="btn btn-small btn-danger" onclick="sendResetCommand()">Reset</button>
+        <span class="quick-actions-divider"></span>
+        <button class="btn btn-small btn-primary" onclick="attachTerminal()" title="Open in terminal">Attach</button>
     `;
 }
 
@@ -603,6 +605,30 @@ async function sendRawKeys(keys) {
     } catch (e) {
         showToast("Failed to send keys", true);
         console.error("sendRawKeys exception:", e);
+    }
+}
+
+async function attachTerminal() {
+    if (!currentSession || currentSession.type !== "live") {
+        showToast("No live session selected", true);
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(currentSession.name)}/attach`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agent_type: currentSession.agent_type }),
+        });
+        const result = await resp.json();
+        if (result.error) {
+            showToast(result.error, true);
+        } else {
+            showToast("Terminal opened");
+        }
+    } catch (e) {
+        showToast("Failed to open terminal", true);
+        console.error("attachTerminal exception:", e);
     }
 }
 

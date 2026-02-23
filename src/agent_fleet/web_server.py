@@ -21,6 +21,7 @@ from agent_fleet.session_manager import (
     send_to_tmux,
     send_raw_keys,
     capture_pane,
+    open_terminal_attached,
     load_history_sessions,
     load_history_session_messages,
     launch_claude_session,
@@ -133,6 +134,16 @@ async def send_keys(name: str, body: dict):
     if error:
         return {"error": error}
     return {"ok": True, "keys": keys}
+
+
+@app.post("/api/sessions/live/{name}/attach")
+async def attach_terminal(name: str, body: dict | None = None):
+    """Open a local terminal window attached to the agent's tmux session."""
+    agent_type = (body or {}).get("agent_type") or None
+    error = await open_terminal_attached(name, agent_type=agent_type)
+    if error:
+        return {"error": error}
+    return {"ok": True}
 
 
 @app.post("/api/sessions/launch")

@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import platform
 import re
+import shutil
 import time
 from glob import glob
 from pathlib import Path
@@ -137,23 +139,19 @@ async def list_tmux_sessions() -> list[dict[str, str]]:
         return []
 
 
-async def find_pane_target(agent_name: str, agent_type: str | None = None) -> str | None:
-    """Find the tmux pane target address for a given agent name.
+async def _find_pane(agent_name: str, agent_type: str | None = None) -> dict[str, str] | None:
+    """Find the tmux pane dict for a given agent name.
 
-    Matches against pane title, session name, and current working directory
-    to handle cases where the pane title is changed by the running program.
-
-    When *agent_type* is provided (e.g. ``"gemini"``), panes whose title or
-    session name also contain the agent type are preferred.  This disambiguates
-    the case where Claude and Gemini both run on the same worktree folder.
-    Falls back to the first name-only match when no type-qualified match exists.
+    Matches against pane title, session name, and current working directory.
+    When *agent_type* is provided, panes whose title or session name also
+    contain the agent type are preferred (disambiguates same-worktree agents).
     """
     sessions = await list_tmux_sessions()
     agent_low = agent_name.lower()
     norm_name = agent_name.replace("_", "-").lower()
     type_low = agent_type.lower() if agent_type else None
 
-    fallback: str | None = None
+    fallback: dict[str, str] | None = None
 
     for s in sessions:
         title_low = s["pane_title"].lower()
@@ -171,16 +169,21 @@ async def find_pane_target(agent_name: str, agent_type: str | None = None) -> st
         if not name_match:
             continue
 
-        # If agent_type requested, prefer panes that also mention it
         if type_low:
             if type_low in title_low or type_low in session_low:
-                return s["target"]  # exact type match — use immediately
+                return s
             if fallback is None:
-                fallback = s["target"]  # keep first name-only match
+                fallback = s
         else:
-            return s["target"]
+            return s
 
     return fallback
+
+
+async def find_pane_target(agent_name: str, agent_type: str | None = None) -> str | None:
+    """Find the tmux pane target address for a given agent name."""
+    pane = await _find_pane(agent_name, agent_type)
+    return pane["target"] if pane else None
 
 
 async def send_to_tmux(agent_name: str, command: str, agent_type: str | None = None) -> str | None:
@@ -255,6 +258,57 @@ async def capture_pane(agent_name: str, lines: int = 200, agent_type: str | None
         return stdout.decode(errors="replace")
     except (OSError, FileNotFoundError):
         return None
+
+
+async def open_terminal_attached(agent_name: str, agent_type: str | None = None) -> str | None:
+    """Open a local terminal window attached to the agent's tmux session.
+
+    Returns an error string on failure, or None on success.
+    Uses osascript on macOS, or falls back to common terminal emulators on Linux.
+    """
+    pane = await _find_pane(agent_name, agent_type)
+    if not pane:
+        return f"Pane '{agent_name}' not found in any tmux session"
+
+    session_name = pane["session_name"]
+    attach_cmd = f"tmux attach -t {session_name}"
+
+    try:
+        if platform.system() == "Darwin":
+            # macOS: use osascript to open Terminal.app
+            script = (
+                f'tell application "Terminal"\n'
+                f'    activate\n'
+                f'    do script "{attach_cmd}"\n'
+                f'end tell'
+            )
+            proc = await asyncio.create_subprocess_exec(
+                "osascript", "-e", script,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            _, stderr = await proc.communicate()
+            if proc.returncode != 0:
+                return f"osascript failed: {stderr.decode().strip()}"
+        else:
+            # Linux: try common terminal emulators
+            for term in ("gnome-terminal", "xfce4-terminal", "konsole", "xterm"):
+                if shutil.which(term):
+                    if term == "gnome-terminal":
+                        args = [term, "--", "bash", "-c", attach_cmd]
+                    elif term == "konsole":
+                        args = [term, "-e", "bash", "-c", attach_cmd]
+                    else:
+                        args = [term, "-e", attach_cmd]
+                    proc = await asyncio.create_subprocess_exec(
+                        *args, stderr=asyncio.subprocess.PIPE,
+                    )
+                    # Don't wait — terminal runs independently
+                    return None
+            return "No supported terminal emulator found"
+
+        return None
+    except Exception as e:
+        return str(e)
 
 
 def _load_claude_history_sessions() -> list[dict[str, Any]]:
