@@ -292,15 +292,15 @@ class AgentCard(Vertical):
                         break
 
             if target:
-                # Send the command followed by Enter in a single call.
+                # Send the command as literal text (−l prevents tmux key‐name interpretation).
                 await asyncio.create_subprocess_exec(
-                        "tmux", "send-keys", "-t", target, command
+                        "tmux", "send-keys", "-t", target, "-l", command
                     )
                 # 2. Give the CLI a fraction of a second to buffer the text
                 await asyncio.sleep(0.1)
-                # 3. Send the carriage return
+                # 3. Send Enter to submit the command
                 await asyncio.create_subprocess_exec(
-                        "tmux", "send-keys", "-t", target, "C-m"
+                        "tmux", "send-keys", "-t", target, "Enter"
                     )
                 return None
             else:

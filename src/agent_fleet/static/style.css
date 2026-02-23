@@ -1,0 +1,550 @@
+/* Claude Fleet Web Dashboard — Dark Theme */
+
+:root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --bg-hover: #30363d;
+    --border: #30363d;
+    --border-light: #484f58;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #484f58;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --success: #3fb950;
+    --warning: #d29922;
+    --error: #f85149;
+    --badge-claude: #7c3aed;
+    --badge-gemini: #2563eb;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Top Bar */
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.top-bar h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Layout */
+.layout {
+    display: flex;
+    height: calc(100vh - 49px);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-section {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-section:last-child {
+    border-bottom: none;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sidebar-section h2 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    padding: 0 16px 8px;
+}
+
+.session-list {
+    list-style: none;
+}
+
+.session-list li {
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s;
+}
+
+.session-list li:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.session-list li.active {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-left: 2px solid var(--accent);
+}
+
+.session-list li.empty-state {
+    cursor: default;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.session-list li.empty-state:hover {
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.session-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.session-dot.active { background: var(--success); }
+.session-dot.recent { background: var(--warning); }
+.session-dot.stale { background: var(--text-muted); }
+
+.session-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+}
+
+.welcome h2 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.welcome p {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* Session View */
+.session-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.session-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
+.session-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.session-title h2 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge.claude { background: var(--badge-claude); color: #fff; }
+.badge.gemini { background: var(--badge-gemini); color: #fff; }
+
+.session-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.status-line, .summary-line {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: var(--success);
+}
+
+/* Tabs */
+.output-tabs {
+    display: flex;
+    gap: 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.tab {
+    padding: 8px 20px;
+    font-size: 13px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+}
+
+.tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+/* Output Area */
+.output-area {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.output-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 20px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.output-scroll .line {
+    padding: 1px 0;
+}
+
+.output-scroll .line.status-line {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.output-scroll .line.summary-line {
+    color: var(--warning);
+    font-weight: 600;
+}
+
+.capture-text {
+    color: var(--text-secondary);
+}
+
+/* Command Bar */
+.command-bar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+}
+
+.command-bar input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.command-bar input:focus {
+    border-color: var(--accent);
+}
+
+.quick-actions {
+    display: flex;
+    gap: 6px;
+    padding: 0 20px 12px;
+    background: var(--bg-secondary);
+}
+
+/* Chat Messages (History View) */
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+}
+
+.chat-bubble {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 85%;
+    position: relative;
+}
+
+.chat-bubble.human {
+    background: var(--accent-dim);
+    color: var(--text-primary);
+    margin-left: auto;
+    border-bottom-right-radius: 2px;
+}
+
+.chat-bubble.assistant {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-bottom-left-radius: 2px;
+}
+
+.chat-bubble .role-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.chat-bubble .message-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.chat-bubble .edit-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.chat-bubble:hover .edit-btn {
+    opacity: 1;
+}
+
+.chat-bubble .edit-btn:hover {
+    background: var(--accent-dim);
+    color: var(--text-primary);
+}
+
+/* Buttons */
+.btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.btn:hover {
+    background: var(--bg-hover);
+}
+
+.btn-primary {
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--accent);
+}
+
+.btn-warning {
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+.btn-warning:hover {
+    background: var(--warning);
+    color: var(--bg-primary);
+}
+
+.btn-danger {
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.btn-danger:hover {
+    background: var(--error);
+    color: var(--bg-primary);
+}
+
+.btn-small {
+    padding: 4px 10px;
+    font-size: 12px;
+    margin: 8px 20px;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: 400px;
+    max-width: 90vw;
+}
+
+.modal-content h3 {
+    margin-bottom: 16px;
+    font-size: 16px;
+}
+
+.modal-content label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.modal-content input,
+.modal-content select {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    border-color: var(--accent);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--border-light);
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--text-primary);
+    z-index: 200;
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+}
+
+.toast.error {
+    border-color: var(--error);
+    color: var(--error);
+}
+
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
