@@ -1,4 +1,4 @@
-"""FastAPI web server for the Claude Fleet Web Dashboard."""
+"""FastAPI web server for the Agent Fleet Dashboard."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from agent_fleet.session_manager import (
 from agent_fleet.log_streamer import get_log_snapshot
 
 BASE_DIR = Path(__file__).parent
-app = FastAPI(title="Claude Fleet Web Dashboard")
+app = FastAPI(title="Agent Fleet Dashboard")
 
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
@@ -211,7 +211,7 @@ async def ws_fleet(websocket: WebSocket):
 def main():
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="Claude Fleet Web Dashboard")
+    parser = argparse.ArgumentParser(description="Agent Fleet Dashboard")
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=8420, help="Port to bind to (default: 8420)")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
