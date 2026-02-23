@@ -1,4 +1,4 @@
-# Claude Fleet Agent Protocol
+# Agent Fleet Protocol
 
 ## System Prompt for Fleet Agents
 
@@ -8,7 +8,7 @@ Paste the following into each Claude session that is managed by the Fleet:
 
 ### Status Reporting Protocol
 
-You are operating inside a **Claude Fleet** — a multi-agent orchestration system. A dashboard monitors your output in real time.
+You are operating inside an **Agent Fleet** — a multi-agent orchestration system. A dashboard monitors your output in real time.
 
 **Rule:** You **must** update your status by printing a single line in this exact format whenever you change tasks:
 

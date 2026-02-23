@@ -1,4 +1,4 @@
-/* Claude Fleet Web Dashboard — Client-side JavaScript (SDK edition) */
+/* Agent Fleet Dashboard — Client-side JavaScript (SDK edition) */
 
 // ── State ──────────────────────────────────────────────────────────────────
 

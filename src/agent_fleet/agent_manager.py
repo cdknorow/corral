@@ -384,7 +384,7 @@ def launch_fleet_cli():
     import os
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="Launch Claude Fleet agents and web dashboard")
+    parser = argparse.ArgumentParser(description="Launch Agent Fleet agents and web dashboard")
     parser.add_argument("worktree_dir", nargs="?", help="Directory containing git worktrees to launch agents in")
     parser.add_argument("--host", default="0.0.0.0", help="Web server host (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=8420, help="Web server port (default: 8420)")
