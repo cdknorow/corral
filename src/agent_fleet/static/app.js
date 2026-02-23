@@ -112,6 +112,51 @@ async function sendCommand() {
     }
 }
 
+// Detect separator lines (horizontal rules made of box-drawing chars like ─ ━ ═)
+function isSeparatorLine(line) {
+    const stripped = line.trim();
+    if (stripped.length < 4) return false;
+    return /^[─━═╌╍┄┅┈┉\-]+$/.test(stripped);
+}
+
+// Detect user prompt lines (❯, >, $)
+function isUserPromptLine(line) {
+    return /^\s*[❯›>$]\s+\S/.test(line);
+}
+
+function renderCaptureText(el, text) {
+    el.innerHTML = "";
+    const lines = text.split("\n");
+    let inUserBlock = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const div = document.createElement("div");
+        div.className = "capture-line";
+
+        if (isSeparatorLine(line)) {
+            // Check if this separator is adjacent to user input
+            const prevIsUser = i > 0 && isUserPromptLine(lines[i - 1]);
+            const nextIsUser = i < lines.length - 1 && isUserPromptLine(lines[i + 1]);
+            if (prevIsUser || nextIsUser || inUserBlock) {
+                div.classList.add("capture-separator");
+                inUserBlock = nextIsUser;
+            }
+        } else if (isUserPromptLine(line)) {
+            div.classList.add("capture-user-input");
+            inUserBlock = true;
+        } else if (inUserBlock && line.trim() !== "") {
+            // Continuation of user input (multi-line messages)
+            div.classList.add("capture-user-input");
+        } else {
+            inUserBlock = false;
+        }
+
+        div.textContent = line;
+        el.appendChild(div);
+    }
+}
+
 async function refreshCapture() {
     if (!currentSession || currentSession.type !== "live") return;
 
@@ -122,8 +167,9 @@ async function refreshCapture() {
         const text = data.capture || data.error || "No capture available";
 
         // Only update if content changed to avoid scroll jank
-        if (el.textContent !== text) {
-            el.textContent = text;
+        if (el._lastCapture !== text) {
+            el._lastCapture = text;
+            renderCaptureText(el, text);
             if (autoScroll) {
                 el.scrollTop = el.scrollHeight;
             }
@@ -368,6 +414,14 @@ function updateSessionSummary(summary) {
 function renderQuickActions() {
     const container = document.getElementById("quick-actions");
     container.innerHTML = `
+        <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Escape'])" title="Escape">Esc</button>
+        <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Up'])" title="Arrow Up">&uarr;</button>
+        <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Down'])" title="Arrow Down">&darr;</button>
+        <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Enter'])" title="Enter">&crarr;</button>
+        <span class="quick-actions-divider"></span>
+        <button class="btn btn-small btn-mode" onclick="sendModeToggle('plan')">Plan Mode</button>
+        <button class="btn btn-small btn-mode" onclick="sendModeToggle('auto')">Accept Edits</button>
+        <span class="quick-actions-divider"></span>
         <button class="btn btn-small" onclick="sendQuickCommand('${escapeAttr(currentCommands.compress || "/compact")}')">
             ${escapeHtml(currentCommands.compress || "/compact")}
         </button>
@@ -376,6 +430,61 @@ function renderQuickActions() {
         </button>
         <button class="btn btn-small btn-danger" onclick="sendResetCommand()">Reset</button>
     `;
+}
+
+async function sendRawKeys(keys) {
+    if (!currentSession || currentSession.type !== "live") {
+        showToast("No live session selected", true);
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(currentSession.name)}/keys`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ keys }),
+        });
+        const result = await resp.json();
+        if (result.error) {
+            showToast(result.error, true);
+        } else {
+            showToast(`Sent: ${keys.join(" + ")}`);
+        }
+    } catch (e) {
+        showToast("Failed to send keys", true);
+        console.error("sendRawKeys exception:", e);
+    }
+}
+
+// Claude Code modes cycle via Shift+Tab (BTab in tmux).
+// Order: default → plan → auto-accept → default
+// We detect the current mode from the capture and send the right number of BTab presses.
+const MODE_CYCLE = ["default", "plan", "auto"];
+
+function detectCurrentMode() {
+    const el = document.getElementById("pane-capture");
+    const text = (el.textContent || "").toLowerCase();
+    // Claude Code status bar shows the current mode
+    if (text.includes("plan mode")) return "plan";
+    if (text.includes("auto-accept") || text.includes("accept edits")) return "auto";
+    return "default";
+}
+
+function sendModeToggle(targetMode) {
+    const current = detectCurrentMode();
+    if (current === targetMode) {
+        showToast(`Already in ${targetMode === "plan" ? "Plan" : "Accept Edits"} mode`);
+        return;
+    }
+
+    const currentIdx = MODE_CYCLE.indexOf(current);
+    const targetIdx = MODE_CYCLE.indexOf(targetMode);
+    // Calculate how many BTab presses to cycle from current to target
+    let presses = (targetIdx - currentIdx + MODE_CYCLE.length) % MODE_CYCLE.length;
+    if (presses === 0) presses = MODE_CYCLE.length;
+
+    const keys = Array(presses).fill("BTab");
+    sendRawKeys(keys);
 }
 
 function sendQuickCommand(command) {

@@ -188,6 +188,27 @@ async def send_to_tmux(agent_name: str, command: str) -> str | None:
         return str(e)
 
 
+async def send_raw_keys(agent_name: str, keys: list[str]) -> str | None:
+    """Send raw tmux key names (e.g. BTab, Escape) to a pane. Returns error string or None."""
+    target = await find_pane_target(agent_name)
+    if not target:
+        return f"Pane '{agent_name}' not found in any tmux session"
+
+    try:
+        for key in keys:
+            proc = await asyncio.create_subprocess_exec(
+                "tmux", "send-keys", "-t", target, key,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            _, stderr = await proc.communicate()
+            if proc.returncode != 0:
+                return f"send-keys '{key}' failed (rc={proc.returncode}): {stderr.decode().strip()}"
+            await asyncio.sleep(0.1)
+        return None
+    except Exception as e:
+        return str(e)
+
+
 async def capture_pane(agent_name: str, lines: int = 200) -> str | None:
     """Capture the current content of a tmux pane. Returns text or None on error."""
     target = await find_pane_target(agent_name)

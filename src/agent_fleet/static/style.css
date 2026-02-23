@@ -261,6 +261,20 @@ body {
     color: var(--text-secondary);
 }
 
+.capture-line {
+    white-space: pre;
+    min-height: 1.4em;
+}
+
+.capture-separator {
+    color: var(--success);
+}
+
+.capture-user-input {
+    color: #c9a0ff;
+    font-weight: 500;
+}
+
 /* Command Bar */
 .command-bar {
     display: flex;
@@ -289,9 +303,40 @@ body {
 
 .quick-actions {
     display: flex;
+    align-items: center;
     gap: 6px;
     padding: 0 20px 12px;
     background: var(--bg-secondary);
+}
+
+.quick-actions-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border-light);
+    margin: 0 4px;
+}
+
+.btn-nav {
+    border-color: var(--accent);
+    color: var(--accent);
+    min-width: 32px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.btn-nav:hover {
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
+.btn-mode {
+    border-color: var(--badge-claude);
+    color: var(--badge-claude);
+}
+
+.btn-mode:hover {
+    background: var(--badge-claude);
+    color: #fff;
 }
 
 /* Chat Messages (History View) */

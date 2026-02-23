@@ -19,6 +19,7 @@ from agent_fleet.session_manager import (
     get_agent_log_path,
     get_log_status,
     send_to_tmux,
+    send_raw_keys,
     capture_pane,
     load_history_sessions,
     load_history_session_messages,
@@ -117,6 +118,19 @@ async def send_command(name: str, body: dict):
     if error:
         return {"error": error}
     return {"ok": True, "command": command}
+
+
+@app.post("/api/sessions/live/{name}/keys")
+async def send_keys(name: str, body: dict):
+    """Send raw tmux key names (e.g. BTab, Escape) to a live session."""
+    keys = body.get("keys", [])
+    if not keys or not isinstance(keys, list):
+        return {"error": "keys must be a non-empty list of tmux key names"}
+
+    error = await send_raw_keys(name, keys)
+    if error:
+        return {"error": error}
+    return {"ok": True, "keys": keys}
 
 
 @app.post("/api/sessions/launch")
