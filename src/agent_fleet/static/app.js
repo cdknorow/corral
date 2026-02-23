@@ -3,11 +3,13 @@
 // ── State ──────────────────────────────────────────────────────────────────
 
 let currentSession = null;       // { type: "live"|"history", name: string }
-let sessionWs = null;            // WebSocket for current live session
 let fleetWs = null;              // WebSocket for fleet updates
+let captureInterval = null;      // interval ID for auto-refreshing capture
 let autoScroll = true;
 let liveSessions = [];           // cached live session list
 let currentCommands = {};        // commands for current session's agent type
+
+const CAPTURE_REFRESH_MS = 2000; // refresh capture every 2 seconds
 
 // ── Initialization ─────────────────────────────────────────────────────────
 
@@ -24,10 +26,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Auto-scroll detection
-    const output = document.getElementById("session-output");
-    output.addEventListener("scroll", () => {
-        const { scrollTop, scrollHeight, clientHeight } = output;
+    // Auto-scroll detection for capture pane
+    const capture = document.getElementById("pane-capture");
+    capture.addEventListener("scroll", () => {
+        const { scrollTop, scrollHeight, clientHeight } = capture;
         autoScroll = (scrollHeight - scrollTop - clientHeight) < 50;
     });
 });
@@ -117,9 +119,30 @@ async function refreshCapture() {
         const resp = await fetch(`/api/sessions/live/${encodeURIComponent(currentSession.name)}/capture`);
         const data = await resp.json();
         const el = document.getElementById("pane-capture");
-        el.textContent = data.capture || data.error || "No capture available";
+        const text = data.capture || data.error || "No capture available";
+
+        // Only update if content changed to avoid scroll jank
+        if (el.textContent !== text) {
+            el.textContent = text;
+            if (autoScroll) {
+                el.scrollTop = el.scrollHeight;
+            }
+        }
     } catch (e) {
         console.error("Failed to refresh capture:", e);
+    }
+}
+
+function startCaptureRefresh() {
+    stopCaptureRefresh();
+    refreshCapture();
+    captureInterval = setInterval(refreshCapture, CAPTURE_REFRESH_MS);
+}
+
+function stopCaptureRefresh() {
+    if (captureInterval) {
+        clearInterval(captureInterval);
+        captureInterval = null;
     }
 }
 
@@ -230,11 +253,7 @@ function renderHistoryChat(messages) {
 // ── Session Selection ──────────────────────────────────────────────────────
 
 async function selectLiveSession(name, agentType) {
-    // Close existing WebSocket
-    if (sessionWs) {
-        sessionWs.close();
-        sessionWs = null;
-    }
+    stopCaptureRefresh();
 
     currentSession = { type: "live", name };
 
@@ -249,22 +268,13 @@ async function selectLiveSession(name, agentType) {
     badge.textContent = agentType || "claude";
     badge.className = `badge ${(agentType || "claude").toLowerCase()}`;
 
-    // Load detail
+    // Load detail for status/summary
     const detail = await loadLiveSessionDetail(name);
     if (detail) {
         updateSessionStatus(detail.status);
         updateSessionSummary(detail.summary);
 
-        // Populate initial output
-        const output = document.getElementById("session-output");
-        output.innerHTML = "";
-        if (detail.recent_lines) {
-            for (const line of detail.recent_lines) {
-                appendOutputLine(line, "raw");
-            }
-        }
-
-        // Set up pane capture
+        // Show initial pane capture
         if (detail.pane_capture) {
             document.getElementById("pane-capture").textContent = detail.pane_capture;
         }
@@ -278,18 +288,12 @@ async function selectLiveSession(name, agentType) {
     // Highlight in sidebar
     updateSidebarActive();
 
-    // Connect WebSocket for streaming
-    connectSessionWs(name);
-
-    // Switch to stream tab
-    switchTab("stream");
+    // Start auto-refreshing capture
+    startCaptureRefresh();
 }
 
 async function selectHistorySession(sessionId) {
-    if (sessionWs) {
-        sessionWs.close();
-        sessionWs = null;
-    }
+    stopCaptureRefresh();
 
     currentSession = { type: "history", name: sessionId };
 
@@ -307,38 +311,7 @@ async function selectHistorySession(sessionId) {
     }
 }
 
-// ── WebSocket Connections ──────────────────────────────────────────────────
-
-function connectSessionWs(name) {
-    const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${proto}//${location.host}/ws/session/${encodeURIComponent(name)}`;
-
-    sessionWs = new WebSocket(url);
-
-    sessionWs.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === "status") {
-            updateSessionStatus(data.text);
-        } else if (data.type === "summary") {
-            updateSessionSummary(data.text);
-        }
-
-        if (data.type === "raw" || data.type === "status" || data.type === "summary") {
-            appendOutputLine(data.text, data.type);
-        }
-    };
-
-    sessionWs.onclose = () => {
-        if (currentSession && currentSession.type === "live" && currentSession.name === name) {
-            setTimeout(() => connectSessionWs(name), 3000);
-        }
-    };
-
-    sessionWs.onerror = () => {
-        // Will trigger onclose
-    };
-}
+// ── WebSocket Connection (fleet-wide updates only) ─────────────────────────
 
 function connectFleetWs() {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -351,6 +324,15 @@ function connectFleetWs() {
         if (data.type === "fleet_update") {
             liveSessions = data.sessions;
             renderLiveSessions(data.sessions);
+
+            // Update status/summary if we're viewing a live session
+            if (currentSession && currentSession.type === "live") {
+                const s = data.sessions.find(s => s.name === currentSession.name);
+                if (s) {
+                    updateSessionStatus(s.status);
+                    updateSessionSummary(s.summary);
+                }
+            }
         }
     };
 
@@ -364,23 +346,6 @@ function connectFleetWs() {
 }
 
 // ── UI Helpers ─────────────────────────────────────────────────────────────
-
-function appendOutputLine(text, type) {
-    const output = document.getElementById("session-output");
-    const line = document.createElement("div");
-    line.className = `line ${type === "status" ? "status-line" : type === "summary" ? "summary-line" : ""}`;
-    line.textContent = text;
-    output.appendChild(line);
-
-    // Limit DOM size
-    while (output.children.length > 2000) {
-        output.removeChild(output.firstChild);
-    }
-
-    if (autoScroll) {
-        output.scrollTop = output.scrollHeight;
-    }
-}
 
 function updateSessionStatus(status) {
     const el = document.getElementById("session-status");
@@ -428,18 +393,6 @@ function sendResetCommand() {
         document.getElementById("command-input").value = clear;
         sendCommand();
     }, 1000);
-}
-
-function switchTab(tabName) {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add("active");
-
-    document.getElementById("tab-stream").style.display = tabName === "stream" ? "" : "none";
-    document.getElementById("tab-capture").style.display = tabName === "capture" ? "" : "none";
-
-    if (tabName === "capture") {
-        refreshCapture();
-    }
 }
 
 function updateSidebarActive() {

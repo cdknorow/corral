@@ -16,6 +16,8 @@ LOG_PATTERN = f"{LOG_DIR}/*_fleet_*.log"
 STATUS_RE = re.compile(r"\|\|STATUS:\s*(.+?)\|\|")
 SUMMARY_RE = re.compile(r"\|\|SUMMARY:\s*(.+?)\|\|")
 ANSI_RE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\))")
+# Stray control characters (BEL, etc.) that survive ANSI stripping — keep \n \r \t
+_CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 COMMAND_MAP = {
     "claude": {
@@ -33,7 +35,10 @@ HISTORY_PATH = Path.home() / ".claude" / "projects"
 
 def strip_ansi(text: str) -> str:
     """Remove ANSI escape sequences, replacing each with a space."""
-    return ANSI_RE.sub(" ", text)
+    text = ANSI_RE.sub(" ", text)
+    # Remove stray control characters (BEL \x07, etc.) left after partial sequences
+    text = _CONTROL_CHAR_RE.sub("", text)
+    return text
 
 
 def clean_match(text: str) -> str:

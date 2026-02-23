@@ -18,12 +18,26 @@ from agent_fleet.session_manager import (
 # Lines that are purely TUI chrome / noise after ANSI stripping
 _BOX_LINE_RE = re.compile(r"^[\s─━═╌╍┄┅┈┉╴╶╸╺─]+$")
 _SPINNER_RE = re.compile(
-    r"^[\s✶✷✸✹✺✻✼✽✾✿⏺⏵⏴⏹⏏⚡●○◉◎◌◐◑◒◓▪▫▸▹►▻⣾⣽⣻⢿⡿⣟⣯⣷⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]*$"
+    r"^[\s✶✷✸✹✺✻✼✽✾✿⏺⏵⏴⏹⏏⚡●○◉◎◌◐◑◒◓▪▫▸▹►▻\u2800-\u28FF·•]*$"
 )
 _STATUS_BAR_RE = re.compile(
     r"(worktree:|branch:|model:|ctx:|in:\d|out:\d|cache:\d|shift\+tab|accept edits)"
 )
 _PROMPT_RE = re.compile(r"^\s*[❯›>$#%]\s*$")
+
+# OSC title sequence fragments that survive ANSI stripping
+# (e.g., "0;⠐ Real-time Output Streaming" from split \x1b]0;...\x07)
+_OSC_TITLE_RE = re.compile(r"^\d+;")
+
+# Bare numbers with optional decorators (progress counters / step numbers)
+# Matches: "2", "·  3", "  5 ", "· 12"
+_BARE_NUMBER_RE = re.compile(r"^[·•.\s]*\d+[·•.\s]*$")
+
+# Known TUI chrome / status labels that leak from terminal UI
+_TUI_NOISE_RE = re.compile(
+    r"Real-time Output Streaming|Streaming response",
+    re.IGNORECASE,
+)
 
 
 def _is_noise_line(line: str) -> bool:
@@ -54,6 +68,18 @@ def _is_noise_line(line: str) -> bool:
     if len(stripped) <= 2 and not stripped.isalnum():
         return True
 
+    # OSC title sequence fragments (e.g., "0;⠐ Real-time Output Streaming")
+    if _OSC_TITLE_RE.match(stripped):
+        return True
+
+    # Bare numbers / progress counters (e.g., "2", "·  3")
+    if _BARE_NUMBER_RE.match(stripped):
+        return True
+
+    # Known TUI chrome text that leaks from terminal title / status bar
+    if _TUI_NOISE_RE.search(stripped):
+        return True
+
     return False
 
 
@@ -69,6 +95,8 @@ async def tail_log(
     """
     log_path = Path(log_path)
     offset = 0
+    last_status: str | None = None
+    last_summary: str | None = None
 
     # Start from current end of file
     try:
@@ -87,11 +115,17 @@ async def tail_log(
 
                 text = strip_ansi(new_data)
 
-                # Check for status/summary markers
+                # Check for status/summary markers (deduplicate consecutive identical)
                 for m in STATUS_RE.finditer(text):
-                    yield {"type": "status", "text": clean_match(m.group(1))}
+                    status_text = clean_match(m.group(1))
+                    if status_text != last_status:
+                        yield {"type": "status", "text": status_text}
+                        last_status = status_text
                 for m in SUMMARY_RE.finditer(text):
-                    yield {"type": "summary", "text": clean_match(m.group(1))}
+                    summary_text = clean_match(m.group(1))
+                    if summary_text != last_summary:
+                        yield {"type": "summary", "text": summary_text}
+                        last_summary = summary_text
 
                 # Send raw lines, filtering TUI noise
                 for line in text.splitlines():

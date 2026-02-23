@@ -224,35 +224,6 @@ body {
     background: var(--success);
 }
 
-/* Tabs */
-.output-tabs {
-    display: flex;
-    gap: 0;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-}
-
-.tab {
-    padding: 8px 20px;
-    font-size: 13px;
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.15s;
-}
-
-.tab:hover {
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
-}
-
-.tab.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-}
-
 /* Output Area */
 .output-area {
     flex: 1;

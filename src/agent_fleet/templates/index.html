@@ -54,17 +54,8 @@
                     </div>
                 </div>
 
-                <div class="output-tabs">
-                    <button class="tab active" data-tab="stream" onclick="switchTab('stream')">Live Stream</button>
-                    <button class="tab" data-tab="capture" onclick="switchTab('capture')">Pane Capture</button>
-                </div>
-
-                <div id="tab-stream" class="output-area">
-                    <div id="session-output" class="output-scroll"></div>
-                </div>
-                <div id="tab-capture" class="output-area" style="display:none">
+                <div class="output-area">
                     <div id="pane-capture" class="output-scroll capture-text"></div>
-                    <button class="btn btn-small" onclick="refreshCapture()">Refresh Capture</button>
                 </div>
 
                 <div class="command-bar">

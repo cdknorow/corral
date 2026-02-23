@@ -24,7 +24,7 @@ from agent_fleet.session_manager import (
     load_history_session_messages,
     launch_claude_session,
 )
-from agent_fleet.log_streamer import tail_log, get_log_snapshot
+from agent_fleet.log_streamer import get_log_snapshot
 
 BASE_DIR = Path(__file__).parent
 app = FastAPI(title="Claude Fleet Web Dashboard")
@@ -133,26 +133,6 @@ async def launch_session(body: dict):
 
 
 # ── WebSocket Endpoints ─────────────────────────────────────────────────────
-
-
-@app.websocket("/ws/session/{name}")
-async def ws_session(websocket: WebSocket, name: str):
-    """Stream real-time log events for a specific session."""
-    await websocket.accept()
-
-    log_path = get_agent_log_path(name)
-    if not log_path:
-        await websocket.send_json({"type": "error", "text": f"Agent '{name}' not found"})
-        await websocket.close()
-        return
-
-    try:
-        async for event in tail_log(str(log_path)):
-            await websocket.send_json(event)
-    except WebSocketDisconnect:
-        pass
-    except Exception:
-        pass
 
 
 @app.websocket("/ws/fleet")
