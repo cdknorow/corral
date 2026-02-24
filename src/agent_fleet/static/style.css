@@ -417,10 +417,16 @@ body {
     margin: 0 4px;
 }
 
+.nav-keys {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .btn-nav {
     border-color: var(--accent);
     color: var(--accent);
-    min-width: 32px;
+    width: 36px;
     text-align: center;
     font-weight: 600;
 }
@@ -428,6 +434,17 @@ body {
 .btn-nav:hover {
     background: var(--accent);
     color: var(--bg-primary);
+}
+
+.btn-enter {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
+.btn-enter:hover {
+    background: var(--accent-hover, #4a9eff);
+    border-color: var(--accent-hover, #4a9eff);
 }
 
 .btn-mode {

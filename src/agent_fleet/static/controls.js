@@ -42,13 +42,16 @@ export async function sendCommand() {
 }
 
 export function renderQuickActions() {
-    const container = document.getElementById("quick-actions");
-    container.innerHTML = `
+    const navContainer = document.getElementById("nav-keys");
+    navContainer.innerHTML = `
         <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Escape'])" title="Escape">Esc</button>
         <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Up'])" title="Arrow Up">&uarr;</button>
         <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Down'])" title="Arrow Down">&darr;</button>
-        <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Enter'])" title="Enter">&crarr;</button>
-        <span class="quick-actions-divider"></span>
+        <button class="btn btn-small btn-nav btn-enter" onclick="sendRawKeys(['Enter'])" title="Enter">&crarr;</button>
+    `;
+
+    const container = document.getElementById("quick-actions");
+    container.innerHTML = `
         <button class="btn btn-small btn-mode" onclick="sendModeToggle('plan')">Plan Mode</button>
         <button class="btn btn-small btn-mode" onclick="sendModeToggle('auto')">Accept Edits</button>
         <span class="quick-actions-divider"></span>
