@@ -40,7 +40,7 @@ export function renderHistorySessions(sessions, total, page, pageSize) {
     }
 
     list.innerHTML = sessions.map(s => {
-        const label = s.summary || s.session_id;
+        const label = s.summary_title || s.summary || s.session_id;
         const truncated = label.length > 40 ? label.substring(0, 40) + "..." : label;
         const isActive = state.currentSession && state.currentSession.type === "history" && state.currentSession.name === s.session_id;
         const typeTag = s.source_type === "gemini" ? ' <span class="badge gemini">gemini</span>' : "";

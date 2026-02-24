@@ -7,6 +7,24 @@ let currentNotesData = null;
 let isEditing = false;
 let pollTimer = null;
 
+/**
+ * Extract the first markdown header from notes/summary content
+ * and update the history session title.
+ */
+function updateHistoryTitleFromNotes(data) {
+    const content = data.notes_md || data.auto_summary;
+    if (!content) return;
+
+    // Match the first markdown header (#, ##, ###, etc.)
+    const match = content.match(/^#{1,6}\s+(.+)$/m);
+    if (match) {
+        const titleEl = document.getElementById("history-session-title");
+        if (titleEl) {
+            titleEl.textContent = match[1].trim();
+        }
+    }
+}
+
 export async function loadSessionNotes(sessionId) {
     // Reset state
     currentNotesData = null;
@@ -26,6 +44,8 @@ export async function loadSessionNotes(sessionId) {
         const resp = await fetch(`/api/sessions/history/${encodeURIComponent(sessionId)}/notes`);
         const data = await resp.json();
         currentNotesData = data;
+
+        updateHistoryTitleFromNotes(data);
 
         if (data.summarizing) {
             document.getElementById("notes-spinner").style.display = "flex";
@@ -53,6 +73,7 @@ function pollForSummary(sessionId) {
                 pollForSummary(sessionId);
             } else {
                 document.getElementById("notes-spinner").style.display = "none";
+                updateHistoryTitleFromNotes(data);
                 renderNotes(data);
             }
         } catch (e) {
@@ -177,6 +198,7 @@ export async function resummarize() {
                 is_user_edited: currentNotesData ? currentNotesData.is_user_edited : false,
                 updated_at: new Date().toISOString(),
             };
+            updateHistoryTitleFromNotes(currentNotesData);
             renderNotes(currentNotesData);
             showToast("Summary generated");
         }

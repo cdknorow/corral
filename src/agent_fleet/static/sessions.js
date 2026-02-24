@@ -85,6 +85,7 @@ export async function selectHistorySession(sessionId) {
     document.getElementById("history-session-view").style.display = "flex";
 
     document.getElementById("history-session-title").textContent = `Session: ${sessionId}`;
+    document.getElementById("history-session-id").textContent = sessionId;
 
     updateSidebarActive();
 

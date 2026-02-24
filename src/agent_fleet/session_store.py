@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+
+def _extract_first_header(text: str) -> str:
+    """Extract the first markdown header from text, or return empty string."""
+    if not text:
+        return ""
+    m = re.search(r"^#{1,6}\s+(.+)$", text, re.MULTILINE)
+    return m.group(1).strip() if m else ""
 
 
 DB_DIR = Path.home() / ".agent-fleet"
@@ -376,9 +385,11 @@ class SessionStore:
                     session_ids,
                 ).fetchall()
                 for r in meta_rows:
+                    content = r["notes_md"] or r["auto_summary"] or ""
                     meta_map[r["session_id"]] = {
                         "has_notes": bool(r["notes_md"]) or bool(r["auto_summary"]),
                         "is_user_edited": bool(r["is_user_edited"]),
+                        "summary_title": _extract_first_header(content),
                     }
 
                 tag_rows = conn.execute(
@@ -407,6 +418,7 @@ class SessionStore:
                     "last_timestamp": r["last_timestamp"],
                     "message_count": r["message_count"],
                     "summary": r["display_summary"],
+                    "summary_title": meta.get("summary_title", ""),
                     "has_notes": meta.get("has_notes", False),
                     "tags": tags_map.get(sid, []),
                 })

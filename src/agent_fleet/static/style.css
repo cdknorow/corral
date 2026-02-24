@@ -954,11 +954,18 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .history-title-row h2 {
     font-size: 16px;
     font-weight: 600;
+}
+
+.session-id-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
 }
 
 .history-title-row .btn-small {
