@@ -49,7 +49,8 @@ export function renderQuickActions() {
         <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Escape'])" title="Escape">Esc</button>
         <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Up'])" title="Arrow Up">&uarr;</button>
         <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Down'])" title="Arrow Down">&darr;</button>
-        <button class="btn btn-small btn-nav btn-enter" onclick="sendRawKeys(['Enter'])" title="Enter">&crarr;</button>
+        <button class="btn btn-small btn-nav btn-enter" onclick="sendRawKeys(['Enter'])" title="Enter">&#9166;</button>
+        <button class="btn btn-primary btn-send" onclick="sendCommand()">Send</button>
     `;
 
     const container = document.getElementById("quick-actions");
@@ -60,9 +61,10 @@ export function renderQuickActions() {
         <button class="btn btn-small" onclick="sendQuickCommand('${escapeAttr(state.currentCommands.compress || "/compact")}')">
             ${escapeHtml(state.currentCommands.compress || "/compact")}
         </button>
-        <button class="btn btn-small btn-warning" onclick="sendQuickCommand('${escapeAttr(state.currentCommands.clear || "/clear")}')">
+        <button class="btn btn-small" onclick="sendQuickCommand('${escapeAttr(state.currentCommands.clear || "/clear")}')">
             ${escapeHtml(state.currentCommands.clear || "/clear")}
         </button>
+        <span class="quick-actions-divider"></span>
         <button class="btn btn-small btn-danger" onclick="sendResetCommand()">Reset</button>
     `;
 }

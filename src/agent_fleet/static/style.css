@@ -38,7 +38,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 20px;
+    padding: 10px 20px;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
 }
@@ -47,6 +47,11 @@ body {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
+}
+
+.top-bar .btn-primary {
+    font-size: 12px;
+    padding: 5px 14px;
 }
 
 /* Layout */
@@ -250,11 +255,36 @@ body {
 .session-title-actions {
     margin-left: auto;
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 4px;
 }
 
-.session-title-actions .btn-small {
+.session-title-actions .btn-icon {
     margin: 0;
+}
+
+.session-title-actions .actions-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 4px;
+    flex-shrink: 0;
+}
+
+/* Icon-only buttons */
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.btn-icon svg {
+    flex-shrink: 0;
 }
 
 .session-title h2 {
@@ -423,7 +453,8 @@ body {
 /* Command Bar */
 .command-bar {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 6px;
     padding: 12px 20px;
     background: var(--bg-secondary);
     border-top: 1px solid var(--border);
@@ -431,6 +462,7 @@ body {
 
 .command-bar input {
     flex: 1;
+    min-width: 0;
     padding: 8px 12px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border);
@@ -446,59 +478,93 @@ body {
     border-color: var(--accent);
 }
 
+.btn-send {
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
 .quick-actions {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 0 20px 12px;
+    padding: 0 20px 10px;
     background: var(--bg-secondary);
 }
 
 .quick-actions-divider {
     width: 1px;
     height: 20px;
-    background: var(--border-light);
-    margin: 0 4px;
+    background: var(--border);
+    margin: 0 6px;
+    flex-shrink: 0;
 }
 
 .nav-keys {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
+    flex-shrink: 0;
 }
 
+.nav-keys .btn {
+    margin: 0;
+}
+
+/* Keyboard-key style for nav buttons */
 .btn-nav {
-    border-color: var(--accent);
-    color: var(--accent);
-    width: 36px;
+    border: 1px solid var(--border-light);
+    border-bottom: 2px solid var(--border-light);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    width: 34px;
+    height: 30px;
     text-align: center;
     font-weight: 600;
+    font-size: 12px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-keys .btn-send {
+    margin: 0;
 }
 
 .btn-nav:hover {
-    background: var(--accent);
-    color: var(--bg-primary);
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
 }
 
 .btn-enter {
-    border-color: var(--accent);
-    background: var(--accent);
-    color: var(--bg-primary);
+    border-color: var(--accent-dim);
+    border-bottom-color: var(--accent-dim);
+    background: rgba(31, 111, 235, 0.15);
+    color: var(--accent);
 }
 
 .btn-enter:hover {
-    background: var(--accent-hover, #4a9eff);
-    border-color: var(--accent-hover, #4a9eff);
+    background: rgba(31, 111, 235, 0.25);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .btn-mode {
-    border-color: var(--badge-claude);
-    color: var(--badge-claude);
+    border-color: var(--border);
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
 }
 
 .btn-mode:hover {
-    background: var(--badge-claude);
-    color: #fff;
+    background: rgba(124, 58, 237, 0.15);
+    border-color: var(--badge-claude);
+    color: var(--badge-claude);
 }
 
 /* Chat Messages (History View) */
@@ -574,8 +640,9 @@ body {
     border-radius: 6px;
     border: 1px solid var(--border);
     background: var(--bg-tertiary);
-    color: var(--text-primary);
+    color: var(--text-secondary);
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
@@ -583,6 +650,7 @@ body {
 
 .btn:hover {
     background: var(--bg-hover);
+    color: var(--text-primary);
 }
 
 .btn-primary {
@@ -593,26 +661,31 @@ body {
 
 .btn-primary:hover {
     background: var(--accent);
+    border-color: var(--accent);
 }
 
 .btn-warning {
+    border-color: var(--border);
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+}
+
+.btn-warning:hover {
+    background: rgba(210, 153, 34, 0.15);
     border-color: var(--warning);
     color: var(--warning);
 }
 
-.btn-warning:hover {
-    background: var(--warning);
-    color: var(--bg-primary);
-}
-
 .btn-danger {
-    border-color: var(--error);
-    color: var(--error);
+    border-color: var(--border);
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
 }
 
 .btn-danger:hover {
-    background: var(--error);
-    color: var(--bg-primary);
+    background: rgba(248, 81, 73, 0.15);
+    border-color: var(--error);
+    color: var(--error);
 }
 
 .btn-small {

@@ -57,10 +57,11 @@
                         <span id="session-type-badge" class="badge">claude</span>
                         <h2 id="session-name"></h2>
                         <div class="session-title-actions">
-                            <button class="btn btn-small" onclick="showInfoModal()" title="Session info">Info</button>
-                            <button class="btn btn-small btn-primary" onclick="attachTerminal()" title="Open in terminal">Attach</button>
-                            <button class="btn btn-small btn-warning" onclick="restartSession()" title="Restart session with same system prompt">Restart</button>
-                            <button class="btn btn-small btn-danger" onclick="killSession()" title="Kill tmux session">Kill</button>
+                            <button class="btn btn-icon" onclick="showInfoModal()" title="Session info"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7" x2="8" y2="11"/><circle cx="8" cy="5" r="0.5" fill="currentColor" stroke="none"/></svg></button>
+                            <button class="btn btn-icon btn-primary" onclick="attachTerminal()" title="Open in terminal"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,4 8,8 4,12"/><line x1="9" y1="12" x2="13" y2="12"/></svg></button>
+                            <span class="actions-divider"></span>
+                            <button class="btn btn-icon btn-warning" onclick="restartSession()" title="Restart session"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2v4h4"/><path d="M3.5 6A5.5 5.5 0 1 1 2.5 8"/></svg></button>
+                            <button class="btn btn-icon btn-danger" onclick="killSession()" title="Kill session"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
                         </div>
                     </div>
                     <div class="session-meta">
@@ -83,7 +84,6 @@
                     <div class="nav-keys" id="nav-keys">
                         <!-- Populated dynamically -->
                     </div>
-                    <button class="btn btn-primary" onclick="sendCommand()">Send</button>
                 </div>
                 <div class="quick-actions" id="quick-actions">
                     <!-- Populated dynamically -->
