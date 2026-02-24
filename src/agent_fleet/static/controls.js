@@ -152,6 +152,35 @@ export async function killSession() {
     }
 }
 
+export async function restartSession() {
+    if (!state.currentSession || state.currentSession.type !== "live") {
+        showToast("No live session selected", true);
+        return;
+    }
+
+    if (!confirm(`Restart session "${state.currentSession.name}"? This will exit the current session and start a fresh one with the same system prompt.`)) {
+        return;
+    }
+
+    try {
+        showToast(`Restarting ${state.currentSession.name}...`);
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(state.currentSession.name)}/restart`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agent_type: state.currentSession.agent_type }),
+        });
+        const result = await resp.json();
+        if (result.error) {
+            showToast(result.error, true);
+        } else {
+            showToast(`Restarted: ${state.currentSession.name}`);
+        }
+    } catch (e) {
+        showToast("Failed to restart session", true);
+        console.error("restartSession exception:", e);
+    }
+}
+
 // Claude Code modes cycle via Shift+Tab (BTab in tmux).
 // Order: default -> plan -> auto-accept -> default
 const MODE_CYCLE = ["default", "plan", "auto"];

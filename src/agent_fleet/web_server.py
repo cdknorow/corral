@@ -23,6 +23,7 @@ from agent_fleet.session_manager import (
     send_raw_keys,
     capture_pane,
     kill_session,
+    restart_session,
     open_terminal_attached,
     load_history_sessions,
     load_history_session_messages,
@@ -167,6 +168,14 @@ async def kill_live_session(name: str, body: dict | None = None):
     if error:
         return {"error": error}
     return {"ok": True}
+
+
+@app.post("/api/sessions/live/{name}/restart")
+async def restart_live_session(name: str, body: dict | None = None):
+    """Restart the agent session: exit the current session and launch a fresh one in the same pane."""
+    agent_type = (body or {}).get("agent_type") or None
+    result = await restart_session(name, agent_type=agent_type)
+    return result
 
 
 @app.post("/api/sessions/live/{name}/attach")

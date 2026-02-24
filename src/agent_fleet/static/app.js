@@ -3,7 +3,7 @@
 import { state } from './state.js';
 import { loadLiveSessions, loadHistorySessions } from './api.js';
 import { connectFleetWs } from './websocket.js';
-import { sendCommand, sendRawKeys, sendModeToggle, sendQuickCommand, sendResetCommand, attachTerminal, killSession } from './controls.js';
+import { sendCommand, sendRawKeys, sendModeToggle, sendQuickCommand, sendResetCommand, attachTerminal, killSession, restartSession } from './controls.js';
 import { selectLiveSession, selectHistorySession, editAndResubmit } from './sessions.js';
 import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand } from './modals.js';
 import { toggleBrowser, browserNavigateTo, browserNavigateUp } from './browser.js';
@@ -19,6 +19,7 @@ window.sendQuickCommand = sendQuickCommand;
 window.sendResetCommand = sendResetCommand;
 window.attachTerminal = attachTerminal;
 window.killSession = killSession;
+window.restartSession = restartSession;
 window.selectLiveSession = selectLiveSession;
 window.selectHistorySession = selectHistorySession;
 window.editAndResubmit = editAndResubmit;

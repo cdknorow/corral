@@ -347,6 +347,101 @@ async def kill_session(agent_name: str, agent_type: str | None = None) -> str | 
         return str(e)
 
 
+async def restart_session(agent_name: str, agent_type: str | None = None) -> dict[str, Any]:
+    """Restart the Claude/Gemini session in the same tmux pane.
+
+    Uses ``tmux respawn-pane -k`` to forcefully kill the running process
+    and spawn a fresh shell, then re-launches the agent with the same
+    system prompt (PROTOCOL.md).
+
+    Returns a dict with result info or an ``error`` key.
+    """
+    pane = await _find_pane(agent_name, agent_type)
+    if not pane:
+        return {"error": f"Pane '{agent_name}' not found in any tmux session"}
+
+    target = pane["target"]
+    session_name = pane["session_name"]
+    working_dir = pane.get("current_path", "")
+    effective_type = (agent_type or "claude").lower()
+
+    try:
+        # 1. Kill the running process and respawn a fresh shell in the same pane
+        proc = await asyncio.create_subprocess_exec(
+            "tmux", "respawn-pane", "-k", "-t", target,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            return {"error": f"respawn-pane failed: {stderr.decode().strip()}"}
+
+        # Wait for the shell to initialise
+        await asyncio.sleep(1)
+
+        # 2. Clear the log file so the dashboard starts fresh
+        log_path = get_agent_log_path(agent_name, agent_type)
+        log_file = str(log_path) if log_path else None
+        if log_path:
+            try:
+                log_path.write_text("")
+            except OSError:
+                pass
+
+        # 3. Re-establish pipe-pane logging (respawn may reset it)
+        if log_file:
+            await asyncio.create_subprocess_exec(
+                "tmux", "pipe-pane", "-t", target, "-o", f"cat >> '{log_file}'"
+            )
+
+        # 4. Restore the pane title
+        folder_name = os.path.basename(working_dir.rstrip("/")) if working_dir else agent_name
+        await asyncio.create_subprocess_exec(
+            "tmux", "send-keys", "-t", target,
+            f"printf '\\033]2;{folder_name} \\xe2\\x80\\x94 {effective_type}\\033\\\\'", "Enter",
+        )
+        await asyncio.sleep(0.3)
+
+        # 5. Re-launch the agent with the same system prompt
+        script_dir = Path(__file__).parent
+        protocol_path = script_dir / "PROTOCOL.md"
+
+        if effective_type == "gemini":
+            if protocol_path.exists():
+                cmd = f'GEMINI_SYSTEM_MD="{protocol_path}" gemini'
+            else:
+                cmd = "gemini"
+        else:
+            if protocol_path.exists():
+                cmd = f"claude --append-system-prompt \"$(cat '{protocol_path}')\""
+            else:
+                cmd = "claude"
+
+        proc = await asyncio.create_subprocess_exec(
+            "tmux", "send-keys", "-t", target, "-l", cmd,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            return {"error": f"re-launch failed: {stderr.decode().strip()}"}
+
+        await asyncio.sleep(0.3)
+
+        proc = await asyncio.create_subprocess_exec(
+            "tmux", "send-keys", "-t", target, "Enter",
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await proc.communicate()
+
+        return {
+            "ok": True,
+            "agent_name": agent_name,
+            "agent_type": effective_type,
+            "working_dir": working_dir,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 async def open_terminal_attached(agent_name: str, agent_type: str | None = None) -> str | None:
     """Open a local terminal window attached to the agent's tmux session.
 
