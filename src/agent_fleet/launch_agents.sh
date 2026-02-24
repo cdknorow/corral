@@ -16,67 +16,37 @@ rm -f "${LOG_DIR}/"*_fleet_*.log
 # Locate assets relative to this script
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROTOCOL_PATH="${SCRIPT_DIR}/PROTOCOL.md"
-DASHBOARD_PATH="${SCRIPT_DIR}/dashboard.py"
+WEB_SERVER_PATH="${SCRIPT_DIR}/web_server.py"
+WEB_SESSION="fleet-web-server"
+WEB_PORT="${FLEET_PORT:-8420}"
 
-# New function to launch the dashboard in a direct terminal window (No tmux)
-launch_dashboard() {
-    local title="Fleet Dashboard"
-    local cmd="python3 $DASHBOARD_PATH --no-launch"
+# Launch the web server in a dedicated tmux session
+launch_web_server() {
+    local cmd="python3 $WEB_SERVER_PATH --port $WEB_PORT"
 
-    # If installed as a package, use the entry point
+    # Prefer the installed entry point
     if command -v agent-fleet &>/dev/null; then
-        cmd="agent-fleet --no-launch"
-    elif [ ! -f "$DASHBOARD_PATH" ]; then
-        echo "  [!] Dashboard skip: dashboard.py not found and agent-fleet not in PATH."
+        cmd="agent-fleet --port $WEB_PORT"
+    elif [ ! -f "$WEB_SERVER_PATH" ]; then
+        echo "  [!] Web server skip: web_server.py not found and agent-fleet not in PATH."
         return 1
     fi
 
-    echo "=== Launching Dashboard (Direct Window) ==="
+    # Kill existing web server session if present
+    tmux kill-session -t "$WEB_SESSION" 2>/dev/null || true
 
-    if [ -n "${SSH_CONNECTION:-}" ]; then
-        echo "  [~] SSH detected — skipping GUI dashboard."
-        return 0
-    fi
-
-    if command -v osascript &>/dev/null; then
-        if osascript -e 'tell application "iTerm2" to version' &>/dev/null 2>&1; then
-            osascript << EOF
-tell application "iTerm2"
-    create window with default profile command "$cmd"
-end tell
-EOF
-        else
-            osascript << EOF
-tell application "Terminal"
-    do script "$cmd"
-    set custom title of front window to "${title}"
-end tell
-EOF
-        fi
-        echo "  [+] Dashboard launched in new window."
-    elif command -v x-terminal-emulator &>/dev/null; then
-        x-terminal-emulator -e "$cmd" &
-        echo "  [+] Dashboard launched (x-terminal-emulator)."
-    elif command -v gnome-terminal &>/dev/null; then
-        gnome-terminal -- bash -c "$cmd" &
-        echo "  [+] Dashboard launched (gnome-terminal)."
-    elif command -v konsole &>/dev/null; then
-        konsole -e "$cmd" &
-        echo "  [+] Dashboard launched (konsole)."
-    elif command -v xfce4-terminal &>/dev/null; then
-        xfce4-terminal -e "$cmd" &
-        echo "  [+] Dashboard launched (xfce4-terminal)."
-    else
-        echo "  [!] Cannot open dashboard automatically: No supported terminal emulator found."
-        echo "      Run it manually: $cmd"
-    fi
+    echo "=== Launching Web Server (tmux: $WEB_SESSION) ==="
+    tmux new-session -d -s "$WEB_SESSION"
+    tmux send-keys -t "$WEB_SESSION" "$cmd" Enter
+    echo "  [+] Web server started on http://localhost:$WEB_PORT"
+    echo "      Attach  : tmux attach -t $WEB_SESSION"
     echo ""
 }
 
-# Skip dashboard launch if requested
-if [ "${SKIP_DASHBOARD:-0}" = "1" ]; then
-    echo "  [~] Skipping dashboard launch (SKIP_DASHBOARD=1)"
-    launch_dashboard() {
+# Skip web server launch if requested
+if [ "${SKIP_WEB_SERVER:-0}" = "1" ]; then
+    echo "  [~] Skipping web server launch (SKIP_WEB_SERVER=1)"
+    launch_web_server() {
         return 0
     }
 fi
@@ -188,7 +158,7 @@ for dir in "${worktrees[@]}"; do
 done
 
 
-launch_dashboard
+launch_web_server
 
 echo "=== All sessions launched ==="
 echo ""
