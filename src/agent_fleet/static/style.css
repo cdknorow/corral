@@ -203,6 +203,16 @@ body {
     margin-bottom: 8px;
 }
 
+.session-title-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+}
+
+.session-title-actions .btn-small {
+    margin: 0;
+}
+
 .session-title h2 {
     font-size: 16px;
     font-weight: 600;
@@ -606,6 +616,54 @@ body {
     justify-content: flex-end;
     gap: 8px;
     margin-top: 20px;
+}
+
+/* Info Modal Grid */
+.info-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    font-size: 13px;
+}
+
+.info-grid dt {
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.info-grid dd {
+    color: var(--text-primary);
+    word-break: break-all;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-grid dd code {
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+}
+
+.copy-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+
+.copy-btn:hover {
+    background: var(--accent-dim);
+    color: #fff;
+    border-color: var(--accent-dim);
 }
 
 /* Scrollbar */

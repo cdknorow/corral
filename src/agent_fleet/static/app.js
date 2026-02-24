@@ -579,9 +579,6 @@ function renderQuickActions() {
             ${escapeHtml(currentCommands.clear || "/clear")}
         </button>
         <button class="btn btn-small btn-danger" onclick="sendResetCommand()">Reset</button>
-        <span class="quick-actions-divider"></span>
-        <button class="btn btn-small btn-primary" onclick="attachTerminal()" title="Open in terminal">Attach</button>
-        <button class="btn btn-small btn-danger" onclick="killSession()" title="Kill tmux session">Kill</button>
     `;
 }
 
@@ -792,11 +789,63 @@ function hideLaunchModal() {
     document.getElementById("launch-modal").style.display = "none";
 }
 
+async function showInfoModal() {
+    if (!currentSession || currentSession.type !== "live") {
+        showToast("No live session selected", true);
+        return;
+    }
+
+    const name = currentSession.name;
+    const agentType = currentSession.agent_type || "";
+
+    try {
+        let url = `/api/sessions/live/${encodeURIComponent(name)}/info`;
+        if (agentType) url += `?agent_type=${encodeURIComponent(agentType)}`;
+        const resp = await fetch(url);
+        const info = await resp.json();
+
+        if (info.error) {
+            showToast(info.error, true);
+            return;
+        }
+
+        document.getElementById("info-agent-name").textContent = info.agent_name || "";
+        document.getElementById("info-agent-type").textContent = info.agent_type || "";
+        document.getElementById("info-tmux-session").textContent = info.tmux_session_name || "";
+        document.getElementById("info-tmux-command").textContent = info.tmux_command || "";
+        document.getElementById("info-working-dir").textContent = info.working_directory || "";
+        document.getElementById("info-log-path").textContent = info.log_path || "";
+        document.getElementById("info-pane-title").textContent = info.pane_title || "";
+
+        document.getElementById("info-modal").style.display = "flex";
+    } catch (e) {
+        showToast("Failed to load session info", true);
+        console.error("showInfoModal exception:", e);
+    }
+}
+
+function hideInfoModal() {
+    document.getElementById("info-modal").style.display = "none";
+}
+
+function copyInfoCommand() {
+    const text = document.getElementById("info-tmux-command").textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied to clipboard");
+    }).catch(() => {
+        showToast("Failed to copy", true);
+    });
+}
+
 // Close modal on outside click
 document.addEventListener("click", (e) => {
-    const modal = document.getElementById("launch-modal");
-    if (e.target === modal) {
+    const launchModal = document.getElementById("launch-modal");
+    const infoModal = document.getElementById("info-modal");
+    if (e.target === launchModal) {
         hideLaunchModal();
+    }
+    if (e.target === infoModal) {
+        hideInfoModal();
     }
 });
 
@@ -804,6 +853,7 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
         hideLaunchModal();
+        hideInfoModal();
     }
 });
 
