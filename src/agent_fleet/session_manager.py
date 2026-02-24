@@ -378,6 +378,13 @@ async def restart_session(agent_name: str, agent_type: str | None = None) -> dic
         # Wait for the shell to initialise
         await asyncio.sleep(1)
 
+        # 1b. Clear the tmux pane scrollback so capture_pane returns fresh content
+        proc = await asyncio.create_subprocess_exec(
+            "tmux", "clear-history", "-t", target,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await proc.communicate()
+
         # 2. Clear the log file so the dashboard starts fresh
         log_path = get_agent_log_path(agent_name, agent_type)
         log_file = str(log_path) if log_path else None
