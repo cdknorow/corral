@@ -167,6 +167,27 @@ async def attach_terminal(name: str, body: dict | None = None):
     return {"ok": True}
 
 
+@app.get("/api/filesystem/list")
+async def list_filesystem(path: str = "~"):
+    """List directories at a given path for the directory browser."""
+    import os
+
+    expanded = os.path.expanduser(path)
+    if not os.path.isdir(expanded):
+        return {"error": f"Not a directory: {path}", "entries": []}
+
+    entries = []
+    try:
+        for name in sorted(os.listdir(expanded), key=str.lower):
+            full = os.path.join(expanded, name)
+            if os.path.isdir(full) and not name.startswith("."):
+                entries.append(name)
+    except PermissionError:
+        return {"error": "Permission denied", "entries": []}
+
+    return {"path": expanded, "entries": entries}
+
+
 @app.post("/api/sessions/launch")
 async def launch_session(body: dict):
     """Launch a new Claude/Gemini session."""

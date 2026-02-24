@@ -85,11 +85,23 @@
 
     <!-- Launch Modal -->
     <div id="launch-modal" class="modal" style="display:none">
-        <div class="modal-content">
+        <div class="modal-content modal-content-wide">
             <h3>Launch New Session</h3>
             <label>Working Directory:
-                <input type="text" id="launch-dir" placeholder="/path/to/project">
+                <div class="dir-input-row">
+                    <input type="text" id="launch-dir" placeholder="/path/to/project">
+                    <button class="btn" id="btn-browse" onclick="toggleBrowser()">Browse</button>
+                </div>
             </label>
+            <div id="dir-browser" class="dir-browser" style="display:none">
+                <div class="dir-browser-header">
+                    <button class="btn btn-small dir-browser-up" onclick="browserNavigateUp()" title="Go up">..</button>
+                    <span class="dir-browser-path" id="browser-current-path">~</span>
+                </div>
+                <ul class="dir-browser-list" id="browser-list">
+                    <li class="empty-state">Loading...</li>
+                </ul>
+            </div>
             <label>Agent Type:
                 <select id="launch-type">
                     <option value="claude">Claude</option>
