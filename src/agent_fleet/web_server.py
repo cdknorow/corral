@@ -117,9 +117,11 @@ async def get_history_sessions():
         if meta:
             s["tags"] = meta["tags"]
             s["has_notes"] = meta["has_notes"]
+            s["notes_title"] = meta.get("notes_title", "")
         else:
             s["tags"] = []
             s["has_notes"] = False
+            s["notes_title"] = ""
     return sessions
 
 

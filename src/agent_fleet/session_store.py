@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -186,8 +187,16 @@ class SessionStore:
 
     # ── Bulk queries for enriching history list ─────────────────────────────
 
+    @staticmethod
+    def _extract_heading(text: str) -> str:
+        """Extract the first markdown heading from text, or return empty string."""
+        if not text:
+            return ""
+        m = re.search(r"^#{1,6}\s+(.+)", text, re.MULTILINE)
+        return m.group(1).strip() if m else ""
+
     def get_all_session_metadata(self) -> dict[str, dict[str, Any]]:
-        """Return {session_id: {tags: [...], has_notes: bool}} for all known sessions."""
+        """Return {session_id: {tags: [...], has_notes: bool, notes_title: str}} for all known sessions."""
         conn = self._connect()
         try:
             # Get all session notes info
@@ -198,9 +207,11 @@ class SessionStore:
             result: dict[str, dict[str, Any]] = {}
             for r in meta_rows:
                 has_notes = bool(r["notes_md"]) or bool(r["auto_summary"])
+                notes_title = self._extract_heading(r["notes_md"]) or self._extract_heading(r["auto_summary"])
                 result[r["session_id"]] = {
                     "has_notes": has_notes,
                     "is_user_edited": bool(r["is_user_edited"]),
+                    "notes_title": notes_title,
                     "tags": [],
                 }
 
