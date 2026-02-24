@@ -30,16 +30,16 @@ export function renderLiveSessions(sessions) {
     }).join("");
 }
 
-export function renderHistorySessions(sessions) {
+export function renderHistorySessions(sessions, total, page, pageSize) {
     const list = document.getElementById("history-sessions-list");
 
-    if (!sessions.length) {
+    if (!sessions || !sessions.length) {
         list.innerHTML = '<li class="empty-state">No history found</li>';
+        renderPaginationControls(0, 1, 50);
         return;
     }
 
-    // Show most recent 50
-    list.innerHTML = sessions.slice(0, 50).map(s => {
+    list.innerHTML = sessions.map(s => {
         const label = s.summary || s.session_id;
         const truncated = label.length > 40 ? label.substring(0, 40) + "..." : label;
         const isActive = state.currentSession && state.currentSession.type === "history" && state.currentSession.name === s.session_id;
@@ -49,6 +49,34 @@ export function renderHistorySessions(sessions) {
             <span class="session-label" title="${escapeHtml(label)}">${escapeHtml(truncated)}${typeTag}${tagDots}</span>
         </li>`;
     }).join("");
+
+    if (total !== undefined) {
+        renderPaginationControls(total, page || 1, pageSize || 50);
+    }
+}
+
+export function renderPaginationControls(total, page, pageSize) {
+    let container = document.getElementById("history-pagination");
+    if (!container) {
+        // Create pagination container after the history list
+        const list = document.getElementById("history-sessions-list");
+        container = document.createElement("div");
+        container.id = "history-pagination";
+        container.className = "pagination-controls";
+        list.parentNode.appendChild(container);
+    }
+
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (totalPages <= 1) {
+        container.innerHTML = `<span class="pagination-info">${total} session${total !== 1 ? 's' : ''}</span>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <button class="btn btn-small" ${page <= 1 ? 'disabled' : ''} onclick="loadHistoryPage(${page - 1})">Prev</button>
+        <span class="pagination-info">${page} / ${totalPages} (${total})</span>
+        <button class="btn btn-small" ${page >= totalPages ? 'disabled' : ''} onclick="loadHistoryPage(${page + 1})">Next</button>
+    `;
 }
 
 export function renderHistoryChat(messages) {

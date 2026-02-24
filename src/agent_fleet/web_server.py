@@ -5,9 +5,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -32,8 +35,31 @@ from agent_fleet.session_manager import (
 from agent_fleet.log_streamer import get_log_snapshot
 from agent_fleet.session_store import SessionStore
 
+log = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
-app = FastAPI(title="Agent Fleet Dashboard")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start background indexer and batch summarizer on server startup."""
+    from agent_fleet.session_indexer import SessionIndexer, BatchSummarizer
+
+    indexer = SessionIndexer(store)
+    summarizer = BatchSummarizer(store)
+
+    indexer_task = asyncio.create_task(indexer.run_forever(interval=120))
+    summarizer_task = asyncio.create_task(summarizer.run_forever())
+
+    # Store indexer on app state so endpoints can trigger refresh
+    app.state.indexer = indexer
+
+    yield
+
+    indexer_task.cancel()
+    summarizer_task.cancel()
+
+
+app = FastAPI(title="Agent Fleet Dashboard", lifespan=lifespan)
 store = SessionStore()
 
 # Mount static files and templates
@@ -46,7 +72,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    """Serve the SPA."""
+    """Serve the fleet dashboard SPA."""
     return templates.TemplateResponse("index.html", {"request": request})
 
 
@@ -108,19 +134,58 @@ async def get_live_session_info(name: str, agent_type: str | None = None):
 
 
 @app.get("/api/sessions/history")
-async def get_history_sessions():
-    """List historical sessions from history.jsonl files, enriched with tags/notes metadata."""
-    sessions = load_history_sessions()
-    metadata = await asyncio.to_thread(store.get_all_session_metadata)
-    for s in sessions:
-        meta = metadata.get(s["session_id"])
-        if meta:
-            s["tags"] = meta["tags"]
-            s["has_notes"] = meta["has_notes"]
-        else:
-            s["tags"] = []
-            s["has_notes"] = False
-    return sessions
+async def get_history_sessions(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    q: Optional[str] = Query(None),
+    tag_id: Optional[int] = Query(None),
+    source_type: Optional[str] = Query(None),
+):
+    """Paginated history sessions from the index, with search/tag/source filters.
+
+    Falls back to scanning files if the index is empty (cold start).
+    """
+    result = await asyncio.to_thread(
+        store.list_sessions_paged, page, page_size, q, tag_id, source_type
+    )
+
+    if result["total"] == 0 and not q and not tag_id and not source_type:
+        # Cold start — index hasn't run yet; trigger immediate index and fall back
+        indexer = getattr(app.state, "indexer", None)
+        if indexer:
+            try:
+                await indexer.run_once()
+                result = await asyncio.to_thread(
+                    store.list_sessions_paged, page, page_size, q, tag_id, source_type
+                )
+            except Exception:
+                pass
+
+        # If still empty, fall back to old file-scan method
+        if result["total"] == 0:
+            sessions = load_history_sessions()
+            metadata = await asyncio.to_thread(store.get_all_session_metadata)
+            for s in sessions:
+                meta = metadata.get(s["session_id"])
+                if meta:
+                    s["tags"] = meta["tags"]
+                    s["has_notes"] = meta["has_notes"]
+                else:
+                    s["tags"] = []
+                    s["has_notes"] = False
+            return {"sessions": sessions, "total": len(sessions), "page": 1, "page_size": len(sessions)}
+
+    return result
+
+
+@app.post("/api/indexer/refresh")
+async def trigger_indexer_refresh():
+    """Trigger an immediate re-index."""
+    indexer = getattr(app.state, "indexer", None)
+    if not indexer:
+        return {"error": "Indexer not available"}
+    result = await indexer.run_once()
+    return result
 
 
 @app.get("/api/sessions/history/{session_id}")

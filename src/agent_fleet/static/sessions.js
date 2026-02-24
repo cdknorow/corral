@@ -73,6 +73,9 @@ export async function selectHistorySession(sessionId) {
 
     state.currentSession = { type: "history", name: sessionId };
 
+    // Update URL hash for bookmarking
+    window.location.hash = '#session/' + sessionId;
+
     // Restore input text for the new session
     const newKey = sessionKey(state.currentSession);
     input.value = state.sessionInputText[newKey] || "";

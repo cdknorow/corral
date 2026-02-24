@@ -16,10 +16,29 @@ export async function loadLiveSessions() {
 export async function loadHistorySessions() {
     try {
         const resp = await fetch("/api/sessions/history");
-        const sessions = await resp.json();
-        renderHistorySessions(sessions);
+        const data = await resp.json();
+        // Handle new paginated response shape
+        const sessions = data.sessions || data;
+        renderHistorySessions(sessions, data.total, data.page, data.page_size);
     } catch (e) {
         console.error("Failed to load history sessions:", e);
+    }
+}
+
+export async function loadHistorySessionsPaged(page = 1, pageSize = 50, search = null, tagId = null, sourceType = null) {
+    try {
+        const params = new URLSearchParams({ page, page_size: pageSize });
+        if (search) params.set("q", search);
+        if (tagId) params.set("tag_id", tagId);
+        if (sourceType) params.set("source_type", sourceType);
+        const resp = await fetch(`/api/sessions/history?${params}`);
+        const data = await resp.json();
+        const sessions = data.sessions || data;
+        renderHistorySessions(sessions, data.total, data.page, data.page_size);
+        return data;
+    } catch (e) {
+        console.error("Failed to load paged history sessions:", e);
+        return null;
     }
 }
 

@@ -10,6 +10,9 @@ A multi-agent orchestration system for managing AI coding agents (Claude and Gem
 - **Parallel worktrees** — Each agent runs in its own git worktree and tmux session
 - **Web dashboard** — Real-time monitoring with pane capture, status tracking, and command input
 - **Session history** — Browse past sessions from both Claude (`~/.claude/projects/`) and Gemini (`~/.gemini/tmp/`)
+- **Full-text search** — Search across all session content using FTS5
+- **Auto-summarization** — Background summarization of sessions using Claude
+- **Session notes & tags** — Add markdown notes and color-coded tags to any session
 - **Remote control** — Send commands, navigate modes, and manage agents from the dashboard
 - **Attach / Kill** — Open a terminal attached to any agent's tmux session, or kill it directly from the UI
 - **Stale session cleanup** — Dead sessions are automatically detected and removed
@@ -75,9 +78,30 @@ The web dashboard provides quick-action buttons for each live session:
 | **/compact / /clear** | Send compress or clear commands (adapts per agent type) |
 | **Reset** | Compress then clear the session |
 | **Attach** | Open a local terminal window attached to the agent's tmux session |
+| **Restart** | Restart the agent in the same tmux pane |
 | **Kill** | Terminate the tmux session and remove it from the dashboard |
 
 You can also type arbitrary commands in the input bar and send them to the selected agent.
+
+### Session history search and filtering
+
+The sidebar History section includes a search bar and filters for browsing your entire AI coding session history.
+
+On startup, the server:
+
+1. **Indexes** all Claude sessions from `~/.claude/projects/**/*.jsonl` and Gemini sessions from `~/.gemini/tmp/*/chats/session-*.json`
+2. **Builds a full-text search index** (FTS5) over all message content
+3. **Queues background auto-summarization** for new sessions (requires Claude CLI)
+4. **Re-indexes every 2 minutes**, skipping files that haven't changed (mtime-based)
+
+Features:
+
+- **Search** — Type in the search bar to find sessions by content (uses SQLite FTS5 with porter stemming)
+- **Filter by tag** — Select a tag from the dropdown to narrow results
+- **Filter by source** — Show only Claude or Gemini sessions
+- **Pagination** — Browse through all sessions with prev/next controls
+- **URL bookmarking** — Session URLs use hash routing (`#session/<id>`) so you can bookmark or share links
+- **Notes & tags** — Add markdown notes and color-coded tags to any session, stored in `~/.agent-fleet/sessions.db`
 
 ### Manual tmux management
 
@@ -110,37 +134,51 @@ The protocol is automatically injected via `PROTOCOL.md` when launching agents. 
 src/agent_fleet/
 ├── launch_agents.sh      # Shell script to discover worktrees, launch tmux sessions,
 │                         #   and start the web server
-├── web_server.py         # FastAPI web dashboard (REST + WebSocket endpoints)
+├── web_server.py         # FastAPI server (REST + WebSocket endpoints)
 ├── session_manager.py    # Core logic: tmux discovery, pane targeting, history loading,
 │                         #   session launch/kill, terminal attach
+├── session_store.py      # SQLite storage: notes, tags, session index, FTS, summarizer queue
+├── session_indexer.py    # Background indexer + batch summarizer
+├── auto_summarizer.py    # AI-powered session summarization via Claude CLI
 ├── log_streamer.py       # Async log file tailing + snapshot for streaming
 ├── PROTOCOL.md           # Agent status/summary reporting protocol
 ├── templates/
-│   └── index.html        # Single-page web dashboard HTML
+│   └── index.html        # Dashboard HTML
 └── static/
     ├── style.css         # Dark theme CSS
-    └── app.js            # Client-side JS: WebSocket, DOM updates, session management
+    ├── app.js            # Entry point
+    ├── api.js            # REST API fetch functions
+    ├── render.js         # DOM rendering (session lists, chat, pagination)
+    ├── sessions.js       # Session selection and management
+    ├── tags.js           # Tag CRUD and UI
+    ├── notes.js          # Notes editing and rendering
+    └── ...               # Other UI modules (websocket, capture, controls, etc.)
 ```
 
 ## API Endpoints
 
 | Method | Path | Description |
 |---|---|---|
+| `GET` | `/` | Dashboard |
 | `GET` | `/api/sessions/live` | List active fleet agents with status |
-| `GET` | `/api/sessions/live/{name}` | Detailed info for a live session (accepts `?agent_type=`) |
-| `GET` | `/api/sessions/live/{name}/capture` | Capture tmux pane content (accepts `?agent_type=`) |
+| `GET` | `/api/sessions/live/{name}` | Detailed info for a live session (`?agent_type=`) |
+| `GET` | `/api/sessions/live/{name}/capture` | Capture tmux pane content |
+| `GET` | `/api/sessions/live/{name}/info` | Enriched session metadata (Info modal) |
 | `POST` | `/api/sessions/live/{name}/send` | Send a command to an agent |
 | `POST` | `/api/sessions/live/{name}/keys` | Send raw tmux keys (Escape, BTab, etc.) |
 | `POST` | `/api/sessions/live/{name}/kill` | Kill a tmux session |
+| `POST` | `/api/sessions/live/{name}/restart` | Restart the agent in the same pane |
 | `POST` | `/api/sessions/live/{name}/attach` | Open a terminal attached to the session |
 | `POST` | `/api/sessions/launch` | Launch a new agent session |
-| `GET` | `/api/sessions/history` | List historical sessions (Claude + Gemini) |
+| `GET` | `/api/sessions/history` | Paginated history (`?page=`, `?page_size=`, `?q=`, `?tag_id=`, `?source_type=`) |
 | `GET` | `/api/sessions/history/{id}` | Get messages for a historical session |
+| `POST` | `/api/indexer/refresh` | Trigger immediate re-index |
 | `WS` | `/ws/fleet` | Real-time fleet status updates (polls every 3s) |
 
 ## Dependencies
 
 - Python 3.8+
-- [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/) — Web dashboard
+- [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/) — Web server
 - [Jinja2](https://jinja.palletsprojects.com/) — HTML templating
 - tmux — Session management
+- Claude CLI (optional) — Powers auto-summarization

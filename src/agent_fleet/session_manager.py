@@ -566,7 +566,7 @@ def _load_claude_history_sessions() -> list[dict[str, Any]]:
                 if m:
                     summary_marker = clean_match(m.group(1))
 
-            if not first_human and msg.get("type") == "human":
+            if not first_human and msg.get("type") in ("human", "user"):
                 content = msg.get("message", {}).get("content", "")
                 if isinstance(content, str):
                     first_human = content[:100]

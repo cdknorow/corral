@@ -52,7 +52,41 @@ class SessionStore:
                     PRIMARY KEY (session_id, tag_id),
                     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
                 );
+
+                CREATE TABLE IF NOT EXISTS session_index (
+                    session_id      TEXT PRIMARY KEY,
+                    source_type     TEXT NOT NULL,
+                    source_file     TEXT NOT NULL,
+                    first_timestamp TEXT,
+                    last_timestamp  TEXT,
+                    message_count   INTEGER DEFAULT 0,
+                    display_summary TEXT DEFAULT '',
+                    indexed_at      TEXT NOT NULL,
+                    file_mtime      REAL NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_session_index_last_ts
+                    ON session_index(last_timestamp DESC);
+
+                CREATE TABLE IF NOT EXISTS summarizer_queue (
+                    session_id   TEXT PRIMARY KEY,
+                    status       TEXT DEFAULT 'pending',
+                    attempted_at TEXT,
+                    error_msg    TEXT
+                );
             """)
+            # FTS5 virtual table — created separately because CREATE VIRTUAL TABLE
+            # cannot be used inside executescript on all SQLite builds.
+            try:
+                conn.execute("""
+                    CREATE VIRTUAL TABLE IF NOT EXISTS session_fts USING fts5(
+                        session_id UNINDEXED,
+                        body,
+                        tokenize='porter unicode61'
+                    )
+                """)
+            except Exception:
+                pass  # FTS5 may not be compiled in
             conn.commit()
         finally:
             conn.close()
@@ -181,6 +215,208 @@ class SessionStore:
                 (session_id, tag_id),
             )
             conn.commit()
+        finally:
+            conn.close()
+
+    # ── Session Index ──────────────────────────────────────────────────────
+
+    def upsert_session_index(
+        self,
+        session_id: str,
+        source_type: str,
+        source_file: str,
+        first_timestamp: str | None,
+        last_timestamp: str | None,
+        message_count: int,
+        display_summary: str,
+        file_mtime: float,
+    ) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self._connect()
+        try:
+            conn.execute(
+                """INSERT OR REPLACE INTO session_index
+                   (session_id, source_type, source_file, first_timestamp, last_timestamp,
+                    message_count, display_summary, indexed_at, file_mtime)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (session_id, source_type, source_file, first_timestamp, last_timestamp,
+                 message_count, display_summary, now, file_mtime),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def upsert_fts(self, session_id: str, body: str) -> None:
+        conn = self._connect()
+        try:
+            conn.execute("DELETE FROM session_fts WHERE session_id = ?", (session_id,))
+            conn.execute(
+                "INSERT INTO session_fts (session_id, body) VALUES (?, ?)",
+                (session_id, body),
+            )
+            conn.commit()
+        except Exception:
+            pass  # FTS5 may not be available
+        finally:
+            conn.close()
+
+    def enqueue_for_summarization(self, session_id: str) -> None:
+        conn = self._connect()
+        try:
+            conn.execute(
+                "INSERT OR IGNORE INTO summarizer_queue (session_id, status) VALUES (?, 'pending')",
+                (session_id,),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def mark_summarized(self, session_id: str, status: str, error: str | None = None) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self._connect()
+        try:
+            conn.execute(
+                "UPDATE summarizer_queue SET status = ?, attempted_at = ?, error_msg = ? WHERE session_id = ?",
+                (status, now, error, session_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_pending_summaries(self, limit: int = 5) -> list[str]:
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                "SELECT session_id FROM summarizer_queue WHERE status = 'pending' LIMIT ?",
+                (limit,),
+            ).fetchall()
+            return [r["session_id"] for r in rows]
+        finally:
+            conn.close()
+
+    def get_indexed_mtimes(self) -> dict[str, float]:
+        """Return {source_file: file_mtime} for all indexed sessions."""
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                "SELECT source_file, file_mtime FROM session_index"
+            ).fetchall()
+            result: dict[str, float] = {}
+            for r in rows:
+                # Keep the max mtime per file (a file can contain multiple sessions)
+                existing = result.get(r["source_file"], 0.0)
+                if r["file_mtime"] > existing:
+                    result[r["source_file"]] = r["file_mtime"]
+            return result
+        finally:
+            conn.close()
+
+    def list_sessions_paged(
+        self,
+        page: int = 1,
+        page_size: int = 50,
+        search: str | None = None,
+        tag_id: int | None = None,
+        source_type: str | None = None,
+    ) -> dict[str, Any]:
+        """Paginated session listing with optional full-text search, tag filter, and source filter."""
+        conn = self._connect()
+        try:
+            params: list[Any] = []
+            where_clauses: list[str] = []
+
+            # Base: join session_index with optional metadata
+            from_clause = "session_index si"
+            select_fields = (
+                "si.session_id, si.source_type, si.source_file, "
+                "si.first_timestamp, si.last_timestamp, si.message_count, "
+                "si.display_summary"
+            )
+            order_clause = "si.last_timestamp DESC"
+
+            if search:
+                from_clause += " JOIN session_fts fts ON fts.session_id = si.session_id"
+                where_clauses.append("session_fts MATCH ?")
+                params.append(search)
+                order_clause = "rank"
+
+            if tag_id is not None:
+                where_clauses.append(
+                    "si.session_id IN (SELECT session_id FROM session_tags WHERE tag_id = ?)"
+                )
+                params.append(tag_id)
+
+            if source_type:
+                where_clauses.append("si.source_type = ?")
+                params.append(source_type)
+
+            where_sql = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+            # Count total
+            count_sql = f"SELECT COUNT(*) as cnt FROM {from_clause}{where_sql}"
+            total = conn.execute(count_sql, params).fetchone()["cnt"]
+
+            # Fetch page
+            offset = (page - 1) * page_size
+            query = (
+                f"SELECT {select_fields} FROM {from_clause}{where_sql} "
+                f"ORDER BY {order_clause} LIMIT ? OFFSET ?"
+            )
+            rows = conn.execute(query, params + [page_size, offset]).fetchall()
+
+            session_ids = [r["session_id"] for r in rows]
+
+            # Enrich with metadata (notes/tags)
+            meta_map: dict[str, dict[str, Any]] = {}
+            if session_ids:
+                placeholders = ",".join("?" for _ in session_ids)
+                meta_rows = conn.execute(
+                    f"SELECT session_id, notes_md, auto_summary, is_user_edited "
+                    f"FROM session_meta WHERE session_id IN ({placeholders})",
+                    session_ids,
+                ).fetchall()
+                for r in meta_rows:
+                    meta_map[r["session_id"]] = {
+                        "has_notes": bool(r["notes_md"]) or bool(r["auto_summary"]),
+                        "is_user_edited": bool(r["is_user_edited"]),
+                    }
+
+                tag_rows = conn.execute(
+                    f"SELECT st.session_id, t.id, t.name, t.color "
+                    f"FROM session_tags st JOIN tags t ON t.id = st.tag_id "
+                    f"WHERE st.session_id IN ({placeholders}) ORDER BY t.name",
+                    session_ids,
+                ).fetchall()
+                tags_map: dict[str, list[dict[str, Any]]] = {}
+                for r in tag_rows:
+                    tags_map.setdefault(r["session_id"], []).append({
+                        "id": r["id"], "name": r["name"], "color": r["color"],
+                    })
+            else:
+                tags_map = {}
+
+            sessions = []
+            for r in rows:
+                sid = r["session_id"]
+                meta = meta_map.get(sid, {})
+                sessions.append({
+                    "session_id": sid,
+                    "source_type": r["source_type"],
+                    "source_file": r["source_file"],
+                    "first_timestamp": r["first_timestamp"],
+                    "last_timestamp": r["last_timestamp"],
+                    "message_count": r["message_count"],
+                    "summary": r["display_summary"],
+                    "has_notes": meta.get("has_notes", False),
+                    "tags": tags_map.get(sid, []),
+                })
+
+            return {
+                "sessions": sessions,
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+            }
         finally:
             conn.close()
 
