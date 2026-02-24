@@ -29,9 +29,11 @@ from agent_fleet.session_manager import (
     launch_claude_session,
 )
 from agent_fleet.log_streamer import get_log_snapshot
+from agent_fleet.session_store import SessionStore
 
 BASE_DIR = Path(__file__).parent
 app = FastAPI(title="Agent Fleet Dashboard")
+store = SessionStore()
 
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
@@ -106,8 +108,18 @@ async def get_live_session_info(name: str, agent_type: str | None = None):
 
 @app.get("/api/sessions/history")
 async def get_history_sessions():
-    """List historical sessions from history.jsonl files."""
-    return load_history_sessions()
+    """List historical sessions from history.jsonl files, enriched with tags/notes metadata."""
+    sessions = load_history_sessions()
+    metadata = await asyncio.to_thread(store.get_all_session_metadata)
+    for s in sessions:
+        meta = metadata.get(s["session_id"])
+        if meta:
+            s["tags"] = meta["tags"]
+            s["has_notes"] = meta["has_notes"]
+        else:
+            s["tags"] = []
+            s["has_notes"] = False
+    return sessions
 
 
 @app.get("/api/sessions/history/{session_id}")
@@ -199,6 +211,104 @@ async def launch_session(body: dict):
 
     result = await launch_claude_session(working_dir, agent_type)
     return result
+
+
+# ── Session Notes Endpoints ─────────────────────────────────────────────────
+
+
+@app.get("/api/sessions/history/{session_id}/notes")
+async def get_session_notes(session_id: str):
+    """Get notes and auto-summary for a session. Triggers auto-summarization if empty."""
+    notes = await asyncio.to_thread(store.get_session_notes, session_id)
+
+    # If no notes and no auto-summary, trigger summarization in background
+    if not notes["notes_md"] and not notes["auto_summary"]:
+        try:
+            from agent_fleet.auto_summarizer import AutoSummarizer
+
+            summarizer = AutoSummarizer(store)
+            asyncio.create_task(summarizer.summarize_session(session_id))
+            notes["summarizing"] = True
+        except ImportError:
+            notes["summarizing"] = False
+
+    return notes
+
+
+@app.put("/api/sessions/history/{session_id}/notes")
+async def save_session_notes(session_id: str, body: dict):
+    """Save user-edited markdown notes for a session."""
+    notes_md = body.get("notes_md", "")
+    await asyncio.to_thread(store.save_session_notes, session_id, notes_md)
+    return {"ok": True}
+
+
+@app.post("/api/sessions/history/{session_id}/resummarize")
+async def resummarize_session(session_id: str):
+    """Force re-generate auto-summary for a session."""
+    try:
+        from agent_fleet.auto_summarizer import AutoSummarizer
+
+        summarizer = AutoSummarizer(store)
+        summary = await summarizer.summarize_session(session_id)
+        return {"ok": True, "auto_summary": summary}
+    except ImportError:
+        return {"error": "claude-agent-sdk not installed"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Tags Endpoints ─────────────────────────────────────────────────────────
+
+
+@app.get("/api/tags")
+async def list_tags():
+    """List all tags."""
+    return await asyncio.to_thread(store.list_tags)
+
+
+@app.post("/api/tags")
+async def create_tag(body: dict):
+    """Create a new tag."""
+    name = body.get("name", "").strip()
+    if not name:
+        return {"error": "Tag name is required"}
+    color = body.get("color", "#58a6ff")
+    try:
+        tag = await asyncio.to_thread(store.create_tag, name, color)
+        return tag
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.delete("/api/tags/{tag_id}")
+async def delete_tag(tag_id: int):
+    """Delete a tag."""
+    await asyncio.to_thread(store.delete_tag, tag_id)
+    return {"ok": True}
+
+
+@app.get("/api/sessions/history/{session_id}/tags")
+async def get_session_tags(session_id: str):
+    """Get tags for a session."""
+    return await asyncio.to_thread(store.get_session_tags, session_id)
+
+
+@app.post("/api/sessions/history/{session_id}/tags")
+async def add_session_tag(session_id: str, body: dict):
+    """Add a tag to a session."""
+    tag_id = body.get("tag_id")
+    if tag_id is None:
+        return {"error": "tag_id is required"}
+    await asyncio.to_thread(store.add_session_tag, session_id, int(tag_id))
+    return {"ok": True}
+
+
+@app.delete("/api/sessions/history/{session_id}/tags/{tag_id}")
+async def remove_session_tag(session_id: str, tag_id: int):
+    """Remove a tag from a session."""
+    await asyncio.to_thread(store.remove_session_tag, session_id, tag_id)
+    return {"ok": True}
 
 
 # ── WebSocket Endpoints ─────────────────────────────────────────────────────

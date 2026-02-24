@@ -8,6 +8,8 @@ import { selectLiveSession, selectHistorySession, editAndResubmit } from './sess
 import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand } from './modals.js';
 import { toggleBrowser, browserNavigateTo, browserNavigateUp } from './browser.js';
 import { initSidebarResize } from './sidebar.js';
+import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesEdit, switchHistoryTab } from './notes.js';
+import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown, hideTagDropdown, createTag } from './tags.js';
 
 // ── Expose functions to HTML onclick handlers ─────────────────────────────
 window.sendCommand = sendCommand;
@@ -29,6 +31,18 @@ window.copyInfoCommand = copyInfoCommand;
 window.toggleBrowser = toggleBrowser;
 window.browserNavigateTo = browserNavigateTo;
 window.browserNavigateUp = browserNavigateUp;
+window.loadSessionNotes = loadSessionNotes;
+window.saveNotes = saveNotes;
+window.resummarize = resummarize;
+window.toggleNotesEdit = toggleNotesEdit;
+window.cancelNotesEdit = cancelNotesEdit;
+window.switchHistoryTab = switchHistoryTab;
+window.loadSessionTags = loadSessionTags;
+window.addTagToSession = addTagToSession;
+window.removeTagFromSession = removeTagFromSession;
+window.showTagDropdown = showTagDropdown;
+window.hideTagDropdown = hideTagDropdown;
+window.createTag = createTag;
 
 // ── Initialization ────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {

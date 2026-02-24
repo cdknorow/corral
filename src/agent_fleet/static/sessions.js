@@ -6,6 +6,8 @@ import { loadLiveSessionDetail, loadHistoryMessages } from './api.js';
 import { stopCaptureRefresh, startCaptureRefresh } from './capture.js';
 import { updateSessionStatus, updateSessionSummary, renderHistoryChat } from './render.js';
 import { renderQuickActions, updateSidebarActive } from './controls.js';
+import { loadSessionNotes, switchHistoryTab } from './notes.js';
+import { loadSessionTags } from './tags.js';
 
 export async function selectLiveSession(name, agentType) {
     stopCaptureRefresh();
@@ -60,10 +62,17 @@ export async function selectHistorySession(sessionId) {
 
     updateSidebarActive();
 
+    // Reset to chat tab
+    switchHistoryTab('chat');
+
     const data = await loadHistoryMessages(sessionId);
     if (data && data.messages) {
         renderHistoryChat(data.messages);
     }
+
+    // Load notes and tags in parallel
+    loadSessionNotes(sessionId);
+    loadSessionTags(sessionId);
 }
 
 export function editAndResubmit(btn) {

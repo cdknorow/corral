@@ -2,6 +2,7 @@
 
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
+import { renderSidebarTagDots } from './tags.js';
 
 function getDotClass(staleness) {
     if (staleness === null || staleness === undefined) return "stale";
@@ -43,8 +44,9 @@ export function renderHistorySessions(sessions) {
         const truncated = label.length > 40 ? label.substring(0, 40) + "..." : label;
         const isActive = state.currentSession && state.currentSession.type === "history" && state.currentSession.name === s.session_id;
         const typeTag = s.source_type === "gemini" ? ' <span class="badge gemini">gemini</span>' : "";
+        const tagDots = s.tags ? renderSidebarTagDots(s.tags) : "";
         return `<li class="${isActive ? 'active' : ''}" onclick="selectHistorySession('${escapeHtml(s.session_id)}')">
-            <span class="session-label" title="${escapeHtml(label)}">${escapeHtml(truncated)}${typeTag}</span>
+            <span class="session-label" title="${escapeHtml(label)}">${escapeHtml(truncated)}${typeTag}${tagDots}</span>
         </li>`;
     }).join("");
 }

@@ -79,9 +79,54 @@
             <!-- History Session View -->
             <div id="history-session-view" class="session-view" style="display:none">
                 <div class="session-header">
-                    <h2 id="history-session-title">Session History</h2>
+                    <div class="history-title-row">
+                        <h2 id="history-session-title">Session History</h2>
+                        <div id="history-session-tags" class="tag-list"></div>
+                        <button class="btn btn-small" onclick="showTagDropdown()" title="Add tag">+ Tag</button>
+                    </div>
+                    <!-- Tag Dropdown -->
+                    <div id="tag-dropdown" class="tag-dropdown" style="display:none">
+                        <div class="tag-dropdown-header">
+                            <span>Add Tag</span>
+                            <button class="btn btn-small" onclick="hideTagDropdown()">Close</button>
+                        </div>
+                        <div class="tag-dropdown-list" id="tag-dropdown-list"></div>
+                        <div class="tag-dropdown-create">
+                            <input type="text" id="new-tag-name" placeholder="New tag name...">
+                            <input type="color" id="new-tag-color" value="#58a6ff">
+                            <button class="btn btn-small btn-primary" onclick="createTag()">Add</button>
+                        </div>
+                    </div>
                 </div>
-                <div id="history-messages" class="chat-messages"></div>
+                <!-- Tab Bar -->
+                <div class="history-tabs">
+                    <button class="history-tab-btn active" onclick="switchHistoryTab('chat')">Chat</button>
+                    <button class="history-tab-btn" onclick="switchHistoryTab('notes')">Notes</button>
+                </div>
+                <!-- Chat Tab Content -->
+                <div id="history-tab-chat" class="history-tab-content active">
+                    <div id="history-messages" class="chat-messages"></div>
+                </div>
+                <!-- Notes Tab Content -->
+                <div id="history-tab-notes" class="history-tab-content">
+                    <div class="notes-view">
+                        <div class="notes-header">
+                            <button id="notes-edit-btn" class="btn btn-small" onclick="toggleNotesEdit()">Edit</button>
+                            <button id="notes-resummarize-btn" class="btn btn-small" onclick="resummarize()">Re-summarize</button>
+                        </div>
+                        <div id="notes-spinner" class="notes-spinner" style="display:none">
+                            <span>Generating summary...</span>
+                        </div>
+                        <div id="notes-rendered" class="notes-rendered"></div>
+                        <div id="notes-edit-area" style="display:none">
+                            <textarea id="notes-textarea" class="notes-textarea" placeholder="Write session notes in markdown..."></textarea>
+                            <div class="notes-edit-actions">
+                                <button class="btn btn-small" onclick="cancelNotesEdit()">Cancel</button>
+                                <button class="btn btn-small btn-primary" onclick="saveNotes()">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -147,6 +192,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script type="module" src="/static/app.js"></script>
 </body>
 </html>
