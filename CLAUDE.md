@@ -5,8 +5,10 @@
 
 ## Project Structure
 - `src/agent_fleet/`: Main package directory
-  - `launch_agents.sh`: Bash script to discover worktrees and launch tmux sessions.
-  - `dashboard.py`: Textual-based Python TUI for monitoring agent status.
+  - `launch_agents.sh`: Bash script to discover worktrees, launch tmux sessions, and start the web server.
+  - `web_server.py`: FastAPI web dashboard (REST + WebSocket endpoints).
+  - `session_manager.py`: Core logic for tmux discovery, pane targeting, history loading, session launch/kill.
+  - `log_streamer.py`: Async log file tailing and snapshot for streaming.
   - `PROTOCOL.md`: Protocol for agents to follow (status/summary reporting).
 - `pyproject.toml`: Project configuration and dependencies.
 - `.gitignore`: Ignoring `src/agent_fleet.egg-info/`.
@@ -21,23 +23,27 @@ pip install -e .
 
 ### Launching the Fleet
 ```bash
-# From the project root, launch agents in a target worktree directory
+# Launch agents and web dashboard for worktrees in a target directory
 ./src/agent_fleet/launch_agents.sh /path/to/worktrees
+
+# Override the web dashboard port (default: 8420)
+FLEET_PORT=9000 ./src/agent_fleet/launch_agents.sh /path/to/worktrees
 ```
 
-### Running the Dashboard
+### Running the Web Dashboard (standalone)
 ```bash
-# Start the TUI dashboard
+# Start the web dashboard
 agent-fleet
-# OR
-python -m agent_fleet.dashboard
+
+# Custom host/port
+agent-fleet --host 127.0.0.1 --port 9000
 ```
 
 ### Managing Agents
-- **Attach to tmux:** `tmux attach -t claude-fleet`
+- **Attach to tmux:** `tmux attach -t claude-agent-1`
+- **Attach to web server:** `tmux attach -t fleet-web-server`
 - **Switch window:** `Ctrl+b n` (next) / `Ctrl+b p` (previous)
 - **Detach tmux:** `Ctrl+b d`
-- **Stop dashboard:** `Ctrl+C`
 
 ## Agent Protocol
 Agents must emit status and summary lines for the dashboard to track:
@@ -46,6 +52,5 @@ Agents must emit status and summary lines for the dashboard to track:
 
 ## Development Guidelines
 - **Build System:** Setuptools with `pyproject.toml`.
-- **Dependencies:** `textual` (Python 3.8+).
+- **Dependencies:** `fastapi`, `uvicorn`, `jinja2` (Python 3.8+).
 - **Logs:** Agents stream output to `/tmp/claude_fleet_[folder_name].log` via `tmux pipe-pane`.
-- **Persistence:** Dashboard saves task lists to `fleet_tasks.json`.

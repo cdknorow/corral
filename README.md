@@ -9,7 +9,6 @@ A multi-agent orchestration system for managing AI coding agents (Claude and Gem
 - **Multi-agent support** — Launch and manage both Claude and Gemini agents side-by-side
 - **Parallel worktrees** — Each agent runs in its own git worktree and tmux session
 - **Web dashboard** — Real-time monitoring with pane capture, status tracking, and command input
-- **TUI dashboard** — Terminal-based dashboard using Textual
 - **Session history** — Browse past sessions from both Claude (`~/.claude/projects/`) and Gemini (`~/.gemini/tmp/`)
 - **Remote control** — Send commands, navigate modes, and manage agents from the dashboard
 - **Attach / Kill** — Open a terminal attached to any agent's tmux session, or kill it directly from the UI
@@ -33,40 +32,35 @@ pip install -e .
 
 ## Usage
 
-### Launch agents
+### Launch agents and web dashboard
 
-The launcher discovers worktree subdirectories and creates a tmux session with an agent for each one:
+The launcher discovers worktree subdirectories, creates a tmux session with an agent for each one, and starts the web dashboard in its own tmux session:
 
 ```bash
-# Launch Claude agents for each worktree in the current directory
-agent-fleet
+# Launch Claude agents and web dashboard for worktrees in the current directory
+./src/agent_fleet/launch_agents.sh .
 
 # Launch Gemini agents from a specific path
-agent-fleet <path-to-root> --model gemini
-
-# Use the shell script directly
-./src/agent_fleet/launch_agents.sh <path-to-root> claude
 ./src/agent_fleet/launch_agents.sh <path-to-root> gemini
+
+# Override the default web dashboard port (default: 8420)
+FLEET_PORT=9000 ./src/agent_fleet/launch_agents.sh .
+
+# Skip launching the web server
+SKIP_WEB_SERVER=1 ./src/agent_fleet/launch_agents.sh .
 ```
 
-### Web dashboard
+### Web dashboard (standalone)
 
 ```bash
-# Start the web dashboard (default: http://localhost:8420)
-agent-fleet-web
+# Start the web dashboard directly (default: http://localhost:8420)
+agent-fleet
 
 # Custom host/port
-agent-fleet-web --host 127.0.0.1 --port 9000
+agent-fleet --host 127.0.0.1 --port 9000
 
 # Auto-reload for development
-agent-fleet-web --reload
-```
-
-### TUI dashboard
-
-```bash
-# Launch the terminal UI dashboard
-agent-fleet --no-launch
+agent-fleet --reload
 ```
 
 ### Managing sessions from the dashboard
@@ -114,8 +108,8 @@ The protocol is automatically injected via `PROTOCOL.md` when launching agents. 
 
 ```
 src/agent_fleet/
-├── launch_agents.sh      # Shell script to discover worktrees and launch tmux sessions
-├── dashboard.py          # Textual-based TUI dashboard
+├── launch_agents.sh      # Shell script to discover worktrees, launch tmux sessions,
+│                         #   and start the web server
 ├── web_server.py         # FastAPI web dashboard (REST + WebSocket endpoints)
 ├── session_manager.py    # Core logic: tmux discovery, pane targeting, history loading,
 │                         #   session launch/kill, terminal attach
@@ -147,7 +141,6 @@ src/agent_fleet/
 ## Dependencies
 
 - Python 3.8+
-- [textual](https://github.com/Textualize/textual) — TUI dashboard
 - [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/) — Web dashboard
 - [Jinja2](https://jinja.palletsprojects.com/) — HTML templating
 - tmux — Session management
