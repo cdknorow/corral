@@ -259,7 +259,7 @@ body {
     gap: 4px;
 }
 
-.session-title-actions .btn-icon {
+.session-title-actions .btn-icon-label {
     margin: 0;
 }
 
@@ -271,19 +271,20 @@ body {
     flex-shrink: 0;
 }
 
-/* Icon-only buttons */
-.btn-icon {
-    width: 32px;
-    height: 32px;
-    padding: 0;
+/* Icon + label buttons */
+.btn-icon-label {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 5px;
+    padding: 5px 12px;
+    font-size: 12px;
     border-radius: 6px;
     flex-shrink: 0;
+    height: 30px;
 }
 
-.btn-icon svg {
+.btn-icon-label svg {
     flex-shrink: 0;
 }
 
