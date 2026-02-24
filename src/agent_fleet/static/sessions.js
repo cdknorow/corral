@@ -1,6 +1,6 @@
 /* Session selection and management */
 
-import { state } from './state.js';
+import { state, sessionKey } from './state.js';
 import { showToast } from './utils.js';
 import { loadLiveSessionDetail, loadHistoryMessages } from './api.js';
 import { stopCaptureRefresh, startCaptureRefresh } from './capture.js';
@@ -12,7 +12,19 @@ import { loadSessionTags } from './tags.js';
 export async function selectLiveSession(name, agentType) {
     stopCaptureRefresh();
 
+    // Save current input text for the old session
+    const input = document.getElementById("command-input");
+    const oldKey = sessionKey(state.currentSession);
+    if (oldKey) {
+        state.sessionInputText[oldKey] = input.value;
+    }
+
     state.currentSession = { type: "live", name, agent_type: agentType || null };
+
+    // Restore input text for the new session
+    const newKey = sessionKey(state.currentSession);
+    input.value = state.sessionInputText[newKey] || "";
+    input.focus();
 
     // Show live view, hide others
     document.getElementById("welcome-screen").style.display = "none";
@@ -52,7 +64,18 @@ export async function selectLiveSession(name, agentType) {
 export async function selectHistorySession(sessionId) {
     stopCaptureRefresh();
 
+    // Save current input text for the old session
+    const input = document.getElementById("command-input");
+    const oldKey = sessionKey(state.currentSession);
+    if (oldKey) {
+        state.sessionInputText[oldKey] = input.value;
+    }
+
     state.currentSession = { type: "history", name: sessionId };
+
+    // Restore input text for the new session
+    const newKey = sessionKey(state.currentSession);
+    input.value = state.sessionInputText[newKey] || "";
 
     document.getElementById("welcome-screen").style.display = "none";
     document.getElementById("live-session-view").style.display = "none";
