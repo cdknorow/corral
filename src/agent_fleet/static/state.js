@@ -7,6 +7,12 @@ export const state = {
     autoScroll: true,
     liveSessions: [],           // cached live session list
     currentCommands: {},        // commands for current session's agent type
+    sessionInputText: {},       // per-session draft text: { "sessionKey": "partial text" }
 };
+
+export function sessionKey(session) {
+    if (!session) return null;
+    return `${session.type}:${session.name}`;
+}
 
 export const CAPTURE_REFRESH_MS = 2000;

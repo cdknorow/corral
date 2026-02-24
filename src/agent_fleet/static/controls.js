@@ -1,6 +1,6 @@
 /* Quick actions, command sending, mode toggling, and session controls */
 
-import { state } from './state.js';
+import { state, sessionKey } from './state.js';
 import { escapeHtml, escapeAttr, showToast } from './utils.js';
 import { stopCaptureRefresh } from './capture.js';
 import { renderLiveSessions } from './render.js';
@@ -33,6 +33,8 @@ export async function sendCommand() {
             console.error("Send error:", result.error);
         } else {
             input.value = "";
+            const key = sessionKey(state.currentSession);
+            if (key) delete state.sessionInputText[key];
             showToast(`Sent: ${command}`);
         }
     } catch (e) {
