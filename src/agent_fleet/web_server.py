@@ -18,6 +18,7 @@ from agent_fleet.session_manager import (
     discover_fleet_agents,
     get_agent_log_path,
     get_log_status,
+    get_session_info,
     send_to_tmux,
     send_raw_keys,
     capture_pane,
@@ -92,6 +93,15 @@ async def get_pane_capture(name: str, agent_type: str | None = None):
     if text is None:
         return {"error": f"Could not capture pane for '{name}'"}
     return {"name": name, "capture": text}
+
+
+@app.get("/api/sessions/live/{name}/info")
+async def get_live_session_info(name: str, agent_type: str | None = None):
+    """Return enriched metadata for a live session (Info modal)."""
+    info = await get_session_info(name, agent_type)
+    if not info:
+        return {"error": f"Agent '{name}' not found"}
+    return info
 
 
 @app.get("/api/sessions/history")

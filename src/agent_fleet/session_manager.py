@@ -216,6 +216,25 @@ async def _find_pane(agent_name: str, agent_type: str | None = None) -> dict[str
     return fallback
 
 
+async def get_session_info(agent_name: str, agent_type: str | None = None) -> dict[str, Any] | None:
+    """Return enriched metadata for a live session (used by the Info modal)."""
+    pane = await _find_pane(agent_name, agent_type)
+    if not pane:
+        return None
+
+    log_path = get_agent_log_path(agent_name, agent_type)
+    return {
+        "agent_name": agent_name,
+        "agent_type": agent_type or "claude",
+        "tmux_session_name": pane["session_name"],
+        "tmux_target": pane["target"],
+        "tmux_command": f"tmux attach -t {pane['session_name']}",
+        "working_directory": pane.get("current_path", ""),
+        "log_path": str(log_path) if log_path else None,
+        "pane_title": pane.get("pane_title", ""),
+    }
+
+
 async def find_pane_target(agent_name: str, agent_type: str | None = None) -> str | None:
     """Find the tmux pane target address for a given agent name."""
     pane = await _find_pane(agent_name, agent_type)

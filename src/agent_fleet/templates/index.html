@@ -43,6 +43,11 @@
                     <div class="session-title">
                         <span id="session-type-badge" class="badge">claude</span>
                         <h2 id="session-name"></h2>
+                        <div class="session-title-actions">
+                            <button class="btn btn-small" onclick="showInfoModal()" title="Session info">Info</button>
+                            <button class="btn btn-small btn-primary" onclick="attachTerminal()" title="Open in terminal">Attach</button>
+                            <button class="btn btn-small btn-danger" onclick="killSession()" title="Kill tmux session">Kill</button>
+                        </div>
                     </div>
                     <div class="session-meta">
                         <div id="session-status" class="status-line">
@@ -94,6 +99,35 @@
             <div class="modal-actions">
                 <button class="btn" onclick="hideLaunchModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="launchSession()">Launch</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="modal" style="display:none">
+        <div class="modal-content" style="width:480px">
+            <h3>Session Info</h3>
+            <dl class="info-grid">
+                <dt>Agent Name</dt>
+                <dd id="info-agent-name"></dd>
+                <dt>Agent Type</dt>
+                <dd id="info-agent-type"></dd>
+                <dt>Tmux Session</dt>
+                <dd id="info-tmux-session"></dd>
+                <dt>Attach Command</dt>
+                <dd>
+                    <code id="info-tmux-command"></code>
+                    <button class="copy-btn" onclick="copyInfoCommand()" title="Copy to clipboard">Copy</button>
+                </dd>
+                <dt>Working Directory</dt>
+                <dd id="info-working-dir"></dd>
+                <dt>Log Path</dt>
+                <dd id="info-log-path"></dd>
+                <dt>Pane Title</dt>
+                <dd id="info-pane-title"></dd>
+            </dl>
+            <div class="modal-actions">
+                <button class="btn" onclick="hideInfoModal()">Close</button>
             </div>
         </div>
     </div>
