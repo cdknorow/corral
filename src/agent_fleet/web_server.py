@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
 
     indexer_task = asyncio.create_task(indexer.run_forever(interval=120))
     summarizer_task = asyncio.create_task(summarizer.run_forever())
-    git_task = asyncio.create_task(git_poller.run_forever(interval=30))
+    git_task = asyncio.create_task(git_poller.run_forever(interval=120))
 
     # Store indexer on app state so endpoints can trigger refresh
     app.state.indexer = indexer

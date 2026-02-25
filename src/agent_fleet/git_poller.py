@@ -19,7 +19,7 @@ class GitPoller:
     def __init__(self, store: SessionStore) -> None:
         self._store = store
 
-    async def run_forever(self, interval: float = 30) -> None:
+    async def run_forever(self, interval: float = 120) -> None:
         while True:
             try:
                 await self.poll_once()
