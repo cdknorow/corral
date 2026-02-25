@@ -83,64 +83,6 @@ def _is_noise_line(line: str) -> bool:
     return False
 
 
-async def tail_log(
-    log_path: str | Path,
-    poll_interval: float = 0.5,
-) -> AsyncGenerator[dict[str, str], None]:
-    """Async generator that yields new log events as they appear.
-
-    Yields dicts with keys:
-      - type: "raw", "status", or "summary"
-      - text: the content
-    """
-    log_path = Path(log_path)
-    offset = 0
-    last_status: str | None = None
-    last_summary: str | None = None
-
-    # Start from current end of file
-    try:
-        offset = log_path.stat().st_size
-    except OSError:
-        pass
-
-    while True:
-        try:
-            size = log_path.stat().st_size
-            if size > offset:
-                with open(log_path, "r", errors="replace") as f:
-                    f.seek(offset)
-                    new_data = f.read()
-                offset = size
-
-                text = strip_ansi(new_data)
-
-                # Check for status/summary markers (deduplicate consecutive identical)
-                for m in STATUS_RE.finditer(text):
-                    status_text = clean_match(m.group(1))
-                    if status_text != last_status:
-                        yield {"type": "status", "text": status_text}
-                        last_status = status_text
-                for m in SUMMARY_RE.finditer(text):
-                    summary_text = clean_match(m.group(1))
-                    if summary_text != last_summary:
-                        yield {"type": "summary", "text": summary_text}
-                        last_summary = summary_text
-
-                # Send raw lines, filtering TUI noise
-                for line in text.splitlines():
-                    if not _is_noise_line(line):
-                        yield {"type": "raw", "text": line}
-
-            elif size < offset:
-                # File was truncated (recreated), reset
-                offset = 0
-        except OSError:
-            pass
-
-        await asyncio.sleep(poll_interval)
-
-
 def get_log_snapshot(log_path: str | Path, max_lines: int = 200) -> dict[str, Any]:
     """Return a snapshot of the current log state.
 

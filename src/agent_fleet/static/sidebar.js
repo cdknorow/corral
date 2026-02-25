@@ -28,3 +28,36 @@ export function initSidebarResize() {
         document.body.style.userSelect = "";
     });
 }
+
+/* Command pane drag-to-resize functionality */
+
+export function initCommandPaneResize() {
+    const handle = document.getElementById("command-pane-resize-handle");
+    const pane = document.getElementById("command-pane");
+
+    let dragging = false;
+
+    handle.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        dragging = true;
+        handle.classList.add("dragging");
+        document.body.style.cursor = "row-resize";
+        document.body.style.userSelect = "none";
+    });
+
+    document.addEventListener("mousemove", (e) => {
+        if (!dragging) return;
+        const viewportHeight = window.innerHeight;
+        const newHeight = viewportHeight - e.clientY;
+        const clamped = Math.min(Math.max(newHeight, 80), viewportHeight * 0.6);
+        pane.style.height = clamped + "px";
+    });
+
+    document.addEventListener("mouseup", () => {
+        if (!dragging) return;
+        dragging = false;
+        handle.classList.remove("dragging");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+    });
+}

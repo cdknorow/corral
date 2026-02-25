@@ -7,7 +7,7 @@ import { sendCommand, sendRawKeys, sendModeToggle, sendQuickCommand, sendResetCo
 import { selectLiveSession, selectHistorySession, editAndResubmit } from './sessions.js';
 import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand } from './modals.js';
 import { toggleBrowser, browserNavigateTo, browserNavigateUp } from './browser.js';
-import { initSidebarResize } from './sidebar.js';
+import { initSidebarResize, initCommandPaneResize } from './sidebar.js';
 import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesEdit, switchHistoryTab } from './notes.js';
 import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown, hideTagDropdown, createTag, loadAllTags } from './tags.js';
 
@@ -121,9 +121,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Enter key in command input
+    // Enter sends command, Shift+Enter inserts newline
     document.getElementById("command-input").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
+        if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             sendCommand();
         }
@@ -136,8 +136,9 @@ document.addEventListener("DOMContentLoaded", () => {
         state.autoScroll = (scrollHeight - scrollTop - clientHeight) < 50;
     });
 
-    // Sidebar resize handle
+    // Resize handles
     initSidebarResize();
+    initCommandPaneResize();
 
     // Restore session from URL hash
     const hash = window.location.hash;
