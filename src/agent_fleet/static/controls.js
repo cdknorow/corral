@@ -55,6 +55,7 @@ export function renderQuickActions() {
 
     const container = document.getElementById("quick-actions");
     container.innerHTML = `
+        <button class="btn btn-small btn-mode" onclick="sendModeToggle('default')">Base Mode</button>
         <button class="btn btn-small btn-mode" onclick="sendModeToggle('plan')">Plan Mode</button>
         <button class="btn btn-small btn-mode" onclick="sendModeToggle('auto')">Accept Edits</button>
         <span class="quick-actions-divider"></span>
@@ -198,7 +199,7 @@ function detectCurrentMode() {
 export function sendModeToggle(targetMode) {
     const current = detectCurrentMode();
     if (current === targetMode) {
-        showToast(`Already in ${targetMode === "plan" ? "Plan" : "Accept Edits"} mode`);
+        showToast(`Already in ${targetMode === "plan" ? "Plan" : targetMode === "auto" ? "Accept Edits" : "Base"} mode`);
         return;
     }
 
