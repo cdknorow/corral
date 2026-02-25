@@ -58,6 +58,7 @@ export function renderQuickActions() {
         <button class="btn btn-small btn-mode" onclick="sendModeToggle('default')">Base Mode</button>
         <button class="btn btn-small btn-mode" onclick="sendModeToggle('plan')">Plan Mode</button>
         <button class="btn btn-small btn-mode" onclick="sendModeToggle('auto')">Accept Edits</button>
+        <button class="btn btn-small btn-mode" onclick="sendQuickCommand('!')">Bash Mode</button>
         <span class="quick-actions-divider"></span>
         <button class="btn btn-small" onclick="sendQuickCommand('${escapeAttr(state.currentCommands.compress || "/compact")}')">
             ${escapeHtml(state.currentCommands.compress || "/compact")}
