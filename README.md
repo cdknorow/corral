@@ -15,6 +15,8 @@ A multi-agent orchestration system for managing AI coding agents (Claude and Gem
 - **Session notes & tags** — Add markdown notes and color-coded tags to any session
 - **Remote control** — Send commands, navigate modes, and manage agents from the dashboard
 - **Attach / Kill** — Open a terminal attached to any agent's tmux session, or kill it directly from the UI
+- **Git integration** — Background polling tracks branch, commits, and remote URL per agent
+- **PR linking** — Stored remote URLs enable linking sessions to pull requests
 - **Stale session cleanup** — Dead sessions are automatically detected and removed
 
 ## Installation
@@ -75,6 +77,8 @@ The web dashboard provides quick-action buttons for each live session:
 | **Esc / Arrow / Enter** | Send navigation keys to the agent |
 | **Plan Mode** | Toggle Claude Code plan mode |
 | **Accept Edits** | Toggle Claude Code auto-accept mode |
+| **Bash Mode** | Send `!` command to enter bash mode |
+| **Base Mode** | Toggle base mode |
 | **/compact / /clear** | Send compress or clear commands (adapts per agent type) |
 | **Reset** | Compress then clear the session |
 | **Attach** | Open a local terminal window attached to the agent's tmux session |
@@ -87,12 +91,11 @@ You can also type arbitrary commands in the input bar and send them to the selec
 
 The sidebar History section includes a search bar and filters for browsing your entire AI coding session history.
 
-On startup, the server:
+On startup, the server launches three background services:
 
-1. **Indexes** all Claude sessions from `~/.claude/projects/**/*.jsonl` and Gemini sessions from `~/.gemini/tmp/*/chats/session-*.json`
-2. **Builds a full-text search index** (FTS5) over all message content
-3. **Queues background auto-summarization** for new sessions (requires Claude CLI)
-4. **Re-indexes every 2 minutes**, skipping files that haven't changed (mtime-based)
+1. **Session indexer** (every 2 min) — Indexes all Claude sessions from `~/.claude/projects/**/*.jsonl` and Gemini sessions from `~/.gemini/tmp/*/chats/session-*.json`, builds a full-text search index (FTS5), and queues new sessions for auto-summarization
+2. **Batch summarizer** — Continuously processes the summarization queue using Claude CLI
+3. **Git poller** (every 2 min) — Polls git branch, commit, and remote URL for each live agent and stores snapshots in SQLite
 
 Features:
 
@@ -140,6 +143,7 @@ src/agent_fleet/
 ├── session_store.py      # SQLite storage: notes, tags, session index, FTS, summarizer queue
 ├── session_indexer.py    # Background indexer + batch summarizer
 ├── auto_summarizer.py    # AI-powered session summarization via Claude CLI
+├── git_poller.py         # Background git branch/commit polling for live agents
 ├── log_streamer.py       # Async log file tailing + snapshot for streaming
 ├── PROTOCOL.md           # Agent status/summary reporting protocol
 ├── templates/
@@ -147,12 +151,21 @@ src/agent_fleet/
 └── static/
     ├── style.css         # Dark theme CSS
     ├── app.js            # Entry point
+    ├── state.js          # Client state management
     ├── api.js            # REST API fetch functions
     ├── render.js         # DOM rendering (session lists, chat, pagination)
     ├── sessions.js       # Session selection and management
+    ├── controls.js       # Quick actions, mode toggling, session controls
+    ├── capture.js        # Real-time pane text rendering
+    ├── commits.js        # Git commit history display
     ├── tags.js           # Tag CRUD and UI
-    ├── notes.js          # Notes editing and rendering
-    └── ...               # Other UI modules (websocket, capture, controls, etc.)
+    ├── notes.js          # Notes editing and markdown rendering
+    ├── modals.js         # Launch and info modal dialogs
+    ├── browser.js        # Directory browser for launch dialog
+    ├── sidebar.js        # Sidebar and command pane resizing
+    ├── websocket.js      # Fleet WebSocket subscription
+    ├── syntax.js         # Syntax highlighting for code blocks
+    └── utils.js          # Escape functions, toast notifications
 ```
 
 ## API Endpoints
@@ -160,10 +173,11 @@ src/agent_fleet/
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/` | Dashboard |
-| `GET` | `/api/sessions/live` | List active fleet agents with status |
+| `GET` | `/api/sessions/live` | List active fleet agents with status and git branch |
 | `GET` | `/api/sessions/live/{name}` | Detailed info for a live session (`?agent_type=`) |
 | `GET` | `/api/sessions/live/{name}/capture` | Capture tmux pane content |
-| `GET` | `/api/sessions/live/{name}/info` | Enriched session metadata (Info modal) |
+| `GET` | `/api/sessions/live/{name}/info` | Enriched session metadata (git branch, commit info) |
+| `GET` | `/api/sessions/live/{name}/git` | Git commit snapshots for a live agent (`?limit=`) |
 | `POST` | `/api/sessions/live/{name}/send` | Send a command to an agent |
 | `POST` | `/api/sessions/live/{name}/keys` | Send raw tmux keys (Escape, BTab, etc.) |
 | `POST` | `/api/sessions/live/{name}/kill` | Kill a tmux session |
@@ -172,8 +186,33 @@ src/agent_fleet/
 | `POST` | `/api/sessions/launch` | Launch a new agent session |
 | `GET` | `/api/sessions/history` | Paginated history (`?page=`, `?page_size=`, `?q=`, `?tag_id=`, `?source_type=`) |
 | `GET` | `/api/sessions/history/{id}` | Get messages for a historical session |
+| `GET` | `/api/sessions/history/{id}/git` | Git commits during a session's time range |
+| `GET` | `/api/sessions/history/{id}/notes` | Get notes and auto-summary |
+| `PUT` | `/api/sessions/history/{id}/notes` | Save notes |
+| `POST` | `/api/sessions/history/{id}/resummarize` | Force re-summarization |
+| `GET` | `/api/sessions/history/{id}/tags` | Get tags for a session |
+| `POST` | `/api/sessions/history/{id}/tags` | Add a tag to a session |
+| `DELETE` | `/api/sessions/history/{id}/tags/{tag_id}` | Remove a tag from a session |
+| `GET` | `/api/tags` | List all tags |
+| `POST` | `/api/tags` | Create a new tag |
+| `DELETE` | `/api/tags/{tag_id}` | Delete a tag |
 | `POST` | `/api/indexer/refresh` | Trigger immediate re-index |
+| `GET` | `/api/filesystem/list` | List directories for the launch browser |
 | `WS` | `/ws/fleet` | Real-time fleet status updates (polls every 3s) |
+
+## Database
+
+All persistent state is stored in a SQLite database at `~/.agent-fleet/sessions.db` (WAL mode):
+
+| Table | Purpose |
+|---|---|
+| `session_index` | Session metadata, source type, file paths, timestamps, message counts |
+| `session_fts` | FTS5 virtual table for full-text search (porter stemming, unicode61) |
+| `session_meta` | Notes, auto-summaries, edit timestamps |
+| `tags` | Tag definitions with colors |
+| `session_tags` | Many-to-many tag-to-session assignments |
+| `summarizer_queue` | Pending and completed auto-summarization jobs |
+| `git_snapshots` | Git branch, commit hash, subject, timestamp, and remote URL per agent |
 
 ## Dependencies
 
