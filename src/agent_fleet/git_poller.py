@@ -62,11 +62,11 @@ class GitPoller:
         """Find the active Claude session ID for a working directory.
 
         Claude stores session JSONL files under ~/.claude/projects/<encoded-path>/.
-        The directory name is the absolute path with '/' replaced by '-'.
+        The directory name is the absolute path with '/' and '_' replaced by '-'.
         The most recently modified .jsonl file is the active session.
         """
         try:
-            encoded = workdir.replace("/", "-")
+            encoded = workdir.replace("/", "-").replace("_", "-")
             project_dir = Path.home() / ".claude" / "projects" / encoded
             if not project_dir.is_dir():
                 return None

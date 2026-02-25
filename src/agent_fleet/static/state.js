@@ -6,6 +6,7 @@ export const state = {
     captureInterval: null,      // interval ID for auto-refreshing capture
     autoScroll: true,
     liveSessions: [],           // cached live session list
+    historySessionsList: [],    // cached history session list (from last paginated fetch)
     currentCommands: {},        // commands for current session's agent type
     sessionInputText: {},       // per-session draft text: { "sessionKey": "partial text" }
 };

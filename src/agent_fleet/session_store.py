@@ -437,6 +437,24 @@ class SessionStore:
             else:
                 tags_map = {}
 
+            # Enrich with git branch info from git_snapshots
+            branch_map: dict[str, str] = {}
+            if session_ids:
+                branch_rows = conn.execute(
+                    f"""SELECT gs.session_id, gs.branch
+                       FROM git_snapshots gs
+                       INNER JOIN (
+                           SELECT session_id, MAX(recorded_at) as max_ts
+                           FROM git_snapshots
+                           WHERE session_id IN ({placeholders})
+                           GROUP BY session_id
+                       ) latest ON gs.session_id = latest.session_id
+                                   AND gs.recorded_at = latest.max_ts""",
+                    session_ids,
+                ).fetchall()
+                for r in branch_rows:
+                    branch_map[r["session_id"]] = r["branch"]
+
             sessions = []
             for r in rows:
                 sid = r["session_id"]
@@ -452,6 +470,7 @@ class SessionStore:
                     "summary_title": meta.get("summary_title", ""),
                     "has_notes": meta.get("has_notes", False),
                     "tags": tags_map.get(sid, []),
+                    "branch": branch_map.get(sid),
                 })
 
             return {

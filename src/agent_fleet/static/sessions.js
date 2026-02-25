@@ -91,6 +91,16 @@ export async function selectHistorySession(sessionId) {
     document.getElementById("history-session-title").textContent = `Session: ${sessionId}`;
     document.getElementById("history-session-id").textContent = sessionId;
 
+    // Update branch from history sessions data
+    const historyEntry = state.historySessionsList.find(s => s.session_id === sessionId);
+    const branchEl = document.getElementById("history-session-branch");
+    if (historyEntry && historyEntry.branch) {
+        branchEl.querySelector(".branch-text").textContent = historyEntry.branch;
+        branchEl.style.display = "";
+    } else {
+        branchEl.style.display = "none";
+    }
+
     updateSidebarActive();
 
     // Reset to chat tab

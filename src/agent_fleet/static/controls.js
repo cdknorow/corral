@@ -55,7 +55,6 @@ export function renderQuickActions() {
 
     const container = document.getElementById("quick-actions");
     container.innerHTML = `
-        <button class="btn btn-small btn-mode" onclick="sendModeToggle('default')">Base Mode</button>
         <button class="btn btn-small btn-mode" onclick="sendModeToggle('plan')">Plan Mode</button>
         <button class="btn btn-small btn-mode" onclick="sendModeToggle('auto')">Accept Edits</button>
         <button class="btn btn-small btn-mode" onclick="sendQuickCommand('!')">Bash Mode</button>
