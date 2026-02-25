@@ -103,8 +103,6 @@ class SessionStore:
                 CREATE INDEX IF NOT EXISTS idx_git_snap_agent
                     ON git_snapshots(agent_name, recorded_at DESC);
 
-                CREATE INDEX IF NOT EXISTS idx_git_snap_session
-                    ON git_snapshots(session_id);
             """)
             # FTS5 virtual table — created separately because CREATE VIRTUAL TABLE
             # cannot be used inside executescript on all SQLite builds.
@@ -124,6 +122,8 @@ class SessionStore:
                 conn.execute("ALTER TABLE git_snapshots ADD COLUMN session_id TEXT")
             except sqlite3.OperationalError:
                 pass  # Column already exists
+
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_git_snap_session ON git_snapshots(session_id)")
 
             conn.commit()
         finally:
