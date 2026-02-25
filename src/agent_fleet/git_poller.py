@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from pathlib import Path
 from typing import Any
 
 from agent_fleet.session_manager import discover_fleet_agents, _find_pane
@@ -39,6 +40,7 @@ class GitPoller:
                     continue
                 git_info = await self._query_git(workdir)
                 if git_info:
+                    session_id = await self._query_session_id(workdir)
                     await asyncio.to_thread(
                         self._store.upsert_git_snapshot,
                         agent["agent_name"],
@@ -48,11 +50,35 @@ class GitPoller:
                         git_info["commit_hash"],
                         git_info["commit_subject"],
                         git_info["commit_timestamp"],
+                        session_id,
                     )
                     polled += 1
             except Exception:
                 log.exception("GitPoller error for agent %s", agent["agent_name"])
         return {"polled": polled}
+
+    async def _query_session_id(self, workdir: str) -> str | None:
+        """Find the active Claude session ID for a working directory.
+
+        Claude stores session JSONL files under ~/.claude/projects/<encoded-path>/.
+        The directory name is the absolute path with '/' replaced by '-'.
+        The most recently modified .jsonl file is the active session.
+        """
+        try:
+            encoded = workdir.replace("/", "-")
+            project_dir = Path.home() / ".claude" / "projects" / encoded
+            if not project_dir.is_dir():
+                return None
+            jsonl_files = sorted(
+                project_dir.glob("*.jsonl"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            if jsonl_files:
+                return jsonl_files[0].stem
+        except OSError:
+            pass
+        return None
 
     async def _query_git(self, workdir: str) -> dict[str, str] | None:
         """Query git for current branch and latest commit in a working directory."""

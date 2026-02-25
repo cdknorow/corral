@@ -93,6 +93,7 @@ class SessionStore:
                     commit_hash       TEXT NOT NULL,
                     commit_subject    TEXT DEFAULT '',
                     commit_timestamp  TEXT,
+                    session_id        TEXT,
                     recorded_at       TEXT NOT NULL
                 );
 
@@ -101,6 +102,9 @@ class SessionStore:
 
                 CREATE INDEX IF NOT EXISTS idx_git_snap_agent
                     ON git_snapshots(agent_name, recorded_at DESC);
+
+                CREATE INDEX IF NOT EXISTS idx_git_snap_session
+                    ON git_snapshots(session_id);
             """)
             # FTS5 virtual table — created separately because CREATE VIRTUAL TABLE
             # cannot be used inside executescript on all SQLite builds.
@@ -114,6 +118,13 @@ class SessionStore:
                 """)
             except Exception:
                 pass  # FTS5 may not be compiled in
+
+            # Migrations for existing databases
+            try:
+                conn.execute("ALTER TABLE git_snapshots ADD COLUMN session_id TEXT")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+
             conn.commit()
         finally:
             conn.close()
@@ -461,6 +472,7 @@ class SessionStore:
         commit_hash: str,
         commit_subject: str,
         commit_timestamp: str | None,
+        session_id: str | None = None,
     ) -> None:
         now = datetime.now(timezone.utc).isoformat()
         conn = self._connect()
@@ -468,18 +480,24 @@ class SessionStore:
             conn.execute(
                 """INSERT OR IGNORE INTO git_snapshots
                    (agent_name, agent_type, working_directory, branch,
-                    commit_hash, commit_subject, commit_timestamp, recorded_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    commit_hash, commit_subject, commit_timestamp, session_id, recorded_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (agent_name, agent_type, working_directory, branch,
-                 commit_hash, commit_subject, commit_timestamp, now),
+                 commit_hash, commit_subject, commit_timestamp, session_id, now),
             )
             # Always update branch/working_directory on the latest row for this agent
             # so get_latest_git_state reflects the current branch even without new commits
+            update_params = [branch, working_directory, now]
+            update_set = "branch = ?, working_directory = ?, recorded_at = ?"
+            if session_id is not None:
+                update_set += ", session_id = ?"
+                update_params.append(session_id)
+            update_params.extend([agent_name, commit_hash])
             conn.execute(
-                """UPDATE git_snapshots
-                   SET branch = ?, working_directory = ?, recorded_at = ?
+                f"""UPDATE git_snapshots
+                   SET {update_set}
                    WHERE agent_name = ? AND commit_hash = ?""",
-                (branch, working_directory, now, agent_name, commit_hash),
+                update_params,
             )
             conn.commit()
         finally:
@@ -490,7 +508,7 @@ class SessionStore:
         try:
             rows = conn.execute(
                 """SELECT agent_name, agent_type, working_directory, branch,
-                          commit_hash, commit_subject, commit_timestamp, recorded_at
+                          commit_hash, commit_subject, commit_timestamp, session_id, recorded_at
                    FROM git_snapshots
                    WHERE agent_name = ?
                    ORDER BY recorded_at DESC
@@ -506,7 +524,7 @@ class SessionStore:
         try:
             row = conn.execute(
                 """SELECT agent_name, agent_type, working_directory, branch,
-                          commit_hash, commit_subject, commit_timestamp, recorded_at
+                          commit_hash, commit_subject, commit_timestamp, session_id, recorded_at
                    FROM git_snapshots
                    WHERE agent_name = ?
                    ORDER BY recorded_at DESC
@@ -536,10 +554,23 @@ class SessionStore:
             conn.close()
 
     def get_git_snapshots_for_session(self, session_id: str, limit: int = 100) -> list[dict[str, Any]]:
-        """Return git commits whose timestamp falls within a session's time range."""
+        """Return git commits linked to a session by session_id or by time range."""
         conn = self._connect()
         try:
-            # Look up the session's time range from session_index
+            # First: direct matches by session_id
+            rows = conn.execute(
+                """SELECT agent_name, agent_type, working_directory, branch,
+                          commit_hash, commit_subject, commit_timestamp, session_id, recorded_at
+                   FROM git_snapshots
+                   WHERE session_id = ?
+                   ORDER BY commit_timestamp ASC
+                   LIMIT ?""",
+                (session_id, limit),
+            ).fetchall()
+            if rows:
+                return [dict(r) for r in rows]
+
+            # Fallback: match by time range from session_index
             row = conn.execute(
                 "SELECT first_timestamp, last_timestamp FROM session_index WHERE session_id = ?",
                 (session_id,),
@@ -549,7 +580,7 @@ class SessionStore:
 
             rows = conn.execute(
                 """SELECT agent_name, agent_type, working_directory, branch,
-                          commit_hash, commit_subject, commit_timestamp, recorded_at
+                          commit_hash, commit_subject, commit_timestamp, session_id, recorded_at
                    FROM git_snapshots
                    WHERE commit_timestamp >= ? AND commit_timestamp <= ?
                    ORDER BY commit_timestamp ASC
