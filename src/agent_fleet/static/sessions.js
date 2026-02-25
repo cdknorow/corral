@@ -4,10 +4,11 @@ import { state, sessionKey } from './state.js';
 import { showToast } from './utils.js';
 import { loadLiveSessionDetail, loadHistoryMessages } from './api.js';
 import { stopCaptureRefresh, startCaptureRefresh } from './capture.js';
-import { updateSessionStatus, updateSessionSummary, renderHistoryChat } from './render.js';
+import { updateSessionStatus, updateSessionSummary, updateSessionBranch, renderHistoryChat } from './render.js';
 import { renderQuickActions, updateSidebarActive } from './controls.js';
 import { loadSessionNotes, switchHistoryTab } from './notes.js';
 import { loadSessionTags } from './tags.js';
+import { loadSessionCommits } from './commits.js';
 
 export async function selectLiveSession(name, agentType) {
     stopCaptureRefresh();
@@ -49,8 +50,11 @@ export async function selectLiveSession(name, agentType) {
         }
     }
 
-    // Set up quick action buttons
+    // Update branch from live sessions data
     const agent = state.liveSessions.find(s => s.name === name);
+    updateSessionBranch(agent && agent.branch ? agent.branch : null);
+
+    // Set up quick action buttons
     state.currentCommands = (agent && agent.commands) || { compress: "/compact", clear: "/clear" };
     renderQuickActions();
 
@@ -97,9 +101,10 @@ export async function selectHistorySession(sessionId) {
         renderHistoryChat(data.messages);
     }
 
-    // Load notes and tags in parallel
+    // Load notes, tags, and commits in parallel
     loadSessionNotes(sessionId);
     loadSessionTags(sessionId);
+    loadSessionCommits(sessionId);
 }
 
 export function editAndResubmit(btn) {

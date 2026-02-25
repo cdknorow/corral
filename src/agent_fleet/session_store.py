@@ -83,6 +83,24 @@ class SessionStore:
                     attempted_at TEXT,
                     error_msg    TEXT
                 );
+
+                CREATE TABLE IF NOT EXISTS git_snapshots (
+                    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_name        TEXT NOT NULL,
+                    agent_type        TEXT NOT NULL DEFAULT 'claude',
+                    working_directory TEXT NOT NULL,
+                    branch            TEXT NOT NULL,
+                    commit_hash       TEXT NOT NULL,
+                    commit_subject    TEXT DEFAULT '',
+                    commit_timestamp  TEXT,
+                    recorded_at       TEXT NOT NULL
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_git_snap_dedup
+                    ON git_snapshots(agent_name, commit_hash);
+
+                CREATE INDEX IF NOT EXISTS idx_git_snap_agent
+                    ON git_snapshots(agent_name, recorded_at DESC);
             """)
             # FTS5 virtual table — created separately because CREATE VIRTUAL TABLE
             # cannot be used inside executescript on all SQLite builds.
@@ -429,6 +447,116 @@ class SessionStore:
                 "page": page,
                 "page_size": page_size,
             }
+        finally:
+            conn.close()
+
+    # ── Git Snapshots ─────────────────────────────────────────────────────
+
+    def upsert_git_snapshot(
+        self,
+        agent_name: str,
+        agent_type: str,
+        working_directory: str,
+        branch: str,
+        commit_hash: str,
+        commit_subject: str,
+        commit_timestamp: str | None,
+    ) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self._connect()
+        try:
+            conn.execute(
+                """INSERT OR IGNORE INTO git_snapshots
+                   (agent_name, agent_type, working_directory, branch,
+                    commit_hash, commit_subject, commit_timestamp, recorded_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (agent_name, agent_type, working_directory, branch,
+                 commit_hash, commit_subject, commit_timestamp, now),
+            )
+            # Always update branch/working_directory on the latest row for this agent
+            # so get_latest_git_state reflects the current branch even without new commits
+            conn.execute(
+                """UPDATE git_snapshots
+                   SET branch = ?, working_directory = ?, recorded_at = ?
+                   WHERE agent_name = ? AND commit_hash = ?""",
+                (branch, working_directory, now, agent_name, commit_hash),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_git_snapshots(self, agent_name: str, limit: int = 20) -> list[dict[str, Any]]:
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                """SELECT agent_name, agent_type, working_directory, branch,
+                          commit_hash, commit_subject, commit_timestamp, recorded_at
+                   FROM git_snapshots
+                   WHERE agent_name = ?
+                   ORDER BY recorded_at DESC
+                   LIMIT ?""",
+                (agent_name, limit),
+            ).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def get_latest_git_state(self, agent_name: str) -> dict[str, Any] | None:
+        conn = self._connect()
+        try:
+            row = conn.execute(
+                """SELECT agent_name, agent_type, working_directory, branch,
+                          commit_hash, commit_subject, commit_timestamp, recorded_at
+                   FROM git_snapshots
+                   WHERE agent_name = ?
+                   ORDER BY recorded_at DESC
+                   LIMIT 1""",
+                (agent_name,),
+            ).fetchone()
+            return dict(row) if row else None
+        finally:
+            conn.close()
+
+    def get_all_latest_git_state(self) -> dict[str, dict[str, Any]]:
+        """Return {agent_name: {branch, commit_hash, ...}} for all agents."""
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                """SELECT g.*
+                   FROM git_snapshots g
+                   INNER JOIN (
+                       SELECT agent_name, MAX(recorded_at) as max_ts
+                       FROM git_snapshots
+                       GROUP BY agent_name
+                   ) latest ON g.agent_name = latest.agent_name
+                              AND g.recorded_at = latest.max_ts"""
+            ).fetchall()
+            return {r["agent_name"]: dict(r) for r in rows}
+        finally:
+            conn.close()
+
+    def get_git_snapshots_for_session(self, session_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        """Return git commits whose timestamp falls within a session's time range."""
+        conn = self._connect()
+        try:
+            # Look up the session's time range from session_index
+            row = conn.execute(
+                "SELECT first_timestamp, last_timestamp FROM session_index WHERE session_id = ?",
+                (session_id,),
+            ).fetchone()
+            if not row or not row["first_timestamp"] or not row["last_timestamp"]:
+                return []
+
+            rows = conn.execute(
+                """SELECT agent_name, agent_type, working_directory, branch,
+                          commit_hash, commit_subject, commit_timestamp, recorded_at
+                   FROM git_snapshots
+                   WHERE commit_timestamp >= ? AND commit_timestamp <= ?
+                   ORDER BY commit_timestamp ASC
+                   LIMIT ?""",
+                (row["first_timestamp"], row["last_timestamp"], limit),
+            ).fetchall()
+            return [dict(r) for r in rows]
         finally:
             conn.close()
 

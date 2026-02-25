@@ -315,6 +315,23 @@ body {
     color: var(--text-secondary);
 }
 
+.title-branch {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.branch-icon {
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.sidebar-branch {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
 .status-dot {
     display: inline-block;
     width: 8px;
@@ -1351,4 +1368,79 @@ body {
 .pagination-info {
     font-size: 11px;
     color: var(--text-muted);
+}
+
+/* Commits View */
+.commits-view {
+    overflow-y: auto;
+    padding: 12px 20px;
+}
+
+.commit-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+}
+
+.commit-row:last-child {
+    border-bottom: none;
+}
+
+.commit-row:hover {
+    background: var(--bg-hover);
+}
+
+.commit-main {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.commit-hash {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.commit-subject {
+    font-size: 13px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.commit-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.commit-branch {
+    color: var(--accent);
+    font-size: 11px;
+}
+
+.commit-agent {
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.commit-time {
+    white-space: nowrap;
+    font-size: 11px;
 }

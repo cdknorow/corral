@@ -41,14 +41,17 @@ BASE_DIR = Path(__file__).parent
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start background indexer and batch summarizer on server startup."""
+    """Start background indexer, batch summarizer, and git poller on server startup."""
     from agent_fleet.session_indexer import SessionIndexer, BatchSummarizer
+    from agent_fleet.git_poller import GitPoller
 
     indexer = SessionIndexer(store)
     summarizer = BatchSummarizer(store)
+    git_poller = GitPoller(store)
 
     indexer_task = asyncio.create_task(indexer.run_forever(interval=120))
     summarizer_task = asyncio.create_task(summarizer.run_forever())
+    git_task = asyncio.create_task(git_poller.run_forever(interval=30))
 
     # Store indexer on app state so endpoints can trigger refresh
     app.state.indexer = indexer
@@ -57,6 +60,7 @@ async def lifespan(app: FastAPI):
 
     indexer_task.cancel()
     summarizer_task.cancel()
+    git_task.cancel()
 
 
 app = FastAPI(title="Agent Fleet Dashboard", lifespan=lifespan)
@@ -80,10 +84,12 @@ async def index(request: Request):
 async def get_live_sessions():
     """List active fleet agents with their current status."""
     agents = await discover_fleet_agents()
+    git_state = await asyncio.to_thread(store.get_all_latest_git_state)
     results = []
     for agent in agents:
         log_info = get_log_status(agent["log_path"])
-        results.append({
+        git = git_state.get(agent["agent_name"])
+        entry = {
             "name": agent["agent_name"],
             "agent_type": agent["agent_type"],
             "log_path": agent["log_path"],
@@ -91,7 +97,9 @@ async def get_live_sessions():
             "summary": log_info["summary"],
             "staleness_seconds": log_info["staleness_seconds"],
             "commands": COMMAND_MAP.get(agent["agent_type"].lower(), COMMAND_MAP["claude"]),
-        })
+            "branch": git["branch"] if git else None,
+        }
+        results.append(entry)
     return results
 
 
@@ -130,7 +138,19 @@ async def get_live_session_info(name: str, agent_type: str | None = None):
     info = await get_session_info(name, agent_type)
     if not info:
         return {"error": f"Agent '{name}' not found"}
+    git = await asyncio.to_thread(store.get_latest_git_state, name)
+    if git:
+        info["git_branch"] = git["branch"]
+        info["git_commit_hash"] = git["commit_hash"]
+        info["git_commit_subject"] = git["commit_subject"]
     return info
+
+
+@app.get("/api/sessions/live/{name}/git")
+async def get_live_session_git(name: str, limit: int = Query(20, ge=1, le=100)):
+    """Return recent git snapshots (commit history) for a live agent."""
+    snapshots = await asyncio.to_thread(store.get_git_snapshots, name, limit)
+    return {"agent_name": name, "snapshots": snapshots}
 
 
 @app.get("/api/sessions/history")
@@ -186,6 +206,13 @@ async def trigger_indexer_refresh():
         return {"error": "Indexer not available"}
     result = await indexer.run_once()
     return result
+
+
+@app.get("/api/sessions/history/{session_id}/git")
+async def get_history_session_git(session_id: str):
+    """Return git commits that occurred during a historical session's time range."""
+    snapshots = await asyncio.to_thread(store.get_git_snapshots_for_session, session_id)
+    return {"session_id": session_id, "commits": snapshots}
 
 
 @app.get("/api/sessions/history/{session_id}")
@@ -397,15 +424,18 @@ async def ws_fleet(websocket: WebSocket):
     try:
         while True:
             agents = await discover_fleet_agents()
+            git_state = await asyncio.to_thread(store.get_all_latest_git_state)
             results = []
             for agent in agents:
                 log_info = get_log_status(agent["log_path"])
+                git = git_state.get(agent["agent_name"])
                 results.append({
                     "name": agent["agent_name"],
                     "agent_type": agent["agent_type"],
                     "status": log_info["status"],
                     "summary": log_info["summary"],
                     "staleness_seconds": log_info["staleness_seconds"],
+                    "branch": git["branch"] if git else None,
                 })
 
             current_state = json.dumps(results, sort_keys=True)

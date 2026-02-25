@@ -68,6 +68,10 @@ export async function showInfoModal() {
         document.getElementById("info-working-dir").textContent = info.working_directory || "";
         document.getElementById("info-log-path").textContent = info.log_path || "";
         document.getElementById("info-pane-title").textContent = info.pane_title || "";
+        document.getElementById("info-git-branch").textContent = info.git_branch || "—";
+        const commitHash = info.git_commit_hash ? info.git_commit_hash.substring(0, 8) : "";
+        const commitSubject = info.git_commit_subject || "";
+        document.getElementById("info-git-commit").textContent = commitHash ? `${commitHash} ${commitSubject}` : "—";
 
         document.getElementById("info-modal").style.display = "flex";
     } catch (e) {

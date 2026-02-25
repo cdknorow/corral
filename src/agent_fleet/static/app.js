@@ -10,6 +10,7 @@ import { toggleBrowser, browserNavigateTo, browserNavigateUp } from './browser.j
 import { initSidebarResize, initCommandPaneResize } from './sidebar.js';
 import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesEdit, switchHistoryTab } from './notes.js';
 import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown, hideTagDropdown, createTag, loadAllTags } from './tags.js';
+import { loadSessionCommits } from './commits.js';
 
 // ── Expose functions to HTML onclick handlers ─────────────────────────────
 window.sendCommand = sendCommand;

@@ -56,6 +56,9 @@
                     <div class="session-title">
                         <span id="session-type-badge" class="badge">claude</span>
                         <h2 id="session-name"></h2>
+                        <span id="session-branch" class="title-branch" style="display:none">
+                            <span class="branch-icon">&#x2387;</span> <span class="branch-text"></span>
+                        </span>
                         <div class="session-title-actions">
                             <button class="btn btn-icon-label" onclick="showInfoModal()" title="View session details: agent type, tmux session, working directory, and log path"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7" x2="8" y2="11"/><circle cx="8" cy="5" r="0.5" fill="currentColor" stroke="none"/></svg><span>Info</span></button>
                             <button class="btn btn-icon-label btn-primary" onclick="attachTerminal()" title="Open this session in a new terminal window via tmux attach"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,4 8,8 4,12"/><line x1="9" y1="12" x2="13" y2="12"/></svg><span>Attach</span></button>
@@ -124,6 +127,7 @@
                 <div class="history-tabs">
                     <button class="history-tab-btn active" onclick="switchHistoryTab('chat')">Chat</button>
                     <button class="history-tab-btn" onclick="switchHistoryTab('notes')">Notes</button>
+                    <button class="history-tab-btn" onclick="switchHistoryTab('commits')">Commits</button>
                 </div>
                 <!-- Chat Tab Content -->
                 <div id="history-tab-chat" class="history-tab-content active">
@@ -147,6 +151,12 @@
                                 <button class="btn btn-small btn-primary" onclick="saveNotes()">Save</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <!-- Commits Tab Content -->
+                <div id="history-tab-commits" class="history-tab-content">
+                    <div id="commits-list" class="commits-view">
+                        <div class="empty-notes">Loading commits...</div>
                     </div>
                 </div>
             </div>
@@ -207,6 +217,10 @@
                 <dd id="info-log-path"></dd>
                 <dt>Pane Title</dt>
                 <dd id="info-pane-title"></dd>
+                <dt>Branch</dt>
+                <dd id="info-git-branch"></dd>
+                <dt>Latest Commit</dt>
+                <dd id="info-git-commit"></dd>
             </dl>
             <div class="modal-actions">
                 <button class="btn" onclick="hideInfoModal()">Close</button>

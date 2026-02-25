@@ -23,9 +23,10 @@ export function renderLiveSessions(sessions) {
         const dotClass = getDotClass(s.staleness_seconds);
         const isActive = state.currentSession && state.currentSession.type === "live" && state.currentSession.name === s.name && state.currentSession.agent_type === s.agent_type;
         const typeTag = s.agent_type && s.agent_type !== "claude" ? ` <span class="badge ${escapeHtml(s.agent_type)}">${escapeHtml(s.agent_type)}</span>` : "";
+        const branchTag = s.branch ? ` <span class="sidebar-branch">${escapeHtml(s.branch)}</span>` : "";
         return `<li class="${isActive ? 'active' : ''}" onclick="selectLiveSession('${escapeHtml(s.name)}', '${escapeHtml(s.agent_type)}')">
             <span class="session-dot ${dotClass}"></span>
-            <span class="session-label">${escapeHtml(s.name)}${typeTag}</span>
+            <span class="session-label">${escapeHtml(s.name)}${typeTag}${branchTag}</span>
         </li>`;
     }).join("");
 }
@@ -120,6 +121,16 @@ export function updateSessionStatus(status) {
     if (status) {
         el.querySelector(".status-text").textContent = status;
         el.style.display = "";
+    }
+}
+
+export function updateSessionBranch(branch) {
+    const el = document.getElementById("session-branch");
+    if (branch) {
+        el.querySelector(".branch-text").textContent = branch;
+        el.style.display = "";
+    } else {
+        el.style.display = "none";
     }
 }
 
