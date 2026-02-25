@@ -5,7 +5,7 @@ TARGET_DIR="${1:-.}"
 AGENT_TYPE="${2:-claude}"
 LOG_DIR="${TMPDIR:-/tmp}"
 LOG_DIR="${LOG_DIR%/}" # Remove trailing slash if present
-MAX_AGENTS=3
+MAX_AGENTS=5
 
 
 TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
