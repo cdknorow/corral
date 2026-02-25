@@ -51,6 +51,7 @@ class GitPoller:
                         git_info["commit_subject"],
                         git_info["commit_timestamp"],
                         session_id,
+                        git_info.get("remote_url"),
                     )
                     polled += 1
             except Exception:
@@ -107,11 +108,26 @@ class GitPoller:
             if len(parts) < 3:
                 return None
 
+            # Get remote URL (best-effort)
+            remote_url = None
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "git", "-C", workdir, "remote", "get-url", "origin",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
+                if proc.returncode == 0:
+                    remote_url = stdout.decode().strip() or None
+            except (asyncio.TimeoutError, OSError):
+                pass
+
             return {
                 "branch": branch,
                 "commit_hash": parts[0],
                 "commit_subject": parts[1],
                 "commit_timestamp": parts[2],
+                "remote_url": remote_url,
             }
         except (asyncio.TimeoutError, OSError, FileNotFoundError):
             return None
