@@ -94,6 +94,8 @@ agent-fleet --reload
 ### Managing sessions from the dashboard
 
 <!-- TODO: Add a GIF here showing the live pane capture updating, sending commands to an agent, and toggling plan/base mode. -->
+<img width="1510" height="813" alt="image" src="https://github.com/user-attachments/assets/5a2e7909-ef08-4371-b485-f6e141a5a02c" />
+
 The web dashboard provides quick-action buttons for each live session:
 
 | Action | Description |
@@ -114,6 +116,9 @@ You can also type arbitrary commands in the input bar and send them to the selec
 ### Session history search and filtering
 
 <!-- TODO: Add a GIF here showing full-text search across past Claude/Gemini sessions and adding notes/tags. -->
+<img width="1512" height="799" alt="image" src="https://github.com/user-attachments/assets/37561737-caf9-438b-81af-8c48a6cfe30a" />
+
+
 The sidebar History section includes a search bar and filters for browsing your entire AI coding session history.
 
 On startup, the server launches three background services:
