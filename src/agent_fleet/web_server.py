@@ -64,6 +64,9 @@ async def lifespan(app: FastAPI):
     from agent_fleet.session_indexer import SessionIndexer, BatchSummarizer
     from agent_fleet.git_poller import GitPoller
 
+    # Seed _last_known from DB so we don't re-insert events already stored.
+    _last_known.update(await store.get_last_known_status_summary())
+
     indexer = SessionIndexer(store)
     summarizer = BatchSummarizer(store)
     git_poller = GitPoller(store)
@@ -553,8 +556,6 @@ async def delete_agent_note(name: str, note_id: int):
 async def list_agent_events(name: str, limit: int = Query(50, ge=1, le=200)):
     """List recent events for the current session of a live agent."""
     session_id = await store.get_agent_session_id(name)
-    if session_id is None:
-        return []
     events = await store.list_agent_events(name, limit, session_id=session_id)
     return events
 
@@ -585,8 +586,6 @@ async def create_agent_event(name: str, body: dict):
 async def get_agent_event_counts(name: str):
     """Get event counts grouped by tool name for the current session."""
     session_id = await store.get_agent_session_id(name)
-    if session_id is None:
-        return []
     counts = await store.get_agent_event_counts(name, session_id=session_id)
     return counts
 
