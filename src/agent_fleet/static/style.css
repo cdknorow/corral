@@ -160,7 +160,7 @@ body {
     font-size: 13px;
     color: var(--text-secondary);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     transition: background 0.15s;
 }
@@ -192,6 +192,7 @@ body {
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    margin-top: 5px;
 }
 
 .session-dot.active { background: var(--success); }
@@ -202,6 +203,21 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.session-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.session-goal {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 2px;
 }
 
 /* Main Content */

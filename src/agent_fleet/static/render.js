@@ -24,9 +24,13 @@ export function renderLiveSessions(sessions) {
         const isActive = state.currentSession && state.currentSession.type === "live" && state.currentSession.name === s.name && state.currentSession.agent_type === s.agent_type;
         const typeTag = s.agent_type && s.agent_type !== "claude" ? ` <span class="badge ${escapeHtml(s.agent_type)}">${escapeHtml(s.agent_type)}</span>` : "";
         const branchTag = s.branch ? ` <span class="sidebar-branch">${escapeHtml(s.branch)}</span>` : "";
+        const goal = s.summary ? escapeHtml(s.summary) : "No goal set";
         return `<li class="${isActive ? 'active' : ''}" onclick="selectLiveSession('${escapeHtml(s.name)}', '${escapeHtml(s.agent_type)}')">
             <span class="session-dot ${dotClass}"></span>
-            <span class="session-label">${escapeHtml(s.name)}${typeTag}${branchTag}</span>
+            <div class="session-info">
+                <span class="session-label">${escapeHtml(s.name)}${typeTag}${branchTag}</span>
+                <span class="session-goal">${goal}</span>
+            </div>
         </li>`;
     }).join("");
 }
