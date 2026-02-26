@@ -126,7 +126,13 @@ def get_log_status(log_path: str | Path) -> dict[str, Any]:
             leftover = b""
             chunk_size = 4096
 
-            while pos > 0 and len(lines) < 20: 
+            max_chunks = 1000  # Up to ~4MB backwards
+            chunks_read = 0
+
+            while pos > 0 and (len(lines) < 20 or result["status"] is None or result["summary"] is None): 
+                if chunks_read >= max_chunks:
+                    break
+
                 read_size = min(chunk_size, pos)
                 pos -= read_size
                 f.seek(pos)
@@ -138,25 +144,41 @@ def get_log_status(log_path: str | Path) -> dict[str, Any]:
 
                 for p in reversed(parts):
                     try:
+                        need_status = result["status"] is None
+                        need_summary = result["summary"] is None
+                        need_lines = len(lines) < 20
+
+                        if not (need_status or need_summary or need_lines):
+                            break
+
                         text = p.decode("utf-8", errors="replace")
                         clean_line = strip_ansi(text)
                         
-                        if result["status"] is None:
+                        if need_status:
                             status_matches = STATUS_RE.findall(clean_line)
                             if status_matches:
                                 result["status"] = clean_match(status_matches[-1])
                                 
-                        if result["summary"] is None:
+                        if need_summary:
                             summary_matches = SUMMARY_RE.findall(clean_line)
                             if summary_matches:
                                 result["summary"] = clean_match(summary_matches[-1])
 
-                        lines.insert(0, clean_line)
-                        if len(lines) >= 20:
-                            break
+                        if need_lines:
+                            lines.insert(0, clean_line)
                     except Exception:
                         pass
+                
+                chunks_read += 1
                         
+            # Fallback for summary: if not found in the tail, it might be at the very top
+            if result["summary"] is None:
+                f.seek(0)
+                head_chunk = f.read(16384).decode("utf-8", errors="replace")
+                head_matches = SUMMARY_RE.findall(strip_ansi(head_chunk))
+                if head_matches:
+                    result["summary"] = clean_match(head_matches[-1])
+            
             result["recent_lines"] = lines
     except OSError:
         pass
