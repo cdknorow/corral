@@ -284,6 +284,55 @@ async def test_complete_by_title(tmp_store):
     assert tasks[1]["completed"] == 0
 
 
+@pytest.mark.asyncio
+async def test_in_progress_sets_completed_to_2(client, tmp_store):
+    """PATCH with completed=2 marks a task as in-progress."""
+    create_resp = await client.post(
+        "/api/sessions/live/my_agent/tasks",
+        json={"title": "Working on it"},
+    )
+    task_id = create_resp.json()["id"]
+
+    resp = await client.patch(
+        f"/api/sessions/live/my_agent/tasks/{task_id}",
+        json={"completed": 2},
+    )
+    assert resp.status_code == 200
+
+    tasks = await tmp_store.list_agent_tasks("my_agent")
+    assert tasks[0]["completed"] == 2
+
+
+@pytest.mark.asyncio
+async def test_full_lifecycle_pending_inprogress_completed(client, tmp_store):
+    """Task goes through pending(0) → in_progress(2) → completed(1)."""
+    create_resp = await client.post(
+        "/api/sessions/live/my_agent/tasks",
+        json={"title": "Lifecycle task"},
+    )
+    task_id = create_resp.json()["id"]
+
+    # Starts as pending
+    tasks = await tmp_store.list_agent_tasks("my_agent")
+    assert tasks[0]["completed"] == 0
+
+    # Mark in-progress
+    await client.patch(
+        f"/api/sessions/live/my_agent/tasks/{task_id}",
+        json={"completed": 2},
+    )
+    tasks = await tmp_store.list_agent_tasks("my_agent")
+    assert tasks[0]["completed"] == 2
+
+    # Mark completed
+    await client.patch(
+        f"/api/sessions/live/my_agent/tasks/{task_id}",
+        json={"completed": 1},
+    )
+    tasks = await tmp_store.list_agent_tasks("my_agent")
+    assert tasks[0]["completed"] == 1
+
+
 # ── hook_task_sync unit tests ─────────────────────────────────────────────
 
 

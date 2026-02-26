@@ -1545,6 +1545,25 @@ body {
     color: var(--text-muted);
 }
 
+.task-item.in-progress .task-title {
+    color: var(--accent);
+}
+
+.task-spinner {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: task-spin 0.8s linear infinite;
+    display: inline-block;
+}
+
+@keyframes task-spin {
+    to { transform: rotate(360deg); }
+}
+
 .task-checkbox {
     width: 15px;
     height: 15px;

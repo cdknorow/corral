@@ -112,19 +112,20 @@ def main():
         # If this update includes a subject, cache it
         if task_id and subject:
             _cache_write(task_id, subject)
-        if status == "completed":
+        if status in ("completed", "in_progress"):
             # Resolve the title: from input, from cache, from response
             title = subject or resp_parsed.get("subject", "") or (_cache_read(task_id) if task_id else "")
-            _debug_log(f"TaskUpdate completed: task_id={task_id} resolved_title={title}")
+            _debug_log(f"TaskUpdate {status}: task_id={task_id} resolved_title={title}")
+            # completed=1 means done, completed=2 means in_progress
+            completed_value = 1 if status == "completed" else 2
             if title:
-                # Find matching dashboard task and mark it done
                 tasks = _api(base, "GET", f"/api/sessions/live/{agent_name}/tasks")
                 _debug_log(f"Dashboard tasks: {json.dumps([t.get('title') for t in (tasks or [])])}")
                 if tasks:
                     for t in tasks:
-                        if t.get("title") == title and not t.get("completed"):
-                            _debug_log(f"Marking done: dashboard_id={t['id']}")
-                            _api(base, "PATCH", f"/api/sessions/live/{agent_name}/tasks/{t['id']}", {"completed": 1})
+                        if t.get("title") == title and t.get("completed") != 1:
+                            _debug_log(f"Setting {status}: dashboard_id={t['id']}")
+                            _api(base, "PATCH", f"/api/sessions/live/{agent_name}/tasks/{t['id']}", {"completed": completed_value})
                             break
 
 

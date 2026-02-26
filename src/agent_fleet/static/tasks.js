@@ -110,7 +110,7 @@ export function renderTaskList() {
     if (!list) return;
 
     const tasks = state.currentAgentTasks || [];
-    const doneCount = tasks.filter(t => t.completed).length;
+    const doneCount = tasks.filter(t => t.completed === 1).length;
 
     if (countEl) {
         countEl.textContent = tasks.length > 0 ? `${doneCount}/${tasks.length}` : '';
@@ -121,14 +121,20 @@ export function renderTaskList() {
         return;
     }
 
-    list.innerHTML = tasks.map(t => `
-        <div class="task-item ${t.completed ? 'completed' : ''}" data-task-id="${t.id}" draggable="true">
-            <input type="checkbox" class="task-checkbox" ${t.completed ? 'checked' : ''}
-                onchange="toggleAgentTask(${t.id}, this.checked)">
+    // completed: 0=pending, 1=done, 2=in_progress
+    list.innerHTML = tasks.map(t => {
+        const statusClass = t.completed === 1 ? 'completed' : t.completed === 2 ? 'in-progress' : '';
+        const icon = t.completed === 2
+            ? '<span class="task-spinner" title="In progress"></span>'
+            : `<input type="checkbox" class="task-checkbox" ${t.completed === 1 ? 'checked' : ''}
+                onchange="toggleAgentTask(${t.id}, this.checked)">`;
+        return `
+        <div class="task-item ${statusClass}" data-task-id="${t.id}" draggable="true">
+            ${icon}
             <span class="task-title" ondblclick="editAgentTaskTitle(${t.id}, this)">${escapeHtml(t.title)}</span>
             <button class="task-delete-btn" onclick="deleteAgentTask(${t.id})" title="Delete task">&times;</button>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 
     initTaskDragReorder();
 }
