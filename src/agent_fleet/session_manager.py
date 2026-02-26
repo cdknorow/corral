@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from agent_fleet.utils import run_cmd, LOG_PATTERN, HISTORY_PATH
+from agent_fleet.utils import run_cmd, LOG_DIR, LOG_PATTERN, HISTORY_PATH
 
 ANSI_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -390,6 +390,18 @@ async def restart_session(agent_name: str, agent_type: str | None = None) -> dic
     effective_type = (agent_type or "claude").lower()
 
     try:
+        # 0. Resolve the log file path BEFORE killing the pane so glob lookup
+        #    isn't racing against a cleared file.  Fall back to a deterministic
+        #    path constructed from the agent info if glob matching fails.
+        log_path = get_agent_log_path(agent_name, agent_type)
+        if log_path is None:
+            log_path = Path(LOG_DIR) / f"{effective_type}_fleet_{agent_name}.log"
+        log_file = str(log_path)
+
+        # 0b. Explicitly close any existing pipe-pane so respawn-pane doesn't
+        #     leave a stale pipe that swallows output.
+        await run_cmd("tmux", "pipe-pane", "-t", target)
+
         # 1. Kill the running process and respawn a fresh shell in the same pane
         rc, _, stderr = await run_cmd(
             "tmux", "respawn-pane", "-k", "-t", target
@@ -406,19 +418,15 @@ async def restart_session(agent_name: str, agent_type: str | None = None) -> dic
         )
 
         # 2. Clear the log file so the dashboard starts fresh
-        log_path = get_agent_log_path(agent_name, agent_type)
-        log_file = str(log_path) if log_path else None
-        if log_path:
-            try:
-                log_path.write_text("")
-            except OSError:
-                pass
+        try:
+            log_path.write_text("")
+        except OSError:
+            pass
 
-        # 3. Re-establish pipe-pane logging (respawn may reset it)
-        if log_file:
-            await run_cmd(
-                "tmux", "pipe-pane", "-t", target, "-o", f"cat >> '{log_file}'"
-            )
+        # 3. Re-establish pipe-pane logging
+        await run_cmd(
+            "tmux", "pipe-pane", "-t", target, "-o", f"cat >> '{log_file}'"
+        )
 
         # 4. Restore the pane title
         folder_name = os.path.basename(working_dir.rstrip("/")) if working_dir else agent_name
