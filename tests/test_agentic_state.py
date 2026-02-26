@@ -123,6 +123,83 @@ async def test_events_per_agent_isolation(tmp_store):
     assert events_b[0]["summary"] == "B event"
 
 
+# ── Status/Summary Tracking Tests ────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_track_status_creates_event(tmp_store, monkeypatch):
+    """_track_status_summary_events inserts a status event on change."""
+    import agent_fleet.web_server as ws
+    monkeypatch.setattr(ws, "store", tmp_store)
+    ws._last_known.clear()
+
+    await ws._track_status_summary_events("agent1", "Reading files", None)
+    events = await tmp_store.list_agent_events("agent1")
+    assert len(events) == 1
+    assert events[0]["event_type"] == "status"
+    assert events[0]["summary"] == "Reading files"
+
+
+@pytest.mark.asyncio
+async def test_track_summary_creates_event(tmp_store, monkeypatch):
+    """_track_status_summary_events inserts a goal event on change."""
+    import agent_fleet.web_server as ws
+    monkeypatch.setattr(ws, "store", tmp_store)
+    ws._last_known.clear()
+
+    await ws._track_status_summary_events("agent1", None, "Implement auth feature")
+    events = await tmp_store.list_agent_events("agent1")
+    assert len(events) == 1
+    assert events[0]["event_type"] == "goal"
+    assert events[0]["summary"] == "Implement auth feature"
+
+
+@pytest.mark.asyncio
+async def test_track_no_duplicate_on_same_status(tmp_store, monkeypatch):
+    """Repeated calls with the same status/summary do not create duplicates."""
+    import agent_fleet.web_server as ws
+    monkeypatch.setattr(ws, "store", tmp_store)
+    ws._last_known.clear()
+
+    await ws._track_status_summary_events("agent1", "Reading files", "Build auth")
+    await ws._track_status_summary_events("agent1", "Reading files", "Build auth")
+    await ws._track_status_summary_events("agent1", "Reading files", "Build auth")
+
+    events = await tmp_store.list_agent_events("agent1")
+    assert len(events) == 2  # one status + one goal, no duplicates
+
+
+@pytest.mark.asyncio
+async def test_track_new_status_creates_new_event(tmp_store, monkeypatch):
+    """Changing status inserts a new event while same summary does not."""
+    import agent_fleet.web_server as ws
+    monkeypatch.setattr(ws, "store", tmp_store)
+    ws._last_known.clear()
+
+    await ws._track_status_summary_events("agent1", "Reading files", "Build auth")
+    await ws._track_status_summary_events("agent1", "Writing tests", "Build auth")
+
+    events = await tmp_store.list_agent_events("agent1")
+    # 1 goal + 2 status = 3
+    assert len(events) == 3
+    assert events[0]["event_type"] == "status"
+    assert events[0]["summary"] == "Writing tests"
+
+
+@pytest.mark.asyncio
+async def test_track_with_session_id(tmp_store, monkeypatch):
+    """Events are tagged with the agent's current session_id."""
+    import agent_fleet.web_server as ws
+    monkeypatch.setattr(ws, "store", tmp_store)
+    ws._last_known.clear()
+
+    await tmp_store.set_agent_session_id("agent1", "sess-123")
+    await ws._track_status_summary_events("agent1", "Reading files", None)
+
+    events = await tmp_store.list_agent_events("agent1")
+    assert events[0]["session_id"] == "sess-123"
+
+
 # ── API Tests ─────────────────────────────────────────────────────────────
 
 

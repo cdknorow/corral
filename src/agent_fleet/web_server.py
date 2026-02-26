@@ -37,6 +37,26 @@ from agent_fleet.session_store import SessionStore
 log = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
 
+# Track last-known status/summary per agent so we only emit events on change.
+_last_known: dict[str, dict[str, str | None]] = {}
+
+
+async def _track_status_summary_events(agent_name: str, status: str | None, summary: str | None):
+    """Insert agent_events when status or summary changes for a live agent."""
+    prev = _last_known.get(agent_name, {"status": None, "summary": None})
+    session_id = await store.get_agent_session_id(agent_name)
+
+    if status and status != prev.get("status"):
+        await store.insert_agent_event(
+            agent_name, "status", status, session_id=session_id,
+        )
+    if summary and summary != prev.get("summary"):
+        await store.insert_agent_event(
+            agent_name, "goal", summary, session_id=session_id,
+        )
+
+    _last_known[agent_name] = {"status": status, "summary": summary}
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -88,8 +108,9 @@ async def get_live_sessions():
     for agent in agents:
         log_info = get_log_status(agent["log_path"])
         git = git_state.get(agent["agent_name"])
+        name = agent["agent_name"]
         entry = {
-            "name": agent["agent_name"],
+            "name": name,
             "agent_type": agent["agent_type"],
             "log_path": agent["log_path"],
             "status": log_info["status"],
@@ -99,6 +120,7 @@ async def get_live_sessions():
             "branch": git["branch"] if git else None,
         }
         results.append(entry)
+        await _track_status_summary_events(name, log_info["status"], log_info["summary"])
     return results
 
 
@@ -594,14 +616,16 @@ async def ws_fleet(websocket: WebSocket):
             for agent in agents:
                 log_info = get_log_status(agent["log_path"])
                 git = git_state.get(agent["agent_name"])
+                name = agent["agent_name"]
                 results.append({
-                    "name": agent["agent_name"],
+                    "name": name,
                     "agent_type": agent["agent_type"],
                     "status": log_info["status"],
                     "summary": log_info["summary"],
                     "staleness_seconds": log_info["staleness_seconds"],
                     "branch": git["branch"] if git else None,
                 })
+                await _track_status_summary_events(name, log_info["status"], log_info["summary"])
 
             current_state = json.dumps(results, sort_keys=True)
             if current_state != last_state:

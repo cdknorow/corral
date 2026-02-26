@@ -158,7 +158,7 @@ def get_log_status(log_path: str | Path) -> dict[str, Any]:
                             status_matches = STATUS_RE.findall(clean_line)
                             if status_matches:
                                 result["status"] = clean_match(status_matches[-1])
-                                
+
                         if need_summary:
                             summary_matches = SUMMARY_RE.findall(clean_line)
                             if summary_matches:
