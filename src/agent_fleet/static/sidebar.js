@@ -33,7 +33,7 @@ export function initSidebarResize() {
 
 export function initTaskBarResize() {
     const handle = document.getElementById("task-bar-resize-handle");
-    const taskBar = document.getElementById("task-bar");
+    const taskBar = document.getElementById("agentic-state");
     const outputArea = document.querySelector(".output-area");
 
     if (!handle || !taskBar || !outputArea) return;

@@ -29,6 +29,7 @@ dev = [
 agent-fleet = "agent_fleet.web_server:main"
 launch-fleet = "agent_fleet.launch:main"
 fleet-hook-task-sync = "agent_fleet.hook_task_sync:main"
+fleet-hook-agentic-state = "agent_fleet.hook_agentic_state:main"
 
 [tool.setuptools.package-data]
 agent_fleet = ["PROTOCOL.md", "launch_agents.sh", "templates/*.html", "static/*.css", "static/*.js"]

@@ -119,6 +119,20 @@ class SessionStore:
                 CREATE INDEX IF NOT EXISTS idx_agent_tasks_agent
                     ON agent_tasks(agent_name, sort_order);
 
+                CREATE TABLE IF NOT EXISTS agent_events (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_name  TEXT NOT NULL,
+                    session_id  TEXT,
+                    event_type  TEXT NOT NULL,
+                    tool_name   TEXT,
+                    summary     TEXT NOT NULL,
+                    detail_json TEXT,
+                    created_at  TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_agent_events_agent
+                    ON agent_events(agent_name, created_at DESC);
+
             """)
             # FTS5 virtual table — created separately because CREATE VIRTUAL TABLE
             # cannot be used inside executescript on all SQLite builds.
@@ -750,6 +764,71 @@ class SessionStore:
                 (row["first_timestamp"], row["last_timestamp"], limit),
             )).fetchall()
             return [dict(r) for r in rows]
+        finally:
+            await conn.close()
+
+    # ── Agent Events ──────────────────────────────────────────────────────
+
+    async def insert_agent_event(
+        self,
+        agent_name: str,
+        event_type: str,
+        summary: str,
+        tool_name: str | None = None,
+        session_id: str | None = None,
+        detail_json: str | None = None,
+    ) -> dict[str, Any]:
+        now = datetime.now(timezone.utc).isoformat()
+        conn = await self._connect()
+        try:
+            cur = await conn.execute(
+                "INSERT INTO agent_events (agent_name, session_id, event_type, tool_name, summary, detail_json, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (agent_name, session_id, event_type, tool_name, summary, detail_json, now),
+            )
+            event_id = cur.lastrowid
+            # Auto-prune to 500 events per agent
+            await conn.execute(
+                "DELETE FROM agent_events WHERE agent_name = ? AND id NOT IN "
+                "(SELECT id FROM agent_events WHERE agent_name = ? ORDER BY id DESC LIMIT 500)",
+                (agent_name, agent_name),
+            )
+            await conn.commit()
+            return {"id": event_id, "agent_name": agent_name, "event_type": event_type,
+                    "tool_name": tool_name, "summary": summary, "detail_json": detail_json,
+                    "created_at": now}
+        finally:
+            await conn.close()
+
+    async def list_agent_events(self, agent_name: str, limit: int = 50) -> list[dict[str, Any]]:
+        conn = await self._connect()
+        try:
+            rows = await (await conn.execute(
+                "SELECT id, agent_name, session_id, event_type, tool_name, summary, detail_json, created_at "
+                "FROM agent_events WHERE agent_name = ? ORDER BY created_at DESC LIMIT ?",
+                (agent_name, limit),
+            )).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()
+
+    async def get_agent_event_counts(self, agent_name: str) -> list[dict[str, Any]]:
+        conn = await self._connect()
+        try:
+            rows = await (await conn.execute(
+                "SELECT tool_name, COUNT(*) as count FROM agent_events "
+                "WHERE agent_name = ? AND tool_name IS NOT NULL GROUP BY tool_name ORDER BY count DESC",
+                (agent_name,),
+            )).fetchall()
+            return [{"tool_name": r["tool_name"], "count": r["count"]} for r in rows]
+        finally:
+            await conn.close()
+
+    async def clear_agent_events(self, agent_name: str) -> None:
+        conn = await self._connect()
+        try:
+            await conn.execute("DELETE FROM agent_events WHERE agent_name = ?", (agent_name,))
+            await conn.commit()
         finally:
             await conn.close()
 

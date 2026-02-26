@@ -7,6 +7,7 @@ import {
     TOOL_HEADER_RE, TOOL_RESULT_RE,
 } from './syntax.js';
 import { loadAgentTasks } from './tasks.js';
+import { loadAgentEvents } from './agentic_state.js';
 
 export function renderCaptureText(el, text) {
     el.innerHTML = "";
@@ -136,9 +137,10 @@ export async function refreshCapture() {
         console.error("Failed to refresh capture:", e);
     }
 
-    // Poll tasks on the same interval
+    // Poll tasks and events on the same interval
     if (state.currentSession && state.currentSession.type === "live") {
         loadAgentTasks(state.currentSession.name);
+        loadAgentEvents(state.currentSession.name);
     }
 }
 

@@ -1,0 +1,219 @@
+/* Agentic State — event loading, timeline rendering, tab switching, filtering */
+
+import { state } from './state.js';
+
+const TOOL_ICONS = {
+    Read:       { char: 'R', cls: 'tool-read' },
+    Write:      { char: 'W', cls: 'tool-write' },
+    Edit:       { char: 'E', cls: 'tool-edit' },
+    Bash:       { char: '$', cls: 'tool-bash' },
+    Grep:       { char: '?', cls: 'tool-grep' },
+    Glob:       { char: '*', cls: 'tool-glob' },
+    WebFetch:   { char: 'F', cls: 'tool-web' },
+    WebSearch:  { char: 'S', cls: 'tool-web' },
+    TaskCreate: { char: 'T', cls: 'tool-task' },
+    TaskUpdate: { char: 'T', cls: 'tool-task' },
+    TaskList:   { char: 'T', cls: 'tool-task' },
+    TaskGet:    { char: 'T', cls: 'tool-task' },
+    Task:       { char: 'A', cls: 'tool-agent' },
+};
+
+// Filter groups — maps display label to the set of tool_names/event_types it covers
+const FILTER_GROUPS = [
+    { key: 'read',   label: 'R', title: 'Read',          cls: 'tool-read',   match: ev => ev.tool_name === 'Read' },
+    { key: 'write',  label: 'W', title: 'Write',         cls: 'tool-write',  match: ev => ev.tool_name === 'Write' },
+    { key: 'edit',   label: 'E', title: 'Edit',          cls: 'tool-edit',   match: ev => ev.tool_name === 'Edit' },
+    { key: 'bash',   label: '$', title: 'Bash',          cls: 'tool-bash',   match: ev => ev.tool_name === 'Bash' },
+    { key: 'search', label: '?', title: 'Grep / Glob',   cls: 'tool-grep',   match: ev => ev.tool_name === 'Grep' || ev.tool_name === 'Glob' },
+    { key: 'web',    label: 'W', title: 'Web',           cls: 'tool-web',    match: ev => ev.tool_name === 'WebFetch' || ev.tool_name === 'WebSearch' },
+    { key: 'task',   label: 'T', title: 'Tasks',         cls: 'tool-task',   match: ev => ['TaskCreate','TaskUpdate','TaskList','TaskGet'].includes(ev.tool_name) },
+    { key: 'agent',  label: 'A', title: 'Subagents',     cls: 'tool-agent',  match: ev => ev.tool_name === 'Task' },
+    { key: 'system', label: '!', title: 'Stop / Notify',  cls: 'tool-stop',   match: ev => ev.event_type === 'stop' || ev.event_type === 'notification' },
+];
+
+// Hidden filters are persisted per-session in state
+// state.eventFiltersHidden = Set of filter keys that are hidden
+
+function getHiddenFilters() {
+    if (!state.eventFiltersHidden) {
+        state.eventFiltersHidden = new Set();
+    }
+    return state.eventFiltersHidden;
+}
+
+function getToolIcon(toolName, eventType) {
+    if (eventType === 'stop') return { char: '!', cls: 'tool-stop' };
+    if (eventType === 'notification') return { char: 'N', cls: 'tool-notification' };
+    return TOOL_ICONS[toolName] || { char: '.', cls: 'tool-default' };
+}
+
+function formatTime(isoStr) {
+    if (!isoStr) return '';
+    try {
+        const d = new Date(isoStr);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch {
+        return '';
+    }
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function isEventVisible(ev) {
+    const hidden = getHiddenFilters();
+    if (hidden.size === 0) return true;
+    for (const group of FILTER_GROUPS) {
+        if (hidden.has(group.key) && group.match(ev)) return false;
+    }
+    return true;
+}
+
+export async function loadAgentEvents(agentName) {
+    if (!agentName) return;
+    try {
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(agentName)}/events?limit=50`);
+        state.currentAgentEvents = await resp.json();
+    } catch (e) {
+        state.currentAgentEvents = [];
+    }
+    renderEventTimeline();
+}
+
+export function renderEventFilters() {
+    const container = document.getElementById('event-filters');
+    if (!container) return;
+
+    const hidden = getHiddenFilters();
+    const events = state.currentAgentEvents || [];
+
+    container.innerHTML = FILTER_GROUPS.map(group => {
+        const count = events.filter(group.match).length;
+        const isHidden = hidden.has(group.key);
+        const dimClass = isHidden ? 'filter-hidden' : '';
+        return `<button class="event-filter-chip ${group.cls} ${dimClass}"
+                    onclick="toggleEventFilter('${group.key}')"
+                    onmouseenter="showFilterPopup(event, '${group.key}')"
+                    onmouseleave="hideFilterPopup()">
+                    <span class="event-filter-char">${group.label}</span>
+                </button>`;
+    }).join('');
+}
+
+export function toggleEventFilter(key) {
+    const hidden = getHiddenFilters();
+    if (hidden.has(key)) {
+        hidden.delete(key);
+    } else {
+        hidden.add(key);
+    }
+    renderEventFilters();
+    renderEventTimeline();
+}
+
+export function renderEventTimeline() {
+    const container = document.getElementById('agentic-state-events');
+    if (!container) return;
+
+    const events = state.currentAgentEvents || [];
+
+    // Also update filter chips (counts may have changed)
+    renderEventFilters();
+
+    if (events.length === 0) {
+        container.innerHTML = '<div class="event-empty">No activity yet</div>';
+        return;
+    }
+
+    const visible = events.filter(isEventVisible);
+    if (visible.length === 0) {
+        container.innerHTML = '<div class="event-empty">All events filtered out</div>';
+        return;
+    }
+
+    // Events come newest-first from API, display newest at top
+    container.innerHTML = visible.map(ev => {
+        const icon = getToolIcon(ev.tool_name, ev.event_type);
+        return `<div class="event-item">
+            <span class="event-icon ${icon.cls}">${icon.char}</span>
+            <span class="event-body">
+                <span class="event-summary" title="${escapeHtml(ev.summary)}">${escapeHtml(ev.summary)}</span>
+            </span>
+            <span class="event-time">${formatTime(ev.created_at)}</span>
+        </div>`;
+    }).join('');
+}
+
+let _popupTimer = null;
+
+export function showFilterPopup(mouseEvent, key) {
+    hideFilterPopup();
+    const group = FILTER_GROUPS.find(g => g.key === key);
+    if (!group) return;
+
+    const events = (state.currentAgentEvents || []).filter(group.match);
+    const hidden = getHiddenFilters();
+    const isHidden = hidden.has(key);
+
+    // Build popup content
+    const statusText = isHidden ? 'Hidden — click to show' : 'Showing — click to hide';
+    const recentItems = events.slice(0, 5);
+    const recentHtml = recentItems.length > 0
+        ? recentItems.map(ev =>
+            `<div class="filter-popup-event">
+                <span class="filter-popup-summary">${escapeHtml(ev.summary)}</span>
+                <span class="filter-popup-time">${formatTime(ev.created_at)}</span>
+            </div>`
+        ).join('')
+        : '<div class="filter-popup-empty">No events</div>';
+
+    const popup = document.createElement('div');
+    popup.className = 'filter-popup';
+    popup.id = 'filter-popup';
+    popup.innerHTML = `
+        <div class="filter-popup-header">
+            <span class="filter-popup-title">${escapeHtml(group.title)}</span>
+            <span class="filter-popup-count">${events.length} event${events.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="filter-popup-status">${statusText}</div>
+        <div class="filter-popup-list">${recentHtml}</div>
+        ${events.length > 5 ? `<div class="filter-popup-more">+${events.length - 5} more</div>` : ''}
+    `;
+
+    document.body.appendChild(popup);
+
+    // Position relative to the chip
+    const chip = mouseEvent.currentTarget;
+    const rect = chip.getBoundingClientRect();
+    const popupRect = popup.getBoundingClientRect();
+
+    let left = rect.left + rect.width / 2 - popupRect.width / 2;
+    // Clamp to viewport
+    left = Math.max(4, Math.min(left, window.innerWidth - popupRect.width - 4));
+    popup.style.left = left + 'px';
+    popup.style.top = (rect.bottom + 6) + 'px';
+}
+
+export function hideFilterPopup() {
+    const existing = document.getElementById('filter-popup');
+    if (existing) existing.remove();
+    if (_popupTimer) {
+        clearTimeout(_popupTimer);
+        _popupTimer = null;
+    }
+}
+
+export function switchAgenticTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.agentic-tab').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`agentic-tab-${tabName}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    // Update panels
+    document.querySelectorAll('.agentic-panel').forEach(panel => panel.classList.remove('active'));
+    const activePanel = document.getElementById(`agentic-panel-${tabName}`);
+    if (activePanel) activePanel.classList.add('active');
+}

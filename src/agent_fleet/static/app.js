@@ -12,6 +12,7 @@ import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesE
 import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown, hideTagDropdown, createTag, loadAllTags } from './tags.js';
 import { loadSessionCommits } from './commits.js';
 import { loadAgentTasks, addAgentTask, toggleAgentTask, deleteAgentTask, editAgentTaskTitle } from './tasks.js';
+import { switchAgenticTab, loadAgentEvents, toggleEventFilter, showFilterPopup, hideFilterPopup } from './agentic_state.js';
 
 // ── Expose functions to HTML onclick handlers ─────────────────────────────
 window.sendCommand = sendCommand;
@@ -52,6 +53,11 @@ window.addAgentTask = addAgentTask;
 window.toggleAgentTask = toggleAgentTask;
 window.deleteAgentTask = deleteAgentTask;
 window.editAgentTaskTitle = editAgentTaskTitle;
+window.switchAgenticTab = switchAgenticTab;
+window.loadAgentEvents = loadAgentEvents;
+window.toggleEventFilter = toggleEventFilter;
+window.showFilterPopup = showFilterPopup;
+window.hideFilterPopup = hideFilterPopup;
 
 // ── History search/filter/pagination state ───────────────────────────────
 let historyPage = 1;

@@ -33,7 +33,6 @@ from agent_fleet.session_manager import (
 )
 from agent_fleet.log_streamer import get_log_snapshot
 from agent_fleet.session_store import SessionStore
-from agent_fleet.task_detector import scan_log_for_tasks
 
 log = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
@@ -456,6 +455,47 @@ async def reorder_agent_tasks(name: str, body: dict):
     return {"ok": True}
 
 
+# ── Agent Events Endpoints ─────────────────────────────────────────────────
+
+
+@app.get("/api/sessions/live/{name}/events")
+async def list_agent_events(name: str, limit: int = Query(50, ge=1, le=200)):
+    """List recent events for a live agent."""
+    events = await store.list_agent_events(name, limit)
+    return events
+
+
+@app.post("/api/sessions/live/{name}/events")
+async def create_agent_event(name: str, body: dict):
+    """Create an event for a live agent (called by hook)."""
+    event_type = body.get("event_type", "").strip()
+    summary = body.get("summary", "").strip()
+    if not event_type or not summary:
+        return {"error": "event_type and summary are required"}
+    tool_name = body.get("tool_name")
+    session_id = body.get("session_id")
+    detail_json = body.get("detail_json")
+    event = await store.insert_agent_event(
+        name, event_type, summary,
+        tool_name=tool_name, session_id=session_id, detail_json=detail_json,
+    )
+    return event
+
+
+@app.get("/api/sessions/live/{name}/events/counts")
+async def get_agent_event_counts(name: str):
+    """Get event counts grouped by tool name."""
+    counts = await store.get_agent_event_counts(name)
+    return counts
+
+
+@app.delete("/api/sessions/live/{name}/events")
+async def clear_agent_events(name: str):
+    """Clear all events for a live agent."""
+    await store.clear_agent_events(name)
+    return {"ok": True}
+
+
 # ── WebSocket Endpoints ─────────────────────────────────────────────────────
 
 
@@ -481,13 +521,6 @@ async def ws_fleet(websocket: WebSocket):
                     "staleness_seconds": log_info["staleness_seconds"],
                     "branch": git["branch"] if git else None,
                 })
-
-            # Scan agent logs for TASK/TASK_DONE markers
-            for agent in agents:
-                try:
-                    await scan_log_for_tasks(store, agent["agent_name"], agent["log_path"])
-                except Exception:
-                    pass
 
             current_state = json.dumps(results, sort_keys=True)
             if current_state != last_state:

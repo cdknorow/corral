@@ -18,6 +18,37 @@
             "command": "fleet-hook-task-sync"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fleet-hook-agentic-state"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fleet-hook-agentic-state"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fleet-hook-agentic-state"
+          }
+        ]
       }
     ]
   }
