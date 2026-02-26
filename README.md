@@ -1,4 +1,4 @@
-# Corral
+# Agent Corral
 
 <!-- TODO: Add a high-quality GIF here demonstrating launching the corral and the real-time web dashboard. -->
 <img width="1501" height="824" alt="image" src="https://github.com/user-attachments/assets/ccb9a251-4e08-4fda-8f7f-aa502f8df98f" />
