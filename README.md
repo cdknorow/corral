@@ -6,6 +6,8 @@
 
 A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
 
+> **Note:** This system is currently mostly tested with Claude Code and to some extent Gemini CLI. However, the underlying architecture is designed to support other agents, which can be integrated with some additional work from others.
+
 ## Features
 
 - **Multi-agent support** — Launch and manage both Claude and Gemini agents side-by-side
@@ -38,6 +40,25 @@ pip install -e .
 ```
 
 ## Usage
+
+### Claude Code Hooks (settings.json)
+
+To fully integrate Claude Code's agentic state and task management into the Fleet dashboard, configure the provided `fleet-hook` scripts in your Claude Code `settings.json` (usually located at `~/.claude.json` or `~/.claude/settings.json`).
+
+If you are already using other configuration options like a custom `statusLine` or other hooks, simply merge these hook definitions into your existing JSON:
+
+```json
+{
+  "agenticStateHook": {
+    "type": "command",
+    "command": "fleet-hook-agentic-state"
+  },
+  "taskStateHook": {
+    "type": "command",
+    "command": "fleet-hook-task-sync"
+  }
+}
+```
 
 ### Launch agents and web dashboard
 
@@ -134,6 +155,8 @@ Agents emit structured markers that the dashboard parses for live status:
 ```
 
 The protocol is automatically injected via `PROTOCOL.md` when launching agents. See [`src/agent_fleet/PROTOCOL.md`](src/agent_fleet/PROTOCOL.md) for the full specification.
+
+
 
 ## Advanced Information
 
