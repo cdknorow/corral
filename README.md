@@ -1,7 +1,8 @@
 # Corral
 
 <!-- TODO: Add a high-quality GIF here demonstrating launching the corral and the real-time web dashboard. -->
-<img width="1512" height="822" alt="image" src="https://github.com/user-attachments/assets/7534c1c4-5431-4e63-a5e3-4ec667e8bcb5" />
+<img width="1501" height="824" alt="image" src="https://github.com/user-attachments/assets/ccb9a251-4e08-4fda-8f7f-aa502f8df98f" />
+
 
 
 A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
@@ -94,7 +95,8 @@ corral --reload
 ### Managing sessions from the dashboard
 
 <!-- TODO: Add a GIF here showing the live pane capture updating, sending commands to an agent, and toggling plan/base mode. -->
-<img width="1510" height="813" alt="image" src="https://github.com/user-attachments/assets/5a2e7909-ef08-4371-b485-f6e141a5a02c" />
+<img width="1511" height="826" alt="image" src="https://github.com/user-attachments/assets/dece6140-1ca8-4816-adb4-c0836f0d7cee" />
+
 
 The web dashboard provides quick-action buttons for each live session:
 
@@ -116,7 +118,8 @@ You can also type arbitrary commands in the input bar and send them to the selec
 ### Session history search and filtering
 
 <!-- TODO: Add a GIF here showing full-text search across past Claude/Gemini sessions and adding notes/tags. -->
-<img width="1512" height="799" alt="image" src="https://github.com/user-attachments/assets/37561737-caf9-438b-81af-8c48a6cfe30a" />
+<img width="1509" height="820" alt="image" src="https://github.com/user-attachments/assets/073c0627-deac-460f-b329-a348d8717f2a" />
+
 
 
 The sidebar History section includes a search bar and filters for browsing your entire AI coding session history.
