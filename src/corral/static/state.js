@@ -20,4 +20,4 @@ export function sessionKey(session) {
     return `${session.type}:${session.name}`;
 }
 
-export const CAPTURE_REFRESH_MS = 2000;
+export const CAPTURE_REFRESH_MS = 500;
