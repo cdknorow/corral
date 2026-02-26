@@ -98,10 +98,15 @@ def main():
     if not agent_name:
         return
 
+    session_id = d.get("session_id")
+
     _debug_log(f"tool={tool} task_id={task_id} subject={subject} status={status} resp={resp_parsed} agent={agent_name}")
 
     if tool == "TaskCreate" and subject:
-        _api(base, "POST", f"/api/sessions/live/{agent_name}/tasks", {"title": subject})
+        payload = {"title": subject}
+        if session_id:
+            payload["session_id"] = session_id
+        _api(base, "POST", f"/api/sessions/live/{agent_name}/tasks", payload)
         # Cache using the ID from the response so TaskUpdate can look it up
         cache_id = resp_parsed["task_id"] or task_id
         _debug_log(f"TaskCreate: cache_id={cache_id} subject={subject}")

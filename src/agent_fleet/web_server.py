@@ -253,6 +253,7 @@ async def send_keys(name: str, body: dict):
 async def kill_live_session(name: str, body: dict | None = None):
     """Kill the tmux session for a live agent."""
     agent_type = (body or {}).get("agent_type") or None
+    await store.clear_agent_session_id(name)
     error = await kill_session(name, agent_type=agent_type)
     if error:
         return {"error": error}
@@ -263,6 +264,8 @@ async def kill_live_session(name: str, body: dict | None = None):
 async def restart_live_session(name: str, body: dict | None = None):
     """Restart the agent session: exit the current session and launch a fresh one in the same pane."""
     agent_type = (body or {}).get("agent_type") or None
+    # Clear session_id so the new session starts with a clean task/event slate
+    await store.clear_agent_session_id(name)
     result = await restart_session(name, agent_type=agent_type)
     return result
 
@@ -414,17 +417,25 @@ async def remove_session_tag(session_id: str, tag_id: int):
 
 @app.get("/api/sessions/live/{name}/tasks")
 async def list_agent_tasks(name: str):
-    """List tasks for a live agent."""
-    return await store.list_agent_tasks(name)
+    """List tasks for the current session of a live agent."""
+    session_id = await store.get_agent_session_id(name)
+    if session_id is None:
+        return []
+    return await store.list_agent_tasks(name, session_id=session_id)
 
 
 @app.post("/api/sessions/live/{name}/tasks")
 async def create_agent_task(name: str, body: dict):
-    """Create a task for a live agent."""
+    """Create a task for a live agent, scoped to the current session."""
     title = body.get("title", "").strip()
     if not title:
         return {"error": "title is required"}
-    task = await store.create_agent_task(name, title)
+    session_id = await store.get_agent_session_id(name)
+    # Accept session_id from body as fallback (e.g. from hooks that know the session)
+    if session_id is None and body.get("session_id"):
+        session_id = body["session_id"]
+        await store.set_agent_session_id(name, session_id)
+    task = await store.create_agent_task(name, title, session_id=session_id)
     return task
 
 
@@ -460,8 +471,11 @@ async def reorder_agent_tasks(name: str, body: dict):
 
 @app.get("/api/sessions/live/{name}/events")
 async def list_agent_events(name: str, limit: int = Query(50, ge=1, le=200)):
-    """List recent events for a live agent."""
-    events = await store.list_agent_events(name, limit)
+    """List recent events for the current session of a live agent."""
+    session_id = await store.get_agent_session_id(name)
+    if session_id is None:
+        return []
+    events = await store.list_agent_events(name, limit, session_id=session_id)
     return events
 
 
@@ -475,6 +489,11 @@ async def create_agent_event(name: str, body: dict):
     tool_name = body.get("tool_name")
     session_id = body.get("session_id")
     detail_json = body.get("detail_json")
+
+    # Track the current session_id for this agent
+    if session_id:
+        await store.set_agent_session_id(name, session_id)
+
     event = await store.insert_agent_event(
         name, event_type, summary,
         tool_name=tool_name, session_id=session_id, detail_json=detail_json,
@@ -484,15 +503,19 @@ async def create_agent_event(name: str, body: dict):
 
 @app.get("/api/sessions/live/{name}/events/counts")
 async def get_agent_event_counts(name: str):
-    """Get event counts grouped by tool name."""
-    counts = await store.get_agent_event_counts(name)
+    """Get event counts grouped by tool name for the current session."""
+    session_id = await store.get_agent_session_id(name)
+    if session_id is None:
+        return []
+    counts = await store.get_agent_event_counts(name, session_id=session_id)
     return counts
 
 
 @app.delete("/api/sessions/live/{name}/events")
 async def clear_agent_events(name: str):
-    """Clear all events for a live agent."""
-    await store.clear_agent_events(name)
+    """Clear events for the current session of a live agent."""
+    session_id = await store.get_agent_session_id(name)
+    await store.clear_agent_events(name, session_id=session_id)
     return {"ok": True}
 
 

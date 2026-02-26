@@ -27,6 +27,7 @@ class SessionStore:
     def __init__(self, db_path: Path = DB_PATH) -> None:
         self._db_path = db_path
         self._schema_ensured = False
+        self._session_id_cache: dict[str, str | None] = {}  # agent_name -> session_id
 
     async def _connect(self) -> aiosqlite.Connection:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -109,6 +110,7 @@ class SessionStore:
                 CREATE TABLE IF NOT EXISTS agent_tasks (
                     id         INTEGER PRIMARY KEY AUTOINCREMENT,
                     agent_name TEXT NOT NULL,
+                    session_id TEXT,
                     title      TEXT NOT NULL,
                     completed  INTEGER DEFAULT 0,
                     sort_order INTEGER DEFAULT 0,
@@ -118,6 +120,11 @@ class SessionStore:
 
                 CREATE INDEX IF NOT EXISTS idx_agent_tasks_agent
                     ON agent_tasks(agent_name, sort_order);
+
+                CREATE TABLE IF NOT EXISTS agent_live_state (
+                    agent_name         TEXT PRIMARY KEY,
+                    current_session_id TEXT
+                );
 
                 CREATE TABLE IF NOT EXISTS agent_events (
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -153,6 +160,20 @@ class SessionStore:
                     await conn.execute(f"ALTER TABLE git_snapshots ADD COLUMN {col}")
                 except aiosqlite.OperationalError:
                     pass  # Column already exists
+
+            # Add session_id to agent_tasks if missing (migration)
+            try:
+                await conn.execute("ALTER TABLE agent_tasks ADD COLUMN session_id TEXT")
+            except aiosqlite.OperationalError:
+                pass  # Column already exists
+
+            # Create agent_live_state if missing (migration)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS agent_live_state (
+                    agent_name         TEXT PRIMARY KEY,
+                    current_session_id TEXT
+                )
+            """)
 
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_git_snap_session ON git_snapshots(session_id)")
 
@@ -612,34 +633,99 @@ class SessionStore:
         finally:
             await conn.close()
 
-    # ── Agent Tasks ────────────────────────────────────────────────────────
+    # ── Agent Live State ──────────────────────────────────────────────────
 
-    async def list_agent_tasks(self, agent_name: str) -> list[dict[str, Any]]:
+    async def get_agent_session_id(self, agent_name: str) -> str | None:
+        """Return the current session_id for a live agent, or None if unknown."""
+        # Fast path: check in-memory cache
+        _sentinel = object()
+        cached = self._session_id_cache.get(agent_name, _sentinel)
+        if cached is not _sentinel:
+            return cached
+
+        # Cold start: load from DB and cache
         conn = await self._connect()
         try:
-            rows = await (await conn.execute(
-                "SELECT id, agent_name, title, completed, sort_order, created_at, updated_at "
-                "FROM agent_tasks WHERE agent_name = ? ORDER BY sort_order",
+            row = await (await conn.execute(
+                "SELECT current_session_id FROM agent_live_state WHERE agent_name = ?",
                 (agent_name,),
-            )).fetchall()
+            )).fetchone()
+            result = row["current_session_id"] if row else None
+            self._session_id_cache[agent_name] = result
+            return result
+        finally:
+            await conn.close()
+
+    async def set_agent_session_id(self, agent_name: str, session_id: str) -> None:
+        """Set the current session_id for a live agent."""
+        self._session_id_cache[agent_name] = session_id
+        conn = await self._connect()
+        try:
+            await conn.execute(
+                "INSERT INTO agent_live_state (agent_name, current_session_id) VALUES (?, ?) "
+                "ON CONFLICT(agent_name) DO UPDATE SET current_session_id = excluded.current_session_id",
+                (agent_name, session_id),
+            )
+            await conn.commit()
+        finally:
+            await conn.close()
+
+    async def clear_agent_session_id(self, agent_name: str) -> None:
+        """Clear the current session_id for a live agent (e.g. on restart)."""
+        self._session_id_cache[agent_name] = None
+        conn = await self._connect()
+        try:
+            await conn.execute(
+                "INSERT INTO agent_live_state (agent_name, current_session_id) VALUES (?, NULL) "
+                "ON CONFLICT(agent_name) DO UPDATE SET current_session_id = NULL",
+                (agent_name,),
+            )
+            await conn.commit()
+        finally:
+            await conn.close()
+
+    # ── Agent Tasks ────────────────────────────────────────────────────────
+
+    async def list_agent_tasks(self, agent_name: str, session_id: str | None = None) -> list[dict[str, Any]]:
+        conn = await self._connect()
+        try:
+            if session_id is not None:
+                rows = await (await conn.execute(
+                    "SELECT id, agent_name, title, completed, sort_order, created_at, updated_at "
+                    "FROM agent_tasks WHERE agent_name = ? AND session_id = ? ORDER BY sort_order",
+                    (agent_name, session_id),
+                )).fetchall()
+            else:
+                rows = await (await conn.execute(
+                    "SELECT id, agent_name, title, completed, sort_order, created_at, updated_at "
+                    "FROM agent_tasks WHERE agent_name = ? ORDER BY sort_order",
+                    (agent_name,),
+                )).fetchall()
             return [dict(r) for r in rows]
         finally:
             await conn.close()
 
-    async def create_agent_task(self, agent_name: str, title: str) -> dict[str, Any]:
+    async def create_agent_task(self, agent_name: str, title: str, session_id: str | None = None) -> dict[str, Any]:
         now = datetime.now(timezone.utc).isoformat()
         conn = await self._connect()
         try:
-            row = await (await conn.execute(
-                "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order "
-                "FROM agent_tasks WHERE agent_name = ?",
-                (agent_name,),
-            )).fetchone()
+            if session_id is not None:
+                row = await (await conn.execute(
+                    "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order "
+                    "FROM agent_tasks WHERE agent_name = ? AND session_id = ?",
+                    (agent_name, session_id),
+                )).fetchone()
+            else:
+                row = await (await conn.execute(
+                    "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order "
+                    "FROM agent_tasks WHERE agent_name = ?",
+                    (agent_name,),
+                )).fetchone()
             sort_order = row["next_order"] if row else 0
             cur = await conn.execute(
-                "INSERT INTO agent_tasks (agent_name, title, sort_order, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (agent_name, title, sort_order, now, now),
+                "INSERT INTO agent_tasks (agent_name, session_id, title, sort_order, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (agent_name, session_id, title, sort_order, now, now),
             )
             await conn.commit()
             result = {"id": cur.lastrowid, "agent_name": agent_name, "title": title,
@@ -649,20 +735,27 @@ class SessionStore:
             await conn.close()
         return result
 
-    async def create_agent_task_if_not_exists(self, agent_name: str, title: str) -> dict[str, Any] | None:
-        """Idempotent creation: only insert if no task with the same title exists for this agent."""
+    async def create_agent_task_if_not_exists(self, agent_name: str, title: str, session_id: str | None = None) -> dict[str, Any] | None:
+        """Idempotent creation: only insert if no task with the same title exists for this agent+session."""
         conn = await self._connect()
         try:
-            existing = await (await conn.execute(
-                "SELECT id, agent_name, title, completed, sort_order, created_at, updated_at "
-                "FROM agent_tasks WHERE agent_name = ? AND title = ?",
-                (agent_name, title),
-            )).fetchone()
+            if session_id is not None:
+                existing = await (await conn.execute(
+                    "SELECT id, agent_name, title, completed, sort_order, created_at, updated_at "
+                    "FROM agent_tasks WHERE agent_name = ? AND title = ? AND session_id = ?",
+                    (agent_name, title, session_id),
+                )).fetchone()
+            else:
+                existing = await (await conn.execute(
+                    "SELECT id, agent_name, title, completed, sort_order, created_at, updated_at "
+                    "FROM agent_tasks WHERE agent_name = ? AND title = ?",
+                    (agent_name, title),
+                )).fetchone()
             if existing:
                 return dict(existing)
         finally:
             await conn.close()
-        return await self.create_agent_task(agent_name, title)
+        return await self.create_agent_task(agent_name, title, session_id=session_id)
 
     async def update_agent_task(self, task_id: int, title: str | None = None,
                                 completed: int | None = None,
@@ -690,16 +783,23 @@ class SessionStore:
         finally:
             await conn.close()
 
-    async def complete_agent_task_by_title(self, agent_name: str, title: str) -> None:
-        """Mark a task as completed by matching agent_name and title."""
+    async def complete_agent_task_by_title(self, agent_name: str, title: str, session_id: str | None = None) -> None:
+        """Mark a task as completed by matching agent_name, title, and optionally session_id."""
         now = datetime.now(timezone.utc).isoformat()
         conn = await self._connect()
         try:
-            await conn.execute(
-                "UPDATE agent_tasks SET completed = 1, updated_at = ? "
-                "WHERE agent_name = ? AND title = ? AND completed = 0",
-                (now, agent_name, title),
-            )
+            if session_id is not None:
+                await conn.execute(
+                    "UPDATE agent_tasks SET completed = 1, updated_at = ? "
+                    "WHERE agent_name = ? AND title = ? AND session_id = ? AND completed = 0",
+                    (now, agent_name, title, session_id),
+                )
+            else:
+                await conn.execute(
+                    "UPDATE agent_tasks SET completed = 1, updated_at = ? "
+                    "WHERE agent_name = ? AND title = ? AND completed = 0",
+                    (now, agent_name, title),
+                )
             await conn.commit()
         finally:
             await conn.close()
@@ -800,34 +900,54 @@ class SessionStore:
         finally:
             await conn.close()
 
-    async def list_agent_events(self, agent_name: str, limit: int = 50) -> list[dict[str, Any]]:
+    async def list_agent_events(self, agent_name: str, limit: int = 50, session_id: str | None = None) -> list[dict[str, Any]]:
         conn = await self._connect()
         try:
-            rows = await (await conn.execute(
-                "SELECT id, agent_name, session_id, event_type, tool_name, summary, detail_json, created_at "
-                "FROM agent_events WHERE agent_name = ? ORDER BY created_at DESC LIMIT ?",
-                (agent_name, limit),
-            )).fetchall()
+            if session_id is not None:
+                rows = await (await conn.execute(
+                    "SELECT id, agent_name, session_id, event_type, tool_name, summary, detail_json, created_at "
+                    "FROM agent_events WHERE agent_name = ? AND session_id = ? ORDER BY created_at DESC LIMIT ?",
+                    (agent_name, session_id, limit),
+                )).fetchall()
+            else:
+                rows = await (await conn.execute(
+                    "SELECT id, agent_name, session_id, event_type, tool_name, summary, detail_json, created_at "
+                    "FROM agent_events WHERE agent_name = ? ORDER BY created_at DESC LIMIT ?",
+                    (agent_name, limit),
+                )).fetchall()
             return [dict(r) for r in rows]
         finally:
             await conn.close()
 
-    async def get_agent_event_counts(self, agent_name: str) -> list[dict[str, Any]]:
+    async def get_agent_event_counts(self, agent_name: str, session_id: str | None = None) -> list[dict[str, Any]]:
         conn = await self._connect()
         try:
-            rows = await (await conn.execute(
-                "SELECT tool_name, COUNT(*) as count FROM agent_events "
-                "WHERE agent_name = ? AND tool_name IS NOT NULL GROUP BY tool_name ORDER BY count DESC",
-                (agent_name,),
-            )).fetchall()
+            if session_id is not None:
+                rows = await (await conn.execute(
+                    "SELECT tool_name, COUNT(*) as count FROM agent_events "
+                    "WHERE agent_name = ? AND session_id = ? AND tool_name IS NOT NULL GROUP BY tool_name ORDER BY count DESC",
+                    (agent_name, session_id),
+                )).fetchall()
+            else:
+                rows = await (await conn.execute(
+                    "SELECT tool_name, COUNT(*) as count FROM agent_events "
+                    "WHERE agent_name = ? AND tool_name IS NOT NULL GROUP BY tool_name ORDER BY count DESC",
+                    (agent_name,),
+                )).fetchall()
             return [{"tool_name": r["tool_name"], "count": r["count"]} for r in rows]
         finally:
             await conn.close()
 
-    async def clear_agent_events(self, agent_name: str) -> None:
+    async def clear_agent_events(self, agent_name: str, session_id: str | None = None) -> None:
         conn = await self._connect()
         try:
-            await conn.execute("DELETE FROM agent_events WHERE agent_name = ?", (agent_name,))
+            if session_id is not None:
+                await conn.execute(
+                    "DELETE FROM agent_events WHERE agent_name = ? AND session_id = ?",
+                    (agent_name, session_id),
+                )
+            else:
+                await conn.execute("DELETE FROM agent_events WHERE agent_name = ?", (agent_name,))
             await conn.commit()
         finally:
             await conn.close()

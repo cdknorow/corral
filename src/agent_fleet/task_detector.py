@@ -44,12 +44,15 @@ async def scan_log_for_tasks(store, agent_name: str, log_path: str) -> None:
 
     clean = strip_ansi(new_content)
 
+    # Get current session_id so tasks are scoped to the active session
+    session_id = await store.get_agent_session_id(agent_name)
+
     for match in TASK_RE.finditer(clean):
         title = clean_match(match.group(1))
         if title:
-            await store.create_agent_task_if_not_exists(agent_name, title)
+            await store.create_agent_task_if_not_exists(agent_name, title, session_id=session_id)
 
     for match in TASK_DONE_RE.finditer(clean):
         title = clean_match(match.group(1))
         if title:
-            await store.complete_agent_task_by_title(agent_name, title)
+            await store.complete_agent_task_by_title(agent_name, title, session_id=session_id)

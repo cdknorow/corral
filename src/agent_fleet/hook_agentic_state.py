@@ -178,14 +178,17 @@ def _make_detail_json(tool_name: str, inp: dict) -> str | None:
     return raw[:500] if len(raw) > 500 else raw
 
 
-def _handle_task_sync(tool: str, inp: dict, resp_parsed: dict, agent_name: str, base: str):
+def _handle_task_sync(tool: str, inp: dict, resp_parsed: dict, agent_name: str, base: str, session_id: str | None = None):
     """Delegate task sync logic for TaskCreate/TaskUpdate (preserves existing behavior)."""
     task_id = str(inp.get("taskId", ""))
     subject = inp.get("subject", "")
     status = inp.get("status", "")
 
     if tool == "TaskCreate" and subject:
-        _api(base, "POST", f"/api/sessions/live/{agent_name}/tasks", {"title": subject})
+        payload = {"title": subject}
+        if session_id:
+            payload["session_id"] = session_id
+        _api(base, "POST", f"/api/sessions/live/{agent_name}/tasks", payload)
         cache_id = resp_parsed["task_id"] or task_id
         if cache_id:
             _cache_write(cache_id, subject)
@@ -249,7 +252,7 @@ def main():
         # Delegate task sync for TaskCreate/TaskUpdate
         if tool in ("TaskCreate", "TaskUpdate"):
             resp_parsed = _parse_response(d.get("tool_response", ""))
-            _handle_task_sync(tool, inp, resp_parsed, agent_name, base)
+            _handle_task_sync(tool, inp, resp_parsed, agent_name, base, session_id=session_id)
 
     elif hook_type == "Stop" or d.get("stop_hook_active"):
         event_type = "stop"
