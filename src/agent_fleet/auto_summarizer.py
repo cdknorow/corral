@@ -112,7 +112,7 @@ class AutoSummarizer:
     def _fallback_summary(self, transcript: str) -> str:
         """Generate a basic extractive summary when Claude CLI is not available."""
         lines = transcript.split("\n")
-        user_msgs = []
+        user_msgs: list[str] = []
         for i, line in enumerate(lines):
             if line.strip() == "### User":
                 msg_lines = []
@@ -129,7 +129,7 @@ class AutoSummarizer:
 
         summary = "## Session Summary\n\n"
         summary += "**User requests:**\n"
-        for msg in user_msgs[:10]:
-            summary += f"- {msg}\n"
+        for i in range(min(10, len(user_msgs))):
+            summary += f"- {user_msgs[i]}\n"
         summary += "\n*Install Claude Code for AI-powered summaries.*"
         return summary

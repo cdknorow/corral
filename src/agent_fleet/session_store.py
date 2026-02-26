@@ -628,11 +628,12 @@ class SessionStore:
                 (agent_name, title, sort_order, now, now),
             )
             await conn.commit()
-            return {"id": cur.lastrowid, "agent_name": agent_name, "title": title,
-                    "completed": 0, "sort_order": sort_order,
-                    "created_at": now, "updated_at": now}
+            result = {"id": cur.lastrowid, "agent_name": agent_name, "title": title,
+                      "completed": 0, "sort_order": sort_order,
+                      "created_at": now, "updated_at": now}
         finally:
             await conn.close()
+        return result
 
     async def create_agent_task_if_not_exists(self, agent_name: str, title: str) -> dict[str, Any] | None:
         """Idempotent creation: only insert if no task with the same title exists for this agent."""

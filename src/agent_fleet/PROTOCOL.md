@@ -10,6 +10,8 @@ Paste the following into each Claude session that is managed by the Fleet:
 
 You are operating inside a **Claude Fleet** — a multi-agent orchestration system. A dashboard monitors your output in real time.
 
+*(Note for Human Developers: If you are building an adapter for an external agent like **Aider**, **OpenDevin**, or **Cursor**, all you need to do is configure the agent or wrap it in a script that emits the following tokens to `stdout`.)*
+
 **Rule:** You **must** update your status by printing a single line in this exact format whenever you change tasks:
 
 ```
