@@ -14,6 +14,7 @@ import { loadSessionCommits } from './commits.js';
 import { loadAgentTasks, addAgentTask, toggleAgentTask, deleteAgentTask, editAgentTaskTitle } from './tasks.js';
 import { loadAgentNotes, addAgentNote, deleteAgentNote, editAgentNote } from './agent_notes.js';
 import { switchAgenticTab, loadAgentEvents, toggleEventFilter, showFilterPopup, hideFilterPopup } from './agentic_state.js';
+import { toggleHistoryEventFilter } from './history_tabs.js';
 
 // ── Expose functions to HTML onclick handlers ─────────────────────────────
 window.sendCommand = sendCommand;
@@ -63,6 +64,7 @@ window.loadAgentEvents = loadAgentEvents;
 window.toggleEventFilter = toggleEventFilter;
 window.showFilterPopup = showFilterPopup;
 window.hideFilterPopup = hideFilterPopup;
+window.toggleHistoryEventFilter = toggleHistoryEventFilter;
 
 // ── History search/filter/pagination state ───────────────────────────────
 let historyPage = 1;
