@@ -27,6 +27,7 @@ def _cache_dir() -> str:
 
 
 def _cache_write(task_id: str, subject: str) -> None:
+    """Map a Claude Code task ID to its subject for later lookup."""
     try:
         with open(os.path.join(_cache_dir(), f"task_{task_id}"), "w") as f:
             f.write(subject)
@@ -42,12 +43,45 @@ def _cache_read(task_id: str) -> str:
         return ""
 
 
+def _parse_response(resp) -> dict:
+    """Extract task id and subject from tool_response (may be dict or string)."""
+    result = {"task_id": "", "subject": ""}
+    if isinstance(resp, dict):
+        # Structured response: {"task": {"id": "9", "subject": "..."}} or {"taskId": "9", ...}
+        task = resp.get("task", {})
+        if isinstance(task, dict):
+            result["task_id"] = str(task.get("id", ""))
+            result["subject"] = task.get("subject", "")
+        if not result["task_id"]:
+            result["task_id"] = str(resp.get("taskId", ""))
+    resp_str = resp if isinstance(resp, str) else json.dumps(resp)
+    if not result["task_id"]:
+        m = re.search(r"Task #(\d+)", resp_str)
+        if m:
+            result["task_id"] = m.group(1)
+    return result
+
+
+def _debug_log(msg: str) -> None:
+    """Append to debug log if FLEET_HOOK_DEBUG is set."""
+    if not os.environ.get("FLEET_HOOK_DEBUG"):
+        return
+    try:
+        with open(os.path.join(_cache_dir(), "debug.log"), "a") as f:
+            f.write(msg + "\n")
+    except OSError:
+        pass
+
+
 def main():
     """Read hook JSON from stdin, call Fleet API to create/complete tasks."""
     try:
-        d = json.load(sys.stdin)
+        raw = sys.stdin.read()
+        d = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
         return
+
+    _debug_log(f"INPUT: {raw[:500]}")
 
     port = os.environ.get("FLEET_PORT", "8420")
     base = f"http://localhost:{port}"
@@ -57,33 +91,39 @@ def main():
     task_id = str(inp.get("taskId", ""))
     subject = inp.get("subject", "")
     status = inp.get("status", "")
-
-    resp = d.get("tool_response", "")
-    resp_str = resp if isinstance(resp, str) else json.dumps(resp)
-    m = re.search(r"Task #(\d+)", resp_str)
-    resp_task_id = m.group(1) if m else ""
+    resp_parsed = _parse_response(d.get("tool_response", ""))
 
     cwd = d.get("cwd", "")
     agent_name = os.path.basename(cwd.rstrip("/"))
     if not agent_name:
         return
 
+    _debug_log(f"tool={tool} task_id={task_id} subject={subject} status={status} resp={resp_parsed} agent={agent_name}")
+
     if tool == "TaskCreate" and subject:
         _api(base, "POST", f"/api/sessions/live/{agent_name}/tasks", {"title": subject})
-        cache_id = resp_task_id or task_id
+        # Cache using the ID from the response so TaskUpdate can look it up
+        cache_id = resp_parsed["task_id"] or task_id
+        _debug_log(f"TaskCreate: cache_id={cache_id} subject={subject}")
         if cache_id:
             _cache_write(cache_id, subject)
 
     elif tool == "TaskUpdate":
+        # If this update includes a subject, cache it
         if task_id and subject:
             _cache_write(task_id, subject)
         if status == "completed":
-            title = subject or (_cache_read(task_id) if task_id else "")
+            # Resolve the title: from input, from cache, from response
+            title = subject or resp_parsed.get("subject", "") or (_cache_read(task_id) if task_id else "")
+            _debug_log(f"TaskUpdate completed: task_id={task_id} resolved_title={title}")
             if title:
+                # Find matching dashboard task and mark it done
                 tasks = _api(base, "GET", f"/api/sessions/live/{agent_name}/tasks")
+                _debug_log(f"Dashboard tasks: {json.dumps([t.get('title') for t in (tasks or [])])}")
                 if tasks:
                     for t in tasks:
                         if t.get("title") == title and not t.get("completed"):
+                            _debug_log(f"Marking done: dashboard_id={t['id']}")
                             _api(base, "PATCH", f"/api/sessions/live/{agent_name}/tasks/{t['id']}", {"completed": 1})
                             break
 
