@@ -9,30 +9,15 @@ import platform
 import re
 import shutil
 import time
-from glob import glob
 from pathlib import Path
 from typing import Any
 
-LOG_DIR = os.environ.get("TMPDIR", "/tmp").rstrip("/")
-LOG_PATTERN = f"{LOG_DIR}/*_fleet_*.log"
-STATUS_RE = re.compile(r"\|\|STATUS:\s*(.+?)\|\|")
-SUMMARY_RE = re.compile(r"\|\|SUMMARY:\s*(.+?)\|\|")
-ANSI_RE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\))")
-# Stray control characters (BEL, etc.) that survive ANSI stripping — keep \n \r \t
+from agent_fleet.utils import run_cmd, LOG_PATTERN, HISTORY_PATH
+
+ANSI_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
-
-COMMAND_MAP = {
-    "claude": {
-        "compress": "/compact",
-        "clear": "/clear",
-    },
-    "gemini": {
-        "compress": "/compress",
-        "clear": "/clear",
-    },
-}
-
-HISTORY_PATH = Path.home() / ".claude" / "projects"
+STATUS_RE = re.compile(r"\|\|STATUS: (.*?)\|\|")
+SUMMARY_RE = re.compile(r"\|\|SUMMARY: (.*?)\|\|")
 
 
 def strip_ansi(text: str) -> str:
@@ -54,6 +39,8 @@ async def discover_fleet_agents() -> list[dict[str, Any]]:
     Cross-references log files against live tmux sessions and removes
     stale log files whose sessions no longer exist.
     """
+    from glob import glob
+    
     panes = await list_tmux_sessions()
     live_sessions = {s["session_name"].lower() for s in panes}
     # Also collect pane titles and working-dir basenames for matching
@@ -105,6 +92,8 @@ def get_agent_log_path(agent_name: str, agent_type: str | None = None) -> Path |
     When *agent_type* is provided the match is narrowed to the log whose
     prefix matches (e.g. ``claude_fleet_X`` vs ``gemini_fleet_X``).
     """
+    from glob import glob
+    
     best: Path | None = None
     for log_path in glob(LOG_PATTERN):
         p = Path(log_path)
@@ -127,21 +116,48 @@ def get_log_status(log_path: str | Path) -> dict[str, Any]:
         "recent_lines": [],
     }
     try:
-        raw = log_path.read_text(errors="replace")
-        text = strip_ansi(raw)
-
-        status_matches = STATUS_RE.findall(text)
-        if status_matches:
-            result["status"] = clean_match(status_matches[-1])
-
-        summary_matches = SUMMARY_RE.findall(text)
-        if summary_matches:
-            result["summary"] = clean_match(summary_matches[-1])
-
         result["staleness_seconds"] = time.time() - log_path.stat().st_mtime
+        
+        with open(log_path, "rb") as f:
+            f.seek(0, 2)
+            file_size = f.tell()
+            pos = file_size
+            lines = []
+            leftover = b""
+            chunk_size = 4096
 
-        lines = text.splitlines()
-        result["recent_lines"] = lines[-200:]
+            while pos > 0 and len(lines) < 20: 
+                read_size = min(chunk_size, pos)
+                pos -= read_size
+                f.seek(pos)
+                chunk = f.read(read_size) + leftover
+
+                parts = chunk.split(b"\n")
+                if pos > 0:
+                    leftover = parts.pop(0)
+
+                for p in reversed(parts):
+                    try:
+                        text = p.decode("utf-8", errors="replace")
+                        clean_line = strip_ansi(text)
+                        
+                        if result["status"] is None:
+                            status_matches = STATUS_RE.findall(clean_line)
+                            if status_matches:
+                                result["status"] = clean_match(status_matches[-1])
+                                
+                        if result["summary"] is None:
+                            summary_matches = SUMMARY_RE.findall(clean_line)
+                            if summary_matches:
+                                result["summary"] = clean_match(summary_matches[-1])
+
+                        lines.insert(0, clean_line)
+                        if len(lines) >= 20:
+                            break
+                    except Exception:
+                        pass
+                        
+            result["recent_lines"] = lines
     except OSError:
         pass
     return result
@@ -150,18 +166,15 @@ def get_log_status(log_path: str | Path) -> dict[str, Any]:
 async def list_tmux_sessions() -> list[dict[str, str]]:
     """List all tmux panes with their titles, session names, and targets."""
     try:
-        proc = await asyncio.create_subprocess_exec(
+        rc, stdout, _ = await run_cmd(
             "tmux", "list-panes", "-a",
             "-F", "#{pane_title}|#{session_name}|#S:#I.#P|#{pane_current_path}",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
         )
-        stdout, _ = await proc.communicate()
-        if proc.returncode != 0:
+        if rc != 0:
             return []
 
         results = []
-        for line in stdout.decode().splitlines():
+        for line in stdout.splitlines():
             parts = line.split("|", 3)
             if len(parts) == 4:
                 results.append({
@@ -249,25 +262,21 @@ async def send_to_tmux(agent_name: str, command: str, agent_type: str | None = N
 
     try:
         # Send the text content
-        proc = await asyncio.create_subprocess_exec(
-            "tmux", "send-keys", "-t", target, "-l", command,
-            stderr=asyncio.subprocess.PIPE,
+        rc, _, stderr = await run_cmd(
+            "tmux", "send-keys", "-t", target, "-l", command
         )
-        _, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            return f"send-keys failed (rc={proc.returncode}): {stderr.decode().strip()}"
+        if rc != 0:
+            return f"send-keys failed (rc={rc}): {stderr}"
 
         # Pause to let tmux deliver keystrokes to the pane
         await asyncio.sleep(0.3)
 
         # Send Enter
-        proc = await asyncio.create_subprocess_exec(
-            "tmux", "send-keys", "-t", target, "Enter",
-            stderr=asyncio.subprocess.PIPE,
+        rc, _, stderr = await run_cmd(
+            "tmux", "send-keys", "-t", target, "Enter"
         )
-        _, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            return f"send Enter failed (rc={proc.returncode}): {stderr.decode().strip()}"
+        if rc != 0:
+            return f"send Enter failed (rc={rc}): {stderr}"
 
         return None
     except Exception as e:
@@ -282,13 +291,11 @@ async def send_raw_keys(agent_name: str, keys: list[str], agent_type: str | None
 
     try:
         for key in keys:
-            proc = await asyncio.create_subprocess_exec(
-                "tmux", "send-keys", "-t", target, key,
-                stderr=asyncio.subprocess.PIPE,
+            rc, _, stderr = await run_cmd(
+                "tmux", "send-keys", "-t", target, key
             )
-            _, stderr = await proc.communicate()
-            if proc.returncode != 0:
-                return f"send-keys '{key}' failed (rc={proc.returncode}): {stderr.decode().strip()}"
+            if rc != 0:
+                return f"send-keys '{key}' failed (rc={rc}): {stderr}"
             await asyncio.sleep(0.1)
         return None
     except Exception as e:
@@ -302,15 +309,12 @@ async def capture_pane(agent_name: str, lines: int = 200, agent_type: str | None
         return None
 
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "tmux", "capture-pane", "-t", target, "-p", f"-S-{lines}",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+        rc, stdout, _ = await run_cmd(
+            "tmux", "capture-pane", "-t", target, "-p", f"-S-{lines}"
         )
-        stdout, _ = await proc.communicate()
-        if proc.returncode != 0:
+        if rc != 0:
             return None
-        return stdout.decode(errors="replace")
+        return stdout
     except (OSError, FileNotFoundError):
         return None
 
@@ -326,13 +330,11 @@ async def kill_session(agent_name: str, agent_type: str | None = None) -> str | 
 
     session_name = pane["session_name"]
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "tmux", "kill-session", "-t", session_name,
-            stderr=asyncio.subprocess.PIPE,
+        rc, _, stderr = await run_cmd(
+            "tmux", "kill-session", "-t", session_name
         )
-        _, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            return f"kill-session failed: {stderr.decode().strip()}"
+        if rc != 0:
+            return f"kill-session failed: {stderr}"
 
         # Remove the log file so the agent disappears from discover_fleet_agents
         log_path = get_agent_log_path(agent_name, agent_type)
@@ -367,23 +369,19 @@ async def restart_session(agent_name: str, agent_type: str | None = None) -> dic
 
     try:
         # 1. Kill the running process and respawn a fresh shell in the same pane
-        proc = await asyncio.create_subprocess_exec(
-            "tmux", "respawn-pane", "-k", "-t", target,
-            stderr=asyncio.subprocess.PIPE,
+        rc, _, stderr = await run_cmd(
+            "tmux", "respawn-pane", "-k", "-t", target
         )
-        _, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            return {"error": f"respawn-pane failed: {stderr.decode().strip()}"}
+        if rc != 0:
+            return {"error": f"respawn-pane failed: {stderr}"}
 
         # Wait for the shell to initialise
         await asyncio.sleep(1)
 
         # 1b. Clear the tmux pane scrollback so capture_pane returns fresh content
-        proc = await asyncio.create_subprocess_exec(
-            "tmux", "clear-history", "-t", target,
-            stderr=asyncio.subprocess.PIPE,
+        await run_cmd(
+            "tmux", "clear-history", "-t", target
         )
-        await proc.communicate()
 
         # 2. Clear the log file so the dashboard starts fresh
         log_path = get_agent_log_path(agent_name, agent_type)
@@ -396,13 +394,13 @@ async def restart_session(agent_name: str, agent_type: str | None = None) -> dic
 
         # 3. Re-establish pipe-pane logging (respawn may reset it)
         if log_file:
-            await asyncio.create_subprocess_exec(
+            await run_cmd(
                 "tmux", "pipe-pane", "-t", target, "-o", f"cat >> '{log_file}'"
             )
 
         # 4. Restore the pane title
         folder_name = os.path.basename(working_dir.rstrip("/")) if working_dir else agent_name
-        await asyncio.create_subprocess_exec(
+        await run_cmd(
             "tmux", "send-keys", "-t", target,
             f"printf '\\033]2;{folder_name} \\xe2\\x80\\x94 {effective_type}\\033\\\\'", "Enter",
         )
@@ -423,21 +421,17 @@ async def restart_session(agent_name: str, agent_type: str | None = None) -> dic
             else:
                 cmd = "claude"
 
-        proc = await asyncio.create_subprocess_exec(
-            "tmux", "send-keys", "-t", target, "-l", cmd,
-            stderr=asyncio.subprocess.PIPE,
+        rc, _, stderr = await run_cmd(
+            "tmux", "send-keys", "-t", target, "-l", cmd
         )
-        _, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            return {"error": f"re-launch failed: {stderr.decode().strip()}"}
+        if rc != 0:
+            return {"error": f"re-launch failed: {stderr}"}
 
         await asyncio.sleep(0.3)
 
-        proc = await asyncio.create_subprocess_exec(
-            "tmux", "send-keys", "-t", target, "Enter",
-            stderr=asyncio.subprocess.PIPE,
+        await run_cmd(
+            "tmux", "send-keys", "-t", target, "Enter"
         )
-        await proc.communicate()
 
         return {
             "ok": True,
@@ -471,13 +465,11 @@ async def open_terminal_attached(agent_name: str, agent_type: str | None = None)
                 f'    do script "{attach_cmd}"\n'
                 f'end tell'
             )
-            proc = await asyncio.create_subprocess_exec(
-                "osascript", "-e", script,
-                stderr=asyncio.subprocess.PIPE,
+            rc, _, stderr = await run_cmd(
+                "osascript", "-e", script
             )
-            _, stderr = await proc.communicate()
-            if proc.returncode != 0:
-                return f"osascript failed: {stderr.decode().strip()}"
+            if rc != 0:
+                return f"osascript failed: {stderr}"
         else:
             # Linux: try common terminal emulators
             for term in ("gnome-terminal", "xfce4-terminal", "konsole", "xterm"):
@@ -488,9 +480,7 @@ async def open_terminal_attached(agent_name: str, agent_type: str | None = None)
                         args = [term, "-e", "bash", "-c", attach_cmd]
                     else:
                         args = [term, "-e", attach_cmd]
-                    proc = await asyncio.create_subprocess_exec(
-                        *args, stderr=asyncio.subprocess.PIPE,
-                    )
+                    asyncio.create_task(run_cmd(*args))
                     # Don't wait — terminal runs independently
                     return None
             return "No supported terminal emulator found"
@@ -767,21 +757,19 @@ async def launch_claude_session(working_dir: str, agent_type: str = "claude") ->
         Path(log_file).write_text("")
 
         # Create detached session
-        proc = await asyncio.create_subprocess_exec(
-            "tmux", "new-session", "-d", "-s", session_name, "-c", working_dir,
-            stderr=asyncio.subprocess.PIPE,
+        rc, _, stderr = await run_cmd(
+            "tmux", "new-session", "-d", "-s", session_name, "-c", working_dir
         )
-        _, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            return {"error": f"tmux new-session failed: {stderr.decode()}"}
+        if rc != 0:
+            return {"error": f"tmux new-session failed: {stderr}"}
 
         # Set up pipe-pane logging
-        await asyncio.create_subprocess_exec(
+        await run_cmd(
             "tmux", "pipe-pane", "-t", session_name, "-o", f"cat >> '{log_file}'"
         )
 
         # Set pane title
-        await asyncio.create_subprocess_exec(
+        await run_cmd(
             "tmux", "send-keys", "-t", f"{session_name}.0",
             f"printf '\\033]2;{folder_name} \\xe2\\x80\\x94 {agent_type}\\033\\\\'", "Enter"
         )

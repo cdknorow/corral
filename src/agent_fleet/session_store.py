@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-import sqlite3
+import aiosqlite
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -22,24 +22,26 @@ DB_PATH = DB_DIR / "sessions.db"
 
 
 class SessionStore:
-    """Synchronous SQLite store — call methods via asyncio.to_thread() from FastAPI."""
+    """Asynchronous SQLite store using aiosqlite."""
 
     def __init__(self, db_path: Path = DB_PATH) -> None:
         self._db_path = db_path
-        self._ensure_schema()
+        self._schema_ensured = False
 
-    def _connect(self) -> sqlite3.Connection:
+    async def _connect(self) -> aiosqlite.Connection:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(str(self._db_path))
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
+        conn = await aiosqlite.connect(str(self._db_path))
+        conn.row_factory = aiosqlite.Row
+        await conn.execute("PRAGMA journal_mode=WAL")
+        await conn.execute("PRAGMA foreign_keys=ON")
+        if not self._schema_ensured:
+            self._schema_ensured = True
+            await self._ensure_schema(conn)
         return conn
 
-    def _ensure_schema(self) -> None:
-        conn = self._connect()
+    async def _ensure_schema(self, conn: aiosqlite.Connection) -> None:
         try:
-            conn.executescript("""
+            await conn.executescript("""
                 CREATE TABLE IF NOT EXISTS session_meta (
                     session_id   TEXT PRIMARY KEY,
                     notes_md     TEXT DEFAULT '',
@@ -108,7 +110,7 @@ class SessionStore:
             # FTS5 virtual table — created separately because CREATE VIRTUAL TABLE
             # cannot be used inside executescript on all SQLite builds.
             try:
-                conn.execute("""
+                await conn.execute("""
                     CREATE VIRTUAL TABLE IF NOT EXISTS session_fts USING fts5(
                         session_id UNINDEXED,
                         body,
@@ -121,26 +123,26 @@ class SessionStore:
             # Migrations for existing databases
             for col in ("session_id TEXT", "remote_url TEXT"):
                 try:
-                    conn.execute(f"ALTER TABLE git_snapshots ADD COLUMN {col}")
-                except sqlite3.OperationalError:
+                    await conn.execute(f"ALTER TABLE git_snapshots ADD COLUMN {col}")
+                except aiosqlite.OperationalError:
                     pass  # Column already exists
 
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_git_snap_session ON git_snapshots(session_id)")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_git_snap_session ON git_snapshots(session_id)")
 
-            conn.commit()
+            await conn.commit()
         finally:
-            conn.close()
+            pass
 
     # ── Notes ───────────────────────────────────────────────────────────────
 
-    def get_session_notes(self, session_id: str) -> dict[str, Any]:
-        conn = self._connect()
+    async def get_session_notes(self, session_id: str) -> dict[str, Any]:
+        conn = await self._connect()
         try:
-            row = conn.execute(
+            row = await (await conn.execute(
                 "SELECT notes_md, auto_summary, is_user_edited, updated_at "
                 "FROM session_meta WHERE session_id = ?",
                 (session_id,),
-            ).fetchone()
+            )).fetchone()
             if row:
                 return {
                     "notes_md": row["notes_md"],
@@ -155,13 +157,13 @@ class SessionStore:
                 "updated_at": None,
             }
         finally:
-            conn.close()
+            await conn.close()
 
-    def save_session_notes(self, session_id: str, notes_md: str) -> None:
+    async def save_session_notes(self, session_id: str, notes_md: str) -> None:
         now = datetime.now(timezone.utc).isoformat()
-        conn = self._connect()
+        conn = await self._connect()
         try:
-            conn.execute(
+            await conn.execute(
                 """INSERT INTO session_meta (session_id, notes_md, is_user_edited, created_at, updated_at)
                    VALUES (?, ?, 1, ?, ?)
                    ON CONFLICT(session_id) DO UPDATE SET
@@ -170,16 +172,16 @@ class SessionStore:
                        updated_at = excluded.updated_at""",
                 (session_id, notes_md, now, now),
             )
-            conn.commit()
+            await conn.commit()
         finally:
-            conn.close()
+            await conn.close()
 
-    def save_auto_summary(self, session_id: str, summary: str) -> None:
+    async def save_auto_summary(self, session_id: str, summary: str) -> None:
         now = datetime.now(timezone.utc).isoformat()
-        conn = self._connect()
+        conn = await self._connect()
         try:
             # Only upsert if the user hasn't manually edited
-            conn.execute(
+            await conn.execute(
                 """INSERT INTO session_meta (session_id, auto_summary, created_at, updated_at)
                    VALUES (?, ?, ?, ?)
                    ON CONFLICT(session_id) DO UPDATE SET
@@ -188,79 +190,79 @@ class SessionStore:
                    WHERE session_meta.is_user_edited = 0""",
                 (session_id, summary, now, now),
             )
-            conn.commit()
+            await conn.commit()
         finally:
-            conn.close()
+            await conn.close()
 
     # ── Tags ────────────────────────────────────────────────────────────────
 
-    def list_tags(self) -> list[dict[str, Any]]:
-        conn = self._connect()
+    async def list_tags(self) -> list[dict[str, Any]]:
+        conn = await self._connect()
         try:
-            rows = conn.execute("SELECT id, name, color FROM tags ORDER BY name").fetchall()
+            rows = await (await conn.execute("SELECT id, name, color FROM tags ORDER BY name")).fetchall()
             return [{"id": r["id"], "name": r["name"], "color": r["color"]} for r in rows]
         finally:
-            conn.close()
+            await conn.close()
 
-    def create_tag(self, name: str, color: str = "#58a6ff") -> dict[str, Any]:
-        conn = self._connect()
+    async def create_tag(self, name: str, color: str = "#58a6ff") -> dict[str, Any]:
+        conn = await self._connect()
         try:
-            cur = conn.execute(
+            cur = await conn.execute(
                 "INSERT INTO tags (name, color) VALUES (?, ?)", (name, color)
             )
-            conn.commit()
+            await conn.commit()
             return {"id": cur.lastrowid, "name": name, "color": color}
         finally:
-            conn.close()
+            await conn.close()
 
-    def delete_tag(self, tag_id: int) -> None:
-        conn = self._connect()
+    async def delete_tag(self, tag_id: int) -> None:
+        conn = await self._connect()
         try:
-            conn.execute("DELETE FROM tags WHERE id = ?", (tag_id,))
-            conn.commit()
+            await conn.execute("DELETE FROM tags WHERE id = ?", (tag_id,))
+            await conn.commit()
         finally:
-            conn.close()
+            await conn.close()
 
-    def get_session_tags(self, session_id: str) -> list[dict[str, Any]]:
-        conn = self._connect()
+    async def get_session_tags(self, session_id: str) -> list[dict[str, Any]]:
+        conn = await self._connect()
         try:
-            rows = conn.execute(
+            rows = await (await conn.execute(
                 """SELECT t.id, t.name, t.color
                    FROM session_tags st
                    JOIN tags t ON t.id = st.tag_id
                    WHERE st.session_id = ?
                    ORDER BY t.name""",
                 (session_id,),
-            ).fetchall()
+            )).fetchall()
             return [{"id": r["id"], "name": r["name"], "color": r["color"]} for r in rows]
         finally:
-            conn.close()
+            await conn.close()
 
-    def add_session_tag(self, session_id: str, tag_id: int) -> None:
-        conn = self._connect()
+    async def add_session_tag(self, session_id: str, tag_id: int) -> None:
+        conn = await self._connect()
         try:
-            conn.execute(
+            await conn.execute(
                 "INSERT OR IGNORE INTO session_tags (session_id, tag_id) VALUES (?, ?)",
                 (session_id, tag_id),
             )
-            conn.commit()
+            await conn.commit()
         finally:
-            conn.close()
+            await conn.close()
 
-    def remove_session_tag(self, session_id: str, tag_id: int) -> None:
-        conn = self._connect()
+    async def remove_session_tag(self, session_id: str, tag_id: int) -> None:
+        conn = await self._connect()
         try:
-            conn.execute(
+            await conn.execute(
                 "DELETE FROM session_tags WHERE session_id = ? AND tag_id = ?",
                 (session_id, tag_id),
             )
-            conn.commit()
+            await conn.commit()
         finally:
-            conn.close()
+            await conn.close()
 
     # ── Session Index ──────────────────────────────────────────────────────
 
-    def upsert_session_index(
+    async def upsert_session_index(
         self,
         session_id: str,
         source_type: str,
@@ -272,9 +274,9 @@ class SessionStore:
         file_mtime: float,
     ) -> None:
         now = datetime.now(timezone.utc).isoformat()
-        conn = self._connect()
+        conn = await self._connect()
         try:
-            conn.execute(
+            await conn.execute(
                 """INSERT OR REPLACE INTO session_index
                    (session_id, source_type, source_file, first_timestamp, last_timestamp,
                     message_count, display_summary, indexed_at, file_mtime)
@@ -282,65 +284,65 @@ class SessionStore:
                 (session_id, source_type, source_file, first_timestamp, last_timestamp,
                  message_count, display_summary, now, file_mtime),
             )
-            conn.commit()
+            await conn.commit()
         finally:
-            conn.close()
+            await conn.close()
 
-    def upsert_fts(self, session_id: str, body: str) -> None:
-        conn = self._connect()
+    async def upsert_fts(self, session_id: str, body: str) -> None:
+        conn = await self._connect()
         try:
-            conn.execute("DELETE FROM session_fts WHERE session_id = ?", (session_id,))
-            conn.execute(
+            await conn.execute("DELETE FROM session_fts WHERE session_id = ?", (session_id,))
+            await conn.execute(
                 "INSERT INTO session_fts (session_id, body) VALUES (?, ?)",
                 (session_id, body),
             )
-            conn.commit()
+            await conn.commit()
         except Exception:
             pass  # FTS5 may not be available
         finally:
-            conn.close()
+            await conn.close()
 
-    def enqueue_for_summarization(self, session_id: str) -> None:
-        conn = self._connect()
+    async def enqueue_for_summarization(self, session_id: str) -> None:
+        conn = await self._connect()
         try:
-            conn.execute(
+            await conn.execute(
                 "INSERT OR IGNORE INTO summarizer_queue (session_id, status) VALUES (?, 'pending')",
                 (session_id,),
             )
-            conn.commit()
+            await conn.commit()
         finally:
-            conn.close()
+            await conn.close()
 
-    def mark_summarized(self, session_id: str, status: str, error: str | None = None) -> None:
+    async def mark_summarized(self, session_id: str, status: str, error: str | None = None) -> None:
         now = datetime.now(timezone.utc).isoformat()
-        conn = self._connect()
+        conn = await self._connect()
         try:
-            conn.execute(
+            await conn.execute(
                 "UPDATE summarizer_queue SET status = ?, attempted_at = ?, error_msg = ? WHERE session_id = ?",
                 (status, now, error, session_id),
             )
-            conn.commit()
+            await conn.commit()
         finally:
-            conn.close()
+            await conn.close()
 
-    def get_pending_summaries(self, limit: int = 5) -> list[str]:
-        conn = self._connect()
+    async def get_pending_summaries(self, limit: int = 5) -> list[str]:
+        conn = await self._connect()
         try:
-            rows = conn.execute(
+            rows = await (await conn.execute(
                 "SELECT session_id FROM summarizer_queue WHERE status = 'pending' LIMIT ?",
                 (limit,),
-            ).fetchall()
+            )).fetchall()
             return [r["session_id"] for r in rows]
         finally:
-            conn.close()
+            await conn.close()
 
-    def get_indexed_mtimes(self) -> dict[str, float]:
+    async def get_indexed_mtimes(self) -> dict[str, float]:
         """Return {source_file: file_mtime} for all indexed sessions."""
-        conn = self._connect()
+        conn = await self._connect()
         try:
-            rows = conn.execute(
+            rows = await (await conn.execute(
                 "SELECT source_file, file_mtime FROM session_index"
-            ).fetchall()
+            )).fetchall()
             result: dict[str, float] = {}
             for r in rows:
                 # Keep the max mtime per file (a file can contain multiple sessions)
@@ -349,9 +351,9 @@ class SessionStore:
                     result[r["source_file"]] = r["file_mtime"]
             return result
         finally:
-            conn.close()
+            await conn.close()
 
-    def list_sessions_paged(
+    async def list_sessions_paged(
         self,
         page: int = 1,
         page_size: int = 50,
@@ -360,7 +362,7 @@ class SessionStore:
         source_type: str | None = None,
     ) -> dict[str, Any]:
         """Paginated session listing with optional full-text search, tag filter, and source filter."""
-        conn = self._connect()
+        conn = await self._connect()
         try:
             params: list[Any] = []
             where_clauses: list[str] = []
@@ -394,7 +396,8 @@ class SessionStore:
 
             # Count total
             count_sql = f"SELECT COUNT(*) as cnt FROM {from_clause}{where_sql}"
-            total = conn.execute(count_sql, params).fetchone()["cnt"]
+            count_row = await (await conn.execute(count_sql, params)).fetchone()
+            total = count_row["cnt"] if count_row else 0
 
             # Fetch page
             offset = (page - 1) * page_size
@@ -402,7 +405,7 @@ class SessionStore:
                 f"SELECT {select_fields} FROM {from_clause}{where_sql} "
                 f"ORDER BY {order_clause} LIMIT ? OFFSET ?"
             )
-            rows = conn.execute(query, params + [page_size, offset]).fetchall()
+            rows = await (await conn.execute(query, params + [page_size, offset])).fetchall()
 
             session_ids = [r["session_id"] for r in rows]
 
@@ -410,11 +413,11 @@ class SessionStore:
             meta_map: dict[str, dict[str, Any]] = {}
             if session_ids:
                 placeholders = ",".join("?" for _ in session_ids)
-                meta_rows = conn.execute(
+                meta_rows = await (await conn.execute(
                     f"SELECT session_id, notes_md, auto_summary, is_user_edited "
                     f"FROM session_meta WHERE session_id IN ({placeholders})",
                     session_ids,
-                ).fetchall()
+                )).fetchall()
                 for r in meta_rows:
                     content = r["notes_md"] or r["auto_summary"] or ""
                     meta_map[r["session_id"]] = {
@@ -423,12 +426,12 @@ class SessionStore:
                         "summary_title": _extract_first_header(content),
                     }
 
-                tag_rows = conn.execute(
+                tag_rows = await (await conn.execute(
                     f"SELECT st.session_id, t.id, t.name, t.color "
                     f"FROM session_tags st JOIN tags t ON t.id = st.tag_id "
                     f"WHERE st.session_id IN ({placeholders}) ORDER BY t.name",
                     session_ids,
-                ).fetchall()
+                )).fetchall()
                 tags_map: dict[str, list[dict[str, Any]]] = {}
                 for r in tag_rows:
                     tags_map.setdefault(r["session_id"], []).append({
@@ -440,7 +443,7 @@ class SessionStore:
             # Enrich with git branch info from git_snapshots
             branch_map: dict[str, str] = {}
             if session_ids:
-                branch_rows = conn.execute(
+                branch_rows = await (await conn.execute(
                     f"""SELECT gs.session_id, gs.branch
                        FROM git_snapshots gs
                        INNER JOIN (
@@ -451,7 +454,7 @@ class SessionStore:
                        ) latest ON gs.session_id = latest.session_id
                                    AND gs.recorded_at = latest.max_ts""",
                     session_ids,
-                ).fetchall()
+                )).fetchall()
                 for r in branch_rows:
                     branch_map[r["session_id"]] = r["branch"]
 
@@ -480,11 +483,11 @@ class SessionStore:
                 "page_size": page_size,
             }
         finally:
-            conn.close()
+            await conn.close()
 
     # ── Git Snapshots ─────────────────────────────────────────────────────
 
-    def upsert_git_snapshot(
+    async def upsert_git_snapshot(
         self,
         agent_name: str,
         agent_type: str,
@@ -497,9 +500,9 @@ class SessionStore:
         remote_url: str | None = None,
     ) -> None:
         now = datetime.now(timezone.utc).isoformat()
-        conn = self._connect()
+        conn = await self._connect()
         try:
-            conn.execute(
+            await conn.execute(
                 """INSERT OR IGNORE INTO git_snapshots
                    (agent_name, agent_type, working_directory, branch,
                     commit_hash, commit_subject, commit_timestamp,
@@ -520,20 +523,20 @@ class SessionStore:
                 update_set += ", remote_url = ?"
                 update_params.append(remote_url)
             update_params.extend([agent_name, commit_hash])
-            conn.execute(
+            await conn.execute(
                 f"""UPDATE git_snapshots
                    SET {update_set}
                    WHERE agent_name = ? AND commit_hash = ?""",
                 update_params,
             )
-            conn.commit()
+            await conn.commit()
         finally:
-            conn.close()
+            await conn.close()
 
-    def get_git_snapshots(self, agent_name: str, limit: int = 20) -> list[dict[str, Any]]:
-        conn = self._connect()
+    async def get_git_snapshots(self, agent_name: str, limit: int = 20) -> list[dict[str, Any]]:
+        conn = await self._connect()
         try:
-            rows = conn.execute(
+            rows = await (await conn.execute(
                 """SELECT agent_name, agent_type, working_directory, branch,
                           commit_hash, commit_subject, commit_timestamp,
                           session_id, remote_url, recorded_at
@@ -542,15 +545,15 @@ class SessionStore:
                    ORDER BY recorded_at DESC
                    LIMIT ?""",
                 (agent_name, limit),
-            ).fetchall()
+            )).fetchall()
             return [dict(r) for r in rows]
         finally:
-            conn.close()
+            await conn.close()
 
-    def get_latest_git_state(self, agent_name: str) -> dict[str, Any] | None:
-        conn = self._connect()
+    async def get_latest_git_state(self, agent_name: str) -> dict[str, Any] | None:
+        conn = await self._connect()
         try:
-            row = conn.execute(
+            row = await (await conn.execute(
                 """SELECT agent_name, agent_type, working_directory, branch,
                           commit_hash, commit_subject, commit_timestamp,
                           session_id, remote_url, recorded_at
@@ -559,16 +562,16 @@ class SessionStore:
                    ORDER BY recorded_at DESC
                    LIMIT 1""",
                 (agent_name,),
-            ).fetchone()
+            )).fetchone()
             return dict(row) if row else None
         finally:
-            conn.close()
+            await conn.close()
 
-    def get_all_latest_git_state(self) -> dict[str, dict[str, Any]]:
+    async def get_all_latest_git_state(self) -> dict[str, dict[str, Any]]:
         """Return {agent_name: {branch, commit_hash, ...}} for all agents."""
-        conn = self._connect()
+        conn = await self._connect()
         try:
-            rows = conn.execute(
+            rows = await (await conn.execute(
                 """SELECT g.*
                    FROM git_snapshots g
                    INNER JOIN (
@@ -577,17 +580,17 @@ class SessionStore:
                        GROUP BY agent_name
                    ) latest ON g.agent_name = latest.agent_name
                               AND g.recorded_at = latest.max_ts"""
-            ).fetchall()
+            )).fetchall()
             return {r["agent_name"]: dict(r) for r in rows}
         finally:
-            conn.close()
+            await conn.close()
 
-    def get_git_snapshots_for_session(self, session_id: str, limit: int = 100) -> list[dict[str, Any]]:
+    async def get_git_snapshots_for_session(self, session_id: str, limit: int = 100) -> list[dict[str, Any]]:
         """Return git commits linked to a session by session_id or by time range."""
-        conn = self._connect()
+        conn = await self._connect()
         try:
             # First: direct matches by session_id
-            rows = conn.execute(
+            rows = await (await conn.execute(
                 """SELECT agent_name, agent_type, working_directory, branch,
                           commit_hash, commit_subject, commit_timestamp,
                           session_id, remote_url, recorded_at
@@ -596,19 +599,19 @@ class SessionStore:
                    ORDER BY commit_timestamp ASC
                    LIMIT ?""",
                 (session_id, limit),
-            ).fetchall()
+            )).fetchall()
             if rows:
                 return [dict(r) for r in rows]
 
             # Fallback: match by time range from session_index
-            row = conn.execute(
+            row = await (await conn.execute(
                 "SELECT first_timestamp, last_timestamp FROM session_index WHERE session_id = ?",
                 (session_id,),
-            ).fetchone()
+            )).fetchone()
             if not row or not row["first_timestamp"] or not row["last_timestamp"]:
                 return []
 
-            rows = conn.execute(
+            rows = await (await conn.execute(
                 """SELECT agent_name, agent_type, working_directory, branch,
                           commit_hash, commit_subject, commit_timestamp,
                           session_id, remote_url, recorded_at
@@ -617,21 +620,21 @@ class SessionStore:
                    ORDER BY commit_timestamp ASC
                    LIMIT ?""",
                 (row["first_timestamp"], row["last_timestamp"], limit),
-            ).fetchall()
+            )).fetchall()
             return [dict(r) for r in rows]
         finally:
-            conn.close()
+            await conn.close()
 
     # ── Bulk queries for enriching history list ─────────────────────────────
 
-    def get_all_session_metadata(self) -> dict[str, dict[str, Any]]:
+    async def get_all_session_metadata(self) -> dict[str, dict[str, Any]]:
         """Return {session_id: {tags: [...], has_notes: bool}} for all known sessions."""
-        conn = self._connect()
+        conn = await self._connect()
         try:
             # Get all session notes info
-            meta_rows = conn.execute(
+            meta_rows = await (await conn.execute(
                 "SELECT session_id, notes_md, auto_summary, is_user_edited FROM session_meta"
-            ).fetchall()
+            )).fetchall()
 
             result: dict[str, dict[str, Any]] = {}
             for r in meta_rows:
@@ -643,12 +646,12 @@ class SessionStore:
                 }
 
             # Get all session tags
-            tag_rows = conn.execute(
+            tag_rows = await (await conn.execute(
                 """SELECT st.session_id, t.id, t.name, t.color
                    FROM session_tags st
                    JOIN tags t ON t.id = st.tag_id
                    ORDER BY t.name"""
-            ).fetchall()
+            )).fetchall()
 
             for r in tag_rows:
                 sid = r["session_id"]
@@ -662,4 +665,4 @@ class SessionStore:
 
             return result
         finally:
-            conn.close()
+            await conn.close()

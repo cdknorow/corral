@@ -19,10 +19,10 @@ from agent_fleet.session_manager import (
 )
 from agent_fleet.session_store import SessionStore
 
+from agent_fleet.utils import HISTORY_PATH, GEMINI_HISTORY_BASE
+
 log = logging.getLogger(__name__)
 
-CLAUDE_HISTORY_BASE = Path.home() / ".claude" / "projects"
-GEMINI_HISTORY_BASE = Path.home() / ".gemini" / "tmp"
 FTS_BODY_CAP = 50_000
 
 
@@ -49,16 +49,13 @@ class SessionIndexer:
 
     async def run_once(self) -> dict[str, int]:
         """Index all history files once. Returns {"indexed": N, "skipped": M}."""
-        return await asyncio.to_thread(self._run_once_sync)
-
-    def _run_once_sync(self) -> dict[str, int]:
-        indexed = 0
-        skipped = 0
-        known_mtimes = self._store.get_indexed_mtimes()
+        indexed: int = 0
+        skipped: int = 0
+        known_mtimes = await self._store.get_indexed_mtimes()
 
         # -- Claude files --
-        if CLAUDE_HISTORY_BASE.exists():
-            for jsonl_file in CLAUDE_HISTORY_BASE.rglob("*.jsonl"):
+        if HISTORY_PATH.exists():
+            for jsonl_file in HISTORY_PATH.rglob("*.jsonl"):
                 try:
                     mtime = jsonl_file.stat().st_mtime
                 except OSError:
@@ -66,7 +63,7 @@ class SessionIndexer:
                 if known_mtimes.get(str(jsonl_file), 0.0) >= mtime:
                     skipped += 1
                     continue
-                count = self._index_claude_file(jsonl_file, mtime)
+                count = await self._index_claude_file(jsonl_file, mtime)
                 indexed += count
 
         # -- Gemini files --
@@ -79,12 +76,12 @@ class SessionIndexer:
                 if known_mtimes.get(str(session_file), 0.0) >= mtime:
                     skipped += 1
                     continue
-                count = self._index_gemini_file(session_file, mtime)
+                count = await self._index_gemini_file(session_file, mtime)
                 indexed += count
 
         return {"indexed": indexed, "skipped": skipped}
 
-    def _index_claude_file(self, path: Path, mtime: float) -> int:
+    async def _index_claude_file(self, path: Path, mtime: float) -> int:
         """Parse a JSONL file and upsert each session found. Returns count."""
         sessions: dict[str, dict[str, Any]] = {}
 
@@ -139,7 +136,7 @@ class SessionIndexer:
 
         for sid, s in sessions.items():
             summary = s["summary_marker"] or s["first_human"] or "(no messages)"
-            self._store.upsert_session_index(
+            await self._store.upsert_session_index(
                 session_id=sid,
                 source_type="claude",
                 source_file=str(path),
@@ -150,12 +147,12 @@ class SessionIndexer:
                 file_mtime=mtime,
             )
             body = "\n".join(s["texts"])[:FTS_BODY_CAP]
-            self._store.upsert_fts(sid, body)
-            self._store.enqueue_for_summarization(sid)
+            await self._store.upsert_fts(sid, body)
+            await self._store.enqueue_for_summarization(sid)
 
         return len(sessions)
 
-    def _index_gemini_file(self, path: Path, mtime: float) -> int:
+    async def _index_gemini_file(self, path: Path, mtime: float) -> int:
         """Parse a Gemini session JSON file and upsert. Returns 0 or 1."""
         try:
             data = json.loads(path.read_text(errors="replace"))
@@ -192,7 +189,7 @@ class SessionIndexer:
                 first_user = text[:100]
 
         summary = summary_marker or first_user or "(no messages)"
-        self._store.upsert_session_index(
+        await self._store.upsert_session_index(
             session_id=sid,
             source_type="gemini",
             source_file=str(path),
@@ -202,9 +199,7 @@ class SessionIndexer:
             display_summary=summary,
             file_mtime=mtime,
         )
-        body = "\n".join(texts)[:FTS_BODY_CAP]
-        self._store.upsert_fts(sid, body)
-        self._store.enqueue_for_summarization(sid)
+        await self._store.enqueue_for_summarization(sid)
         return 1
 
     async def run_forever(self, interval: float = 120) -> None:
@@ -228,7 +223,7 @@ class BatchSummarizer:
         """Process pending summaries in a loop. Runs until cancelled."""
         while True:
             try:
-                pending = await asyncio.to_thread(self._store.get_pending_summaries, batch_size)
+                pending = await self._store.get_pending_summaries(batch_size)
                 if not pending:
                     await asyncio.sleep(30)
                     continue
@@ -244,14 +239,10 @@ class BatchSummarizer:
                 for session_id in pending:
                     try:
                         await summarizer.summarize_session(session_id)
-                        await asyncio.to_thread(
-                            self._store.mark_summarized, session_id, "done"
-                        )
+                        await self._store.mark_summarized(session_id, "done")
                     except Exception as e:
                         log.warning("Summarization failed for %s: %s", session_id, e)
-                        await asyncio.to_thread(
-                            self._store.mark_summarized, session_id, "failed", str(e)
-                        )
+                        await self._store.mark_summarized(session_id, "failed", str(e))
                     await asyncio.sleep(delay_between)
             except Exception:
                 log.exception("BatchSummarizer error")

@@ -9,6 +9,7 @@ from typing import Any
 
 from agent_fleet.session_manager import discover_fleet_agents, _find_pane
 from agent_fleet.session_store import SessionStore
+from agent_fleet.utils import run_cmd, HISTORY_PATH
 
 log = logging.getLogger(__name__)
 
@@ -41,17 +42,16 @@ class GitPoller:
                 git_info = await self._query_git(workdir)
                 if git_info:
                     session_id = await self._query_session_id(workdir)
-                    await asyncio.to_thread(
-                        self._store.upsert_git_snapshot,
-                        agent["agent_name"],
-                        agent["agent_type"],
-                        workdir,
-                        git_info["branch"],
-                        git_info["commit_hash"],
-                        git_info["commit_subject"],
-                        git_info["commit_timestamp"],
-                        session_id,
-                        git_info.get("remote_url"),
+                    await self._store.upsert_git_snapshot(
+                        agent_name=agent["agent_name"],
+                        agent_type=agent["agent_type"],
+                        working_directory=workdir,
+                        branch=git_info["branch"],
+                        commit_hash=git_info["commit_hash"],
+                        commit_subject=git_info["commit_subject"],
+                        commit_timestamp=git_info["commit_timestamp"],
+                        session_id=session_id,
+                        remote_url=git_info.get("remote_url"),
                     )
                     polled += 1
             except Exception:
@@ -67,7 +67,7 @@ class GitPoller:
         """
         try:
             encoded = workdir.replace("/", "-").replace("_", "-")
-            project_dir = Path.home() / ".claude" / "projects" / encoded
+            project_dir = HISTORY_PATH / encoded
             if not project_dir.is_dir():
                 return None
             jsonl_files = sorted(
@@ -85,41 +85,32 @@ class GitPoller:
         """Query git for current branch and latest commit in a working directory."""
         try:
             # Get branch name
-            proc = await asyncio.create_subprocess_exec(
-                "git", "-C", workdir, "rev-parse", "--abbrev-ref", "HEAD",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+            rc, stdout, _ = await run_cmd(
+                "git", "-C", workdir, "rev-parse", "--abbrev-ref", "HEAD", timeout=5.0
             )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
-            if proc.returncode != 0:
+            if rc != 0:
                 return None
-            branch = stdout.decode().strip()
+            branch = stdout
 
             # Get latest commit: hash|subject|timestamp
-            proc = await asyncio.create_subprocess_exec(
-                "git", "-C", workdir, "log", "-1", "--format=%H|%s|%aI",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+            rc, stdout, _ = await run_cmd(
+                "git", "-C", workdir, "log", "-1", "--format=%H|%s|%aI", timeout=5.0
             )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
-            if proc.returncode != 0:
+            if rc != 0:
                 return None
-            parts = stdout.decode().strip().split("|", 2)
+            parts = stdout.split("|", 2)
             if len(parts) < 3:
                 return None
 
             # Get remote URL (best-effort)
             remote_url = None
             try:
-                proc = await asyncio.create_subprocess_exec(
-                    "git", "-C", workdir, "remote", "get-url", "origin",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
+                rc, stdout, _ = await run_cmd(
+                    "git", "-C", workdir, "remote", "get-url", "origin", timeout=5.0
                 )
-                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
-                if proc.returncode == 0:
-                    remote_url = stdout.decode().strip() or None
-            except (asyncio.TimeoutError, OSError):
+                if rc == 0:
+                    remote_url = stdout or None
+            except Exception:
                 pass
 
             return {

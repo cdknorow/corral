@@ -61,7 +61,7 @@ class AutoSummarizer:
     async def summarize_session(self, session_id: str) -> str:
         """Load messages, call Claude to summarize, save result. Returns summary text."""
         # Check if user has already edited — don't overwrite
-        notes = await asyncio.to_thread(self._store.get_session_notes, session_id)
+        notes = await self._store.get_session_notes(session_id)
         if notes.get("is_user_edited"):
             return notes.get("notes_md", "")
 
@@ -81,7 +81,7 @@ class AutoSummarizer:
             summary = f"*Auto-summarization failed: {e}*"
 
         # Save the auto-summary
-        await asyncio.to_thread(self._store.save_auto_summary, session_id, summary)
+        await self._store.save_auto_summary(session_id, summary)
         return summary
 
     async def _call_claude(self, transcript: str) -> str:
@@ -92,22 +92,22 @@ class AutoSummarizer:
 
         prompt = f"{SYSTEM_PROMPT}\n\nPlease summarize this coding session:\n\n{transcript}"
 
-        proc = await asyncio.create_subprocess_exec(
+        from agent_fleet.utils import run_cmd
+
+        rc, stdout, stderr = await run_cmd(
             claude_path,
             "--print",
             "--model", "haiku",
             "--no-session-persistence",
             prompt,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            timeout=60.0
         )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
 
-        if proc.returncode != 0:
-            err = stderr.decode().strip()
-            raise RuntimeError(f"claude CLI exited {proc.returncode}: {err}")
+        if rc != 0:
+            err = stderr.strip() if stderr else "Unknown error"
+            raise RuntimeError(f"claude CLI exited {rc}: {err}")
 
-        return stdout.decode().strip()
+        return stdout.strip() if stdout else ""
 
     def _fallback_summary(self, transcript: str) -> str:
         """Generate a basic extractive summary when Claude CLI is not available."""

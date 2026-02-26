@@ -83,8 +83,8 @@ def _is_noise_line(line: str) -> bool:
     return False
 
 
-def get_log_snapshot(log_path: str | Path, max_lines: int = 200) -> dict[str, Any]:
-    """Return a snapshot of the current log state.
+def get_log_snapshot(log_path: str | Path, max_lines: int = 200, chunk_size: int = 8192) -> dict[str, Any]:
+    """Return a snapshot of the current log state, reading backwards for efficiency.
 
     Returns dict with: status, summary, recent_lines, staleness_seconds.
     """
@@ -96,22 +96,56 @@ def get_log_snapshot(log_path: str | Path, max_lines: int = 200) -> dict[str, An
         "staleness_seconds": None,
     }
 
+    if not log_path.exists():
+        return result
+
     try:
-        raw = log_path.read_text(errors="replace")
-        text = strip_ansi(raw)
-
-        status_matches = STATUS_RE.findall(text)
-        if status_matches:
-            result["status"] = clean_match(status_matches[-1])
-
-        summary_matches = SUMMARY_RE.findall(text)
-        if summary_matches:
-            result["summary"] = clean_match(summary_matches[-1])
-
-        lines = [l for l in text.splitlines() if not _is_noise_line(l)]
-        result["recent_lines"] = lines[-max_lines:]
-
         result["staleness_seconds"] = time.time() - log_path.stat().st_mtime
+
+        with open(log_path, "rb") as f:
+            f.seek(0, 2)
+            file_size = f.tell()
+            pos = file_size
+            lines = []
+            leftover = b""
+
+            # Read backwards in chunks
+            while pos > 0 and len(lines) < max_lines:
+                read_size = min(chunk_size, pos)
+                pos -= read_size
+                f.seek(pos)
+                chunk = f.read(read_size) + leftover
+
+                parts = chunk.split(b"\n")
+                # The first part might be incomplete, carry it over to the next loop
+                if pos > 0:
+                    leftover = parts.pop(0)
+
+                # Add lines in reverse order
+                for p in reversed(parts):
+                    try:
+                        text = p.decode("utf-8", errors="replace")
+                        clean_line = strip_ansi(text)
+                        
+                        # Check for status/summary as we go
+                        if result["status"] is None:
+                            status_matches = STATUS_RE.findall(clean_line)
+                            if status_matches:
+                                result["status"] = clean_match(status_matches[-1])
+                                
+                        if result["summary"] is None:
+                            summary_matches = SUMMARY_RE.findall(clean_line)
+                            if summary_matches:
+                                result["summary"] = clean_match(summary_matches[-1])
+
+                        if not _is_noise_line(clean_line):
+                            lines.insert(0, clean_line)
+                            if len(lines) >= max_lines:
+                                break
+                    except Exception:
+                        pass
+                        
+            result["recent_lines"] = lines
     except OSError:
         pass
 

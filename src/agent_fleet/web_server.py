@@ -17,7 +17,6 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 from agent_fleet.session_manager import (
-    COMMAND_MAP,
     discover_fleet_agents,
     get_agent_log_path,
     get_log_status,
@@ -33,6 +32,7 @@ from agent_fleet.session_manager import (
     launch_claude_session,
 )
 from agent_fleet.log_streamer import get_log_snapshot
+from agent_fleet.session_store import SessionStore
 from agent_fleet.session_store import SessionStore
 
 log = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ async def index(request: Request):
 async def get_live_sessions():
     """List active fleet agents with their current status."""
     agents = await discover_fleet_agents()
-    git_state = await asyncio.to_thread(store.get_all_latest_git_state)
+    git_state = await store.get_all_latest_git_state()
     results = []
     for agent in agents:
         log_info = get_log_status(agent["log_path"])
@@ -138,7 +138,7 @@ async def get_live_session_info(name: str, agent_type: str | None = None):
     info = await get_session_info(name, agent_type)
     if not info:
         return {"error": f"Agent '{name}' not found"}
-    git = await asyncio.to_thread(store.get_latest_git_state, name)
+    git = await store.get_latest_git_state(name)
     if git:
         info["git_branch"] = git["branch"]
         info["git_commit_hash"] = git["commit_hash"]
@@ -165,9 +165,7 @@ async def get_history_sessions(
 
     Falls back to scanning files if the index is empty (cold start).
     """
-    result = await asyncio.to_thread(
-        store.list_sessions_paged, page, page_size, q, tag_id, source_type
-    )
+    result = await store.list_sessions_paged(page, page_size, q, tag_id, source_type)
 
     if result["total"] == 0 and not q and not tag_id and not source_type:
         # Cold start — index hasn't run yet; trigger immediate index and fall back
@@ -175,8 +173,8 @@ async def get_history_sessions(
         if indexer:
             try:
                 await indexer.run_once()
-                result = await asyncio.to_thread(
-                    store.list_sessions_paged, page, page_size, q, tag_id, source_type
+                result = await store.list_sessions_paged(
+                    page, page_size, q, tag_id, source_type
                 )
             except Exception:
                 pass
@@ -184,7 +182,7 @@ async def get_history_sessions(
         # If still empty, fall back to old file-scan method
         if result["total"] == 0:
             sessions = load_history_sessions()
-            metadata = await asyncio.to_thread(store.get_all_session_metadata)
+            metadata = await store.get_all_session_metadata()
             for s in sessions:
                 meta = metadata.get(s["session_id"])
                 if meta:
@@ -211,7 +209,7 @@ async def trigger_indexer_refresh():
 @app.get("/api/sessions/history/{session_id}/git")
 async def get_history_session_git(session_id: str):
     """Return git commits that occurred during a historical session's time range."""
-    snapshots = await asyncio.to_thread(store.get_git_snapshots_for_session, session_id)
+    snapshots = await store.get_git_snapshots_for_session(session_id)
     return {"session_id": session_id, "commits": snapshots}
 
 
@@ -320,7 +318,7 @@ async def launch_session(body: dict):
 @app.get("/api/sessions/history/{session_id}/notes")
 async def get_session_notes(session_id: str):
     """Get notes and auto-summary for a session. Triggers auto-summarization if empty."""
-    notes = await asyncio.to_thread(store.get_session_notes, session_id)
+    notes = await store.get_session_notes(session_id)
 
     # If no notes and no auto-summary, trigger summarization in background
     if not notes["notes_md"] and not notes["auto_summary"]:
@@ -340,7 +338,7 @@ async def get_session_notes(session_id: str):
 async def save_session_notes(session_id: str, body: dict):
     """Save user-edited markdown notes for a session."""
     notes_md = body.get("notes_md", "")
-    await asyncio.to_thread(store.save_session_notes, session_id, notes_md)
+    await store.save_session_notes(session_id, notes_md)
     return {"ok": True}
 
 
@@ -365,7 +363,7 @@ async def resummarize_session(session_id: str):
 @app.get("/api/tags")
 async def list_tags():
     """List all tags."""
-    return await asyncio.to_thread(store.list_tags)
+    return await store.list_tags()
 
 
 @app.post("/api/tags")
@@ -376,7 +374,7 @@ async def create_tag(body: dict):
         return {"error": "Tag name is required"}
     color = body.get("color", "#58a6ff")
     try:
-        tag = await asyncio.to_thread(store.create_tag, name, color)
+        tag = await store.create_tag(name, color)
         return tag
     except Exception as e:
         return {"error": str(e)}
@@ -385,14 +383,14 @@ async def create_tag(body: dict):
 @app.delete("/api/tags/{tag_id}")
 async def delete_tag(tag_id: int):
     """Delete a tag."""
-    await asyncio.to_thread(store.delete_tag, tag_id)
+    await store.delete_tag(tag_id)
     return {"ok": True}
 
 
 @app.get("/api/sessions/history/{session_id}/tags")
 async def get_session_tags(session_id: str):
     """Get tags for a session."""
-    return await asyncio.to_thread(store.get_session_tags, session_id)
+    return await store.get_session_tags(session_id)
 
 
 @app.post("/api/sessions/history/{session_id}/tags")
@@ -401,14 +399,14 @@ async def add_session_tag(session_id: str, body: dict):
     tag_id = body.get("tag_id")
     if tag_id is None:
         return {"error": "tag_id is required"}
-    await asyncio.to_thread(store.add_session_tag, session_id, int(tag_id))
+    await store.add_session_tag(session_id, int(tag_id))
     return {"ok": True}
 
 
 @app.delete("/api/sessions/history/{session_id}/tags/{tag_id}")
 async def remove_session_tag(session_id: str, tag_id: int):
     """Remove a tag from a session."""
-    await asyncio.to_thread(store.remove_session_tag, session_id, tag_id)
+    await store.remove_session_tag(session_id, tag_id)
     return {"ok": True}
 
 
@@ -424,7 +422,7 @@ async def ws_fleet(websocket: WebSocket):
     try:
         while True:
             agents = await discover_fleet_agents()
-            git_state = await asyncio.to_thread(store.get_all_latest_git_state)
+            git_state = await store.get_all_latest_git_state()
             results = []
             for agent in agents:
                 log_info = get_log_status(agent["log_path"])
