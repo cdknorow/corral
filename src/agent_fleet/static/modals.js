@@ -93,15 +93,91 @@ export function copyInfoCommand() {
     });
 }
 
+// ── Resume Modal ───────────────────────────────────────────────────────────
+
+export function showResumeModal() {
+    const list = document.getElementById("resume-session-list");
+    list.innerHTML = "";
+
+    if (!state.liveSessions || state.liveSessions.length === 0) {
+        list.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px 0">No live agents available</p>';
+        document.getElementById("resume-modal").style.display = "flex";
+        return;
+    }
+
+    for (const agent of state.liveSessions) {
+        const item = document.createElement("div");
+        item.className = "resume-session-item";
+        const typeBadge = (agent.agent_type || "claude").toLowerCase();
+        const goal = agent.summary ? escapeHtml(agent.summary) : '<span style="color:var(--text-muted)">No goal set</span>';
+        item.innerHTML = `
+            <div class="resume-item-header">
+                <span class="resume-item-name">${escapeHtml(agent.name)}</span>
+                <span class="badge ${typeBadge}">${typeBadge}</span>
+            </div>
+            <div class="resume-item-goal">${goal}</div>
+        `;
+        item.addEventListener("click", () => resumeIntoSession(agent.name, agent.agent_type));
+        list.appendChild(item);
+    }
+
+    document.getElementById("resume-modal").style.display = "flex";
+}
+
+export function hideResumeModal() {
+    document.getElementById("resume-modal").style.display = "none";
+}
+
+export async function resumeIntoSession(agentName, agentType) {
+    if (!state.currentSession || state.currentSession.type !== "history") {
+        showToast("No history session selected", true);
+        return;
+    }
+
+    const sessionId = state.currentSession.name;
+    const displayType = (agentType || "claude").toLowerCase();
+
+    if (!confirm(`This will kill the current session in "${agentName}" and resume session ${sessionId.substring(0, 8)}... in its place. Continue?`)) {
+        return;
+    }
+
+    hideResumeModal();
+
+    try {
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(agentName)}/resume`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId, agent_type: agentType }),
+        });
+        const result = await resp.json();
+        if (result.error) {
+            showToast(result.error, true);
+        } else {
+            showToast(`Resumed session in ${agentName}`);
+            // Switch to the live session view
+            if (window.selectLiveSession) {
+                window.selectLiveSession(agentName, displayType);
+            }
+        }
+    } catch (e) {
+        showToast("Failed to resume session", true);
+        console.error("resumeIntoSession error:", e);
+    }
+}
+
 // Close modals on outside click
 document.addEventListener("click", (e) => {
     const launchModal = document.getElementById("launch-modal");
     const infoModal = document.getElementById("info-modal");
+    const resumeModal = document.getElementById("resume-modal");
     if (e.target === launchModal) {
         hideLaunchModal();
     }
     if (e.target === infoModal) {
         hideInfoModal();
+    }
+    if (e.target === resumeModal) {
+        hideResumeModal();
     }
 });
 
@@ -110,5 +186,6 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
         hideLaunchModal();
         hideInfoModal();
+        hideResumeModal();
     }
 });

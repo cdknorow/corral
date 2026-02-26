@@ -313,6 +313,21 @@ async def restart_live_session(name: str, body: dict | None = None):
     return result
 
 
+@app.post("/api/sessions/live/{name}/resume")
+async def resume_live_session(name: str, body: dict):
+    """Restart the agent with --resume to continue a historical session."""
+    session_id = body.get("session_id")
+    agent_type = body.get("agent_type") or None
+    if not session_id:
+        return {"error": "session_id is required"}
+    # Clear old binding, restart with --resume, then bind new session_id
+    await store.clear_agent_session_id(name)
+    result = await restart_session(name, agent_type=agent_type, resume_session_id=session_id)
+    if not result.get("error"):
+        await store.set_agent_session_id(name, session_id)
+    return result
+
+
 @app.post("/api/sessions/live/{name}/attach")
 async def attach_terminal(name: str, body: dict | None = None):
     """Open a local terminal window attached to the agent's tmux session."""

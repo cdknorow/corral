@@ -137,6 +137,9 @@
                         <span id="history-session-id" class="session-id-label"></span>
                         <div id="history-session-tags" class="tag-list"></div>
                         <button class="btn btn-small" onclick="showTagDropdown()" title="Add tag">+ Tag</button>
+                        <button id="btn-resume-session" class="btn btn-small btn-primary"
+                          onclick="showResumeModal()" title="Resume this session in a live agent"
+                          style="display:none">Resume</button>
                     </div>
                     <!-- Tag Dropdown -->
                     <div id="tag-dropdown" class="tag-dropdown" style="display:none">
@@ -277,6 +280,20 @@
             </dl>
             <div class="modal-actions">
                 <button class="btn" onclick="hideInfoModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resume Modal -->
+    <div id="resume-modal" class="modal" style="display:none">
+        <div class="modal-content" style="width:440px">
+            <h3>Resume Session</h3>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+                Select a live agent to restart with this session:
+            </p>
+            <div id="resume-session-list"></div>
+            <div class="modal-actions">
+                <button class="btn" onclick="hideResumeModal()">Cancel</button>
             </div>
         </div>
     </div>

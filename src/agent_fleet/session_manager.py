@@ -371,12 +371,57 @@ async def kill_session(agent_name: str, agent_type: str | None = None) -> str | 
         return str(e)
 
 
-async def restart_session(agent_name: str, agent_type: str | None = None) -> dict[str, Any]:
+def _ensure_session_in_project_dir(session_id: str, working_dir: str) -> None:
+    """Copy a Claude session's JSONL file (and companion dir) into the target project dir.
+
+    ``claude --resume`` only searches the current project directory, so if the
+    session originated in a different worktree/project we must copy the files
+    across before resuming.
+    """
+    # Build the target project directory for the agent's working dir
+    encoded = working_dir.replace("/", "-").replace("_", "-")
+    target_project = HISTORY_PATH / encoded
+    target_jsonl = target_project / f"{session_id}.jsonl"
+
+    if target_jsonl.exists():
+        return  # Already present — nothing to do
+
+    # Search all project dirs for the session file
+    source_jsonl: Path | None = None
+    for candidate in HISTORY_PATH.iterdir():
+        if not candidate.is_dir():
+            continue
+        f = candidate / f"{session_id}.jsonl"
+        if f.exists():
+            source_jsonl = f
+            break
+
+    if source_jsonl is None:
+        return  # Session file not found anywhere
+
+    # Ensure target directory exists
+    target_project.mkdir(parents=True, exist_ok=True)
+
+    # Copy the JSONL transcript
+    shutil.copy2(source_jsonl, target_jsonl)
+
+    # Copy the companion session-state directory if it exists
+    source_dir = source_jsonl.parent / session_id
+    target_dir = target_project / session_id
+    if source_dir.is_dir() and not target_dir.exists():
+        shutil.copytree(source_dir, target_dir)
+
+
+async def restart_session(agent_name: str, agent_type: str | None = None, resume_session_id: str | None = None) -> dict[str, Any]:
     """Restart the Claude/Gemini session in the same tmux pane.
 
     Uses ``tmux respawn-pane -k`` to forcefully kill the running process
     and spawn a fresh shell, then re-launches the agent with the same
     system prompt (PROTOCOL.md).
+
+    If *resume_session_id* is provided, Claude is launched with
+    ``--resume <session_id>`` to continue a previous conversation.
+    Only supported for Claude agents (returns error for Gemini).
 
     Returns a dict with result info or an ``error`` key.
     """
@@ -388,6 +433,14 @@ async def restart_session(agent_name: str, agent_type: str | None = None) -> dic
     session_name = pane["session_name"]
     working_dir = pane.get("current_path", "")
     effective_type = (agent_type or "claude").lower()
+
+    if resume_session_id and effective_type == "gemini":
+        return {"error": "Resume is only supported for Claude agents"}
+
+    # If resuming, ensure the session file exists in the target agent's
+    # project directory so `claude --resume` can find it.
+    if resume_session_id and working_dir:
+        _ensure_session_in_project_dir(resume_session_id, working_dir)
 
     try:
         # 0. Resolve the log file path BEFORE killing the pane so glob lookup
@@ -446,10 +499,12 @@ async def restart_session(agent_name: str, agent_type: str | None = None) -> dic
             else:
                 cmd = "gemini"
         else:
+            parts = ["claude"]
+            if resume_session_id:
+                parts.append(f"--resume {resume_session_id}")
             if protocol_path.exists():
-                cmd = f"claude --append-system-prompt \"$(cat '{protocol_path}')\""
-            else:
-                cmd = "claude"
+                parts.append(f"--append-system-prompt \"$(cat '{protocol_path}')\"")
+            cmd = " ".join(parts)
 
         rc, _, stderr = await run_cmd(
             "tmux", "send-keys", "-t", target, "-l", cmd

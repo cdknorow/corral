@@ -1954,6 +1954,45 @@ body {
     padding: 20px 0;
 }
 
+/* Resume Modal Items */
+.resume-session-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.resume-session-item:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.resume-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.resume-item-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.resume-item-goal {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .note-md-editor {
     flex: 1;
     width: 100%;

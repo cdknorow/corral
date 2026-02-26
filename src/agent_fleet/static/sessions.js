@@ -110,6 +110,12 @@ export async function selectHistorySession(sessionId) {
         branchEl.style.display = "none";
     }
 
+    // Show/hide Resume button based on source type
+    const resumeBtn = document.getElementById("btn-resume-session");
+    if (resumeBtn) {
+        resumeBtn.style.display = (historyEntry && historyEntry.source_type === "claude") ? "" : "none";
+    }
+
     updateSidebarActive();
 
     // Reset to summary tab

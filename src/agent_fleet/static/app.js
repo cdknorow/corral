@@ -5,7 +5,7 @@ import { loadLiveSessions, loadHistorySessions, loadHistorySessionsPaged } from 
 import { connectFleetWs } from './websocket.js';
 import { sendCommand, sendRawKeys, sendModeToggle, sendQuickCommand, sendResetCommand, attachTerminal, killSession, restartSession } from './controls.js';
 import { selectLiveSession, selectHistorySession, editAndResubmit } from './sessions.js';
-import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand } from './modals.js';
+import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand, showResumeModal, hideResumeModal, resumeIntoSession } from './modals.js';
 import { toggleBrowser, browserNavigateTo, browserNavigateUp } from './browser.js';
 import { initSidebarResize, initCommandPaneResize, initTaskBarResize } from './sidebar.js';
 import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesEdit, switchHistoryTab } from './notes.js';
@@ -34,6 +34,9 @@ window.launchSession = launchSession;
 window.showInfoModal = showInfoModal;
 window.hideInfoModal = hideInfoModal;
 window.copyInfoCommand = copyInfoCommand;
+window.showResumeModal = showResumeModal;
+window.hideResumeModal = hideResumeModal;
+window.resumeIntoSession = resumeIntoSession;
 window.toggleBrowser = toggleBrowser;
 window.browserNavigateTo = browserNavigateTo;
 window.browserNavigateUp = browserNavigateUp;
