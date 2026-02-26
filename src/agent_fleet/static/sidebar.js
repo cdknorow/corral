@@ -34,9 +34,9 @@ export function initSidebarResize() {
 export function initTaskBarResize() {
     const handle = document.getElementById("task-bar-resize-handle");
     const taskBar = document.getElementById("agentic-state");
-    const outputArea = document.querySelector(".output-area");
+    const liveBody = document.querySelector(".live-body");
 
-    if (!handle || !taskBar || !outputArea) return;
+    if (!handle || !taskBar || !liveBody) return;
 
     let dragging = false;
 
@@ -50,9 +50,9 @@ export function initTaskBarResize() {
 
     document.addEventListener("mousemove", (e) => {
         if (!dragging) return;
-        const rect = outputArea.getBoundingClientRect();
+        const rect = liveBody.getBoundingClientRect();
         const newWidth = rect.right - e.clientX;
-        const clamped = Math.min(Math.max(newWidth, 180), rect.width * 0.5);
+        const clamped = Math.min(Math.max(newWidth, 180), 480);
         taskBar.style.width = clamped + "px";
     });
 
@@ -70,6 +70,7 @@ export function initTaskBarResize() {
 export function initCommandPaneResize() {
     const handle = document.getElementById("command-pane-resize-handle");
     const pane = document.getElementById("command-pane");
+    const column = document.querySelector(".live-left-column");
 
     let dragging = false;
 
@@ -83,9 +84,10 @@ export function initCommandPaneResize() {
 
     document.addEventListener("mousemove", (e) => {
         if (!dragging) return;
-        const viewportHeight = window.innerHeight;
-        const newHeight = viewportHeight - e.clientY;
-        const clamped = Math.min(Math.max(newHeight, 80), viewportHeight * 0.6);
+        const container = column || document.body;
+        const rect = container.getBoundingClientRect();
+        const newHeight = rect.bottom - e.clientY;
+        const clamped = Math.min(Math.max(newHeight, 80), rect.height * 0.6);
         pane.style.height = clamped + "px";
     });
 

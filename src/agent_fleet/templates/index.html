@@ -78,8 +78,21 @@
                     </div>
                 </div>
 
-                <div class="output-area">
-                    <div id="pane-capture" class="output-scroll capture-text"></div>
+                <div class="live-body">
+                    <div class="live-left-column">
+                        <div id="pane-capture" class="output-scroll capture-text"></div>
+                        <div class="command-pane-resize-handle" id="command-pane-resize-handle"></div>
+                        <div class="command-pane" id="command-pane">
+                            <div class="command-pane-toolbar" id="command-toolbar">
+                                <!-- All buttons populated dynamically -->
+                            </div>
+                            <div class="command-pane-body">
+                                <div class="command-editor">
+                                    <textarea id="command-input" placeholder="Type a command..." rows="3" autocomplete="off"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="task-bar-resize-handle" id="task-bar-resize-handle"></div>
                     <div class="agentic-state" id="agentic-state">
                         <div class="agentic-state-tabs">
@@ -104,23 +117,6 @@
                                 <input type="text" id="task-bar-input" placeholder="Add a task...">
                                 <button class="btn btn-small btn-primary task-bar-add-btn">+</button>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="command-pane-resize-handle" id="command-pane-resize-handle"></div>
-                <div class="command-pane" id="command-pane">
-                    <div class="command-pane-toolbar">
-                        <div class="quick-actions" id="quick-actions">
-                            <!-- Populated dynamically -->
-                        </div>
-                        <div class="nav-keys" id="nav-keys">
-                            <!-- Populated dynamically -->
-                        </div>
-                    </div>
-                    <div class="command-pane-body">
-                        <div class="command-editor">
-                            <textarea id="command-input" placeholder="Type a command..." rows="3" autocomplete="off"></textarea>
                         </div>
                     </div>
                 </div>

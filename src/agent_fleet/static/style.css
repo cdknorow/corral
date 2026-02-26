@@ -357,12 +357,20 @@ body {
     background: var(--success);
 }
 
-/* Output Area */
-.output-area {
+/* Live Body — horizontal split: left column + agentic state */
+.live-body {
     flex: 1;
     overflow: hidden;
     display: flex;
     flex-direction: row;
+}
+
+.live-left-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .output-scroll {
@@ -504,19 +512,35 @@ body {
     height: 200px;
     min-height: 80px;
     max-height: 60vh;
+    min-width: 0;
     background: var(--bg-secondary);
     flex-shrink: 0;
     overflow: hidden;
+    container-type: inline-size;
+    container-name: command-pane;
 }
 
 .command-pane-toolbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    padding: 8px 20px;
+    gap: 7px;
+    padding: 8px 12px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--border);
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    flex-shrink: 0;
+}
+
+.toolbar-spacer {
+    flex: 1;
 }
 
 .command-pane-body {
@@ -563,30 +587,6 @@ body {
     flex-shrink: 0;
 }
 
-.quick-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.quick-actions-divider {
-    width: 1px;
-    height: 20px;
-    background: var(--border);
-    margin: 0 6px;
-    flex-shrink: 0;
-}
-
-.nav-keys {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    flex-shrink: 0;
-}
-
-.nav-keys .btn {
-    margin: 0;
-}
 
 /* Keyboard-key style for nav buttons */
 .btn-nav {
@@ -594,7 +594,7 @@ body {
     border-bottom: 2px solid var(--border-light);
     background: var(--bg-tertiary);
     color: var(--text-secondary);
-    width: 34px;
+    min-width: 34px;
     height: 30px;
     text-align: center;
     font-weight: 600;
@@ -603,12 +603,9 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding: 0 8px;
     margin: 0;
-}
-
-.nav-keys .btn-send {
-    margin: 0;
+    white-space: nowrap;
 }
 
 .btn-nav:hover {
@@ -631,15 +628,24 @@ body {
 }
 
 .btn-mode {
-    border-color: var(--border);
-    color: var(--text-secondary);
-    background: var(--bg-tertiary);
+    gap: 5px;
+}
+
+.btn-mode svg {
+    flex-shrink: 0;
 }
 
 .btn-mode:hover {
     background: rgba(124, 58, 237, 0.15);
     border-color: var(--badge-claude);
     color: var(--badge-claude);
+}
+
+/* Collapse mode buttons to icons when command pane is narrow */
+@container command-pane (max-width: 850px) {
+    .btn-mode .btn-label {
+        display: none;
+    }
 }
 
 /* Chat Messages (History View) */
@@ -1478,7 +1484,7 @@ body {
 .agentic-state {
     width: 280px;
     min-width: 180px;
-    max-width: 50%;
+    max-width: 480px;
     display: flex;
     flex-direction: column;
     background: var(--bg-secondary);

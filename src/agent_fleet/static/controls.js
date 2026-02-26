@@ -44,29 +44,26 @@ export async function sendCommand() {
 }
 
 export function renderQuickActions() {
-    const navContainer = document.getElementById("nav-keys");
-    navContainer.innerHTML = `
-        <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Escape'])" title="Escape">Esc</button>
-        <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Up'])" title="Arrow Up">&uarr;</button>
-        <button class="btn btn-small btn-nav" onclick="sendRawKeys(['Down'])" title="Arrow Down">&darr;</button>
-        <button class="btn btn-small btn-nav btn-enter" onclick="sendRawKeys(['Enter'])" title="Enter">&#9166;</button>
-        <button class="btn btn-primary btn-send" onclick="sendCommand()">Send</button>
-    `;
-
-    const container = document.getElementById("quick-actions");
-    container.innerHTML = `
-        <button class="btn btn-small btn-mode" onclick="sendModeToggle('plan')">Plan Mode</button>
-        <button class="btn btn-small btn-mode" onclick="sendModeToggle('auto')">Accept Edits</button>
-        <button class="btn btn-small btn-mode" onclick="sendQuickCommand('!')">Bash Mode</button>
-        <span class="quick-actions-divider"></span>
-        <button class="btn btn-small" onclick="sendQuickCommand('${escapeAttr(state.currentCommands.compress || "/compact")}')">
+    const toolbar = document.getElementById("command-toolbar");
+    toolbar.innerHTML = `
+        <button class="btn-nav btn-mode" onclick="sendModeToggle('plan')" title="Plan Mode"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><line x1="6" y1="5" x2="10" y2="5"/><line x1="6" y1="8" x2="10" y2="8"/><line x1="6" y1="11" x2="8" y2="11"/></svg><span class="btn-label">Plan Mode</span></button>
+        <button class="btn-nav btn-mode" onclick="sendModeToggle('auto')" title="Accept Edits"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5 8.5 6.5 11.5 12.5 4.5"/></svg><span class="btn-label">Accept Edits</span></button>
+        <button class="btn-nav btn-mode" onclick="sendQuickCommand('!')" title="Bash Mode"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><polyline points="4 7 6 9 4 11"/><line x1="8" y1="11" x2="12" y2="11"/></svg><span class="btn-label">Bash Mode</span></button>
+        <span class="toolbar-divider"></span>
+        <button class="btn-nav" onclick="sendQuickCommand('${escapeAttr(state.currentCommands.compress || "/compact")}')">
             ${escapeHtml(state.currentCommands.compress || "/compact")}
         </button>
-        <button class="btn btn-small" onclick="sendQuickCommand('${escapeAttr(state.currentCommands.clear || "/clear")}')">
+        <button class="btn-nav" onclick="sendQuickCommand('${escapeAttr(state.currentCommands.clear || "/clear")}')">
             ${escapeHtml(state.currentCommands.clear || "/clear")}
         </button>
-        <span class="quick-actions-divider"></span>
-        <button class="btn btn-small btn-danger" onclick="sendResetCommand()">Reset</button>
+        <span class="toolbar-divider"></span>
+        <button class="btn-nav btn-danger" onclick="sendResetCommand()">Reset</button>
+        <span class="toolbar-spacer"></span>
+        <button class="btn-nav" onclick="sendRawKeys(['Escape'])" title="Escape">Esc</button>
+        <button class="btn-nav" onclick="sendRawKeys(['Up'])" title="Arrow Up">&uarr;</button>
+        <button class="btn-nav" onclick="sendRawKeys(['Down'])" title="Arrow Down">&darr;</button>
+        <button class="btn-nav btn-enter" onclick="sendRawKeys(['Enter'])" title="Enter">&#9166;</button>
+        <button class="btn-nav btn-primary btn-send" onclick="sendCommand()">Send</button>
     `;
 }
 
