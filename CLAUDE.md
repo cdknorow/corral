@@ -24,10 +24,13 @@ pip install -e .
 ### Launching the Fleet
 ```bash
 # Launch agents and web dashboard for worktrees in a target directory
-./src/agent_fleet/launch_agents.sh /path/to/worktrees
+launch-fleet /path/to/worktrees
+
+# Specify agent type (default: claude)
+launch-fleet /path/to/worktrees gemini
 
 # Override the web dashboard port (default: 8420)
-FLEET_PORT=9000 ./src/agent_fleet/launch_agents.sh /path/to/worktrees
+FLEET_PORT=9000 launch-fleet /path/to/worktrees
 ```
 
 ### Running the Web Dashboard (standalone)
