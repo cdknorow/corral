@@ -1,11 +1,9 @@
-# Agent Corral
+# Corral
 
 <!-- TODO: Add a high-quality GIF here demonstrating launching the corral and the real-time web dashboard. -->
-<img width="1501" height="824" alt="image" src="https://github.com/user-attachments/assets/ccb9a251-4e08-4fda-8f7f-aa502f8df98f" />
+<img width="1512" height="822" alt="image" src="https://github.com/user-attachments/assets/7534c1c4-5431-4e63-a5e3-4ec667e8bcb5" />
 
-
-> *When a deer stands next to a datacenter, it grazes indifferently—completely unaware of the vast, alien intelligence vibrating just on the other side of the wall. Lately, managing AI coding agents has started to feel the same way. The intelligence is moving so fast, in so many parallel directions, that as humans, we are often left just watching the terminal scroll by, dimly aware of the sheer scale of thought happening in front of us. **Corral** is an attempt to bridge that gap. It is a piece of glass that lets us track, understand, and direct that intelligence, bringing the anxiety-inducing power of the machine back under our calm, human control.*
-
+> *When a human looks at a deer, they see a simple creature going about its life, completely unaware of the complex world building up around it. We tolerate the deer, and the deer grazes on, indifferent and oblivious to the vast gap in intelligence. Lately, sitting next to the hum of a datacenter and managing AI coding agents, it has started to feel eerily similar—except now, we are the deer. The AI operates at a speed and scale so vast that we are often left just watching the terminal scroll by, dimly grasping the sheer volume of thought happening in front of us. **Corral** is an attempt to bridge that gap. It is a tool designed to help us sit equally with the AI; a pane of glass that lets us track their world, understand their actions, and bring the anxiety-inducing pace of the machine back under our calm, human control.*
 A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
 
 > **Note:** This system is currently mostly tested with Claude Code and to some extent Gemini CLI. However, the underlying architecture is designed to support other agents, which can be integrated with some additional work from others.
@@ -30,7 +28,7 @@ A multi-agent orchestration system for managing AI coding agents (Claude and Gem
 Install from PyPI:
 
 ```bash
-pip install agent-corral
+pip install corral
 ```
 
 Or install directly from GitHub:
@@ -102,8 +100,7 @@ corral --reload
 ### Managing sessions from the dashboard
 
 <!-- TODO: Add a GIF here showing the live pane capture updating, sending commands to an agent, and toggling plan/base mode. -->
-<img width="1511" height="826" alt="image" src="https://github.com/user-attachments/assets/dece6140-1ca8-4816-adb4-c0836f0d7cee" />
-
+<img width="1510" height="813" alt="image" src="https://github.com/user-attachments/assets/5a2e7909-ef08-4371-b485-f6e141a5a02c" />
 
 The web dashboard provides quick-action buttons for each live session:
 
@@ -125,8 +122,7 @@ You can also type arbitrary commands in the input bar and send them to the selec
 ### Session history search and filtering
 
 <!-- TODO: Add a GIF here showing full-text search across past Claude/Gemini sessions and adding notes/tags. -->
-<img width="1509" height="820" alt="image" src="https://github.com/user-attachments/assets/073c0627-deac-460f-b329-a348d8717f2a" />
-
+<img width="1512" height="799" alt="image" src="https://github.com/user-attachments/assets/37561737-caf9-438b-81af-8c48a6cfe30a" />
 
 
 The sidebar History section includes a search bar and filters for browsing your entire AI coding session history.
