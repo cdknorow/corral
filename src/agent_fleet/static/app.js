@@ -12,7 +12,7 @@ import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesE
 import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown, hideTagDropdown, createTag, loadAllTags } from './tags.js';
 import { loadSessionCommits } from './commits.js';
 import { loadAgentTasks, addAgentTask, toggleAgentTask, deleteAgentTask, editAgentTaskTitle } from './tasks.js';
-import { loadAgentNotes, addAgentNote, deleteAgentNote, editAgentNote } from './agent_notes.js';
+import { loadAgentNotes, initNotesMd } from './agent_notes.js';
 import { switchAgenticTab, loadAgentEvents, toggleEventFilter, showFilterPopup, hideFilterPopup } from './agentic_state.js';
 import { toggleHistoryEventFilter } from './history_tabs.js';
 
@@ -56,9 +56,6 @@ window.toggleAgentTask = toggleAgentTask;
 window.deleteAgentTask = deleteAgentTask;
 window.editAgentTaskTitle = editAgentTaskTitle;
 window.loadAgentNotes = loadAgentNotes;
-window.addAgentNote = addAgentNote;
-window.deleteAgentNote = deleteAgentNote;
-window.editAgentNote = editAgentNote;
 window.switchAgenticTab = switchAgenticTab;
 window.loadAgentEvents = loadAgentEvents;
 window.toggleEventFilter = toggleEventFilter;
@@ -141,20 +138,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Note bar: Enter adds note, button click adds note
-    const noteInput = document.getElementById("note-bar-input");
-    if (noteInput) {
-        noteInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                addAgentNote();
-            }
-        });
-    }
-    const noteAddBtn = document.querySelector(".note-bar-add-btn");
-    if (noteAddBtn) {
-        noteAddBtn.addEventListener("click", () => addAgentNote());
-    }
+    // Markdown notes panel: click-to-edit, blur-to-save
+    initNotesMd();
 
     // Enter sends command, Shift+Enter inserts newline
     document.getElementById("command-input").addEventListener("keydown", (e) => {

@@ -201,16 +201,18 @@ export async function loadHistoryAgentNotes(sessionId) {
 }
 
 function renderHistoryAgentNotes() {
-    const list = document.getElementById('history-note-list');
-    if (!list) return;
+    const container = document.getElementById('history-note-list');
+    if (!container) return;
 
     if (historyAgentNotes.length === 0) {
-        list.innerHTML = '<div class="note-empty">No agent notes recorded</div>';
+        container.innerHTML = '<div class="empty-notes">No agent notes recorded</div>';
         return;
     }
 
-    list.innerHTML = historyAgentNotes.map(n => `
-        <div class="note-item">
-            <span class="note-content">${escapeHtml(n.content)}</span>
-        </div>`).join('');
+    const md = historyAgentNotes.map(n => n.content).join('\n\n');
+    if (typeof marked !== 'undefined') {
+        container.innerHTML = marked.parse(md);
+    } else {
+        container.textContent = md;
+    }
 }
