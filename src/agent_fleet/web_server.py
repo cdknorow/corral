@@ -212,6 +212,24 @@ async def get_history_session_git(session_id: str):
     return {"session_id": session_id, "commits": snapshots}
 
 
+@app.get("/api/sessions/history/{session_id}/tasks")
+async def get_history_session_tasks(session_id: str):
+    """Get tasks for a historical session (read-only)."""
+    return await store.list_tasks_by_session(session_id)
+
+
+@app.get("/api/sessions/history/{session_id}/agent-notes")
+async def get_history_session_agent_notes(session_id: str):
+    """Get agent notes for a historical session (read-only)."""
+    return await store.list_notes_by_session(session_id)
+
+
+@app.get("/api/sessions/history/{session_id}/events")
+async def get_history_session_events(session_id: str, limit: int = Query(200, ge=1, le=500)):
+    """Get activity events for a historical session (read-only)."""
+    return await store.list_events_by_session(session_id, limit)
+
+
 @app.get("/api/sessions/history/{session_id}")
 async def get_history_session_detail(session_id: str):
     """Get all messages for a historical session."""

@@ -12,6 +12,7 @@ import { loadSessionCommits } from './commits.js';
 import { loadAgentTasks } from './tasks.js';
 import { loadAgentNotes } from './agent_notes.js';
 import { loadAgentEvents } from './agentic_state.js';
+import { loadHistoryEvents, loadHistoryTasks, loadHistoryAgentNotes } from './history_tabs.js';
 
 export async function selectLiveSession(name, agentType) {
     stopCaptureRefresh();
@@ -111,18 +112,21 @@ export async function selectHistorySession(sessionId) {
 
     updateSidebarActive();
 
-    // Reset to chat tab
-    switchHistoryTab('chat');
+    // Reset to summary tab
+    switchHistoryTab('notes');
 
     const data = await loadHistoryMessages(sessionId);
     if (data && data.messages) {
         renderHistoryChat(data.messages);
     }
 
-    // Load notes, tags, and commits in parallel
+    // Load notes, tags, commits, and history tabs in parallel
     loadSessionNotes(sessionId);
     loadSessionTags(sessionId);
     loadSessionCommits(sessionId);
+    loadHistoryEvents(sessionId);
+    loadHistoryTasks(sessionId);
+    loadHistoryAgentNotes(sessionId);
 }
 
 export function editAndResubmit(btn) {

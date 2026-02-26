@@ -209,9 +209,12 @@ export async function resummarize() {
 }
 
 export function switchHistoryTab(tabName) {
-    // Update tab buttons
+    // Update tab buttons — match by onclick attribute since text may include count badges
     document.querySelectorAll(".history-tab-btn").forEach(btn => {
-        btn.classList.toggle("active", btn.textContent.toLowerCase() === tabName);
+        const onclick = btn.getAttribute('onclick') || '';
+        const match = onclick.match(/switchHistoryTab\('([^']+)'\)/);
+        const btnTab = match ? match[1] : '';
+        btn.classList.toggle("active", btnTab === tabName);
     });
 
     // Update tab content

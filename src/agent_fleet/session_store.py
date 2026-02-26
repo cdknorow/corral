@@ -1021,6 +1021,47 @@ class SessionStore:
         finally:
             await conn.close()
 
+    # ── History queries (by session_id only) ────────────────────────────────
+
+    async def list_tasks_by_session(self, session_id: str) -> list[dict[str, Any]]:
+        """List tasks for a historical session by session_id."""
+        conn = await self._connect()
+        try:
+            rows = await (await conn.execute(
+                "SELECT id, agent_name, title, completed, sort_order, created_at, updated_at "
+                "FROM agent_tasks WHERE session_id = ? ORDER BY sort_order",
+                (session_id,),
+            )).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()
+
+    async def list_notes_by_session(self, session_id: str) -> list[dict[str, Any]]:
+        """List agent notes for a historical session by session_id."""
+        conn = await self._connect()
+        try:
+            rows = await (await conn.execute(
+                "SELECT id, agent_name, content, created_at, updated_at "
+                "FROM agent_notes WHERE session_id = ? ORDER BY created_at DESC",
+                (session_id,),
+            )).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()
+
+    async def list_events_by_session(self, session_id: str, limit: int = 200) -> list[dict[str, Any]]:
+        """List events for a historical session by session_id."""
+        conn = await self._connect()
+        try:
+            rows = await (await conn.execute(
+                "SELECT id, agent_name, session_id, event_type, tool_name, summary, detail_json, created_at "
+                "FROM agent_events WHERE session_id = ? ORDER BY created_at DESC LIMIT ?",
+                (session_id, limit),
+            )).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()
+
     # ── Bulk queries for enriching history list ─────────────────────────────
 
     async def get_all_session_metadata(self) -> dict[str, dict[str, Any]]:
