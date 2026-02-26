@@ -28,6 +28,8 @@ const FILTER_GROUPS = [
     { key: 'web',    label: 'W', title: 'Web',           cls: 'tool-web',    match: ev => ev.tool_name === 'WebFetch' || ev.tool_name === 'WebSearch' },
     { key: 'task',   label: 'T', title: 'Tasks',         cls: 'tool-task',   match: ev => ['TaskCreate','TaskUpdate','TaskList','TaskGet'].includes(ev.tool_name) },
     { key: 'agent',  label: 'A', title: 'Subagents',     cls: 'tool-agent',  match: ev => ev.tool_name === 'Task' },
+    { key: 'status', label: 'S', title: 'Status',          cls: 'tool-status', match: ev => ev.event_type === 'status' },
+    { key: 'goal',   label: 'G', title: 'Goal',            cls: 'tool-goal',   match: ev => ev.event_type === 'goal' },
     { key: 'system', label: '!', title: 'Stop / Notify',  cls: 'tool-stop',   match: ev => ev.event_type === 'stop' || ev.event_type === 'notification' },
 ];
 
@@ -36,6 +38,10 @@ let historyFilterHidden = new Set();
 let historyEvents = [];
 let historyTasks = [];
 let historyAgentNotes = [];
+
+function escapeAttr(str) {
+    return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 function escapeHtml(str) {
     const div = document.createElement('div');
@@ -54,11 +60,13 @@ function formatTime(isoStr) {
 }
 
 function getToolIcon(toolName, eventType) {
-    if (eventType === 'status') return { char: 'S', cls: 'tool-status' };
-    if (eventType === 'goal') return { char: 'G', cls: 'tool-goal' };
-    if (eventType === 'stop') return { char: '!', cls: 'tool-stop' };
-    if (eventType === 'notification') return { char: 'N', cls: 'tool-notification' };
-    return TOOL_ICONS[toolName] || { char: '.', cls: 'tool-default' };
+    if (eventType === 'status') return { char: 'S', cls: 'tool-status', title: 'Status' };
+    if (eventType === 'goal') return { char: 'G', cls: 'tool-goal', title: 'Goal' };
+    if (eventType === 'stop') return { char: '!', cls: 'tool-stop', title: 'Stop' };
+    if (eventType === 'notification') return { char: 'N', cls: 'tool-notification', title: 'Notification' };
+    const icon = TOOL_ICONS[toolName];
+    if (icon) return { ...icon, title: toolName };
+    return { char: '.', cls: 'tool-default', title: eventType || 'Event' };
 }
 
 function isEventVisible(ev) {
@@ -92,7 +100,17 @@ function renderHistoryEventFilters() {
     const container = document.getElementById('history-event-filters');
     if (!container) return;
 
-    container.innerHTML = FILTER_GROUPS.map(group => {
+    const allHidden = historyFilterHidden.size === FILTER_GROUPS.length;
+    const noneHidden = historyFilterHidden.size === 0;
+    const toggleCls = noneHidden ? '' : allHidden ? 'filter-hidden' : 'filter-partial';
+
+    const toggleBtn = `<button class="event-filter-chip filter-toggle ${toggleCls}"
+                onclick="toggleAllHistoryEventFilters()"
+                title="${noneHidden ? 'Hide all' : 'Show all'}">
+                <span class="event-filter-char">*</span>
+            </button>`;
+
+    const chips = FILTER_GROUPS.map(group => {
         const count = historyEvents.filter(group.match).length;
         const isHidden = historyFilterHidden.has(group.key);
         const dimClass = isHidden ? 'filter-hidden' : '';
@@ -101,6 +119,8 @@ function renderHistoryEventFilters() {
                     <span class="event-filter-char">${group.label}</span>
                 </button>`;
     }).join('');
+
+    container.innerHTML = toggleBtn + chips;
 }
 
 export function toggleHistoryEventFilter(key) {
@@ -108,6 +128,16 @@ export function toggleHistoryEventFilter(key) {
         historyFilterHidden.delete(key);
     } else {
         historyFilterHidden.add(key);
+    }
+    renderHistoryEventFilters();
+    renderHistoryEventTimeline();
+}
+
+export function toggleAllHistoryEventFilters() {
+    if (historyFilterHidden.size === 0) {
+        for (const group of FILTER_GROUPS) historyFilterHidden.add(group.key);
+    } else {
+        historyFilterHidden.clear();
     }
     renderHistoryEventFilters();
     renderHistoryEventTimeline();
@@ -131,10 +161,10 @@ function renderHistoryEventTimeline() {
     container.innerHTML = visible.map(ev => {
         const icon = getToolIcon(ev.tool_name, ev.event_type);
         const typeCls = ev.event_type ? `event-type-${ev.event_type}` : '';
-        return `<div class="event-item ${typeCls}">
+        return `<div class="event-item ${typeCls}" data-tooltip="${icon.title}: ${escapeAttr(ev.summary)}">
             <span class="event-icon ${icon.cls}">${icon.char}</span>
             <span class="event-body">
-                <span class="event-summary" title="${escapeHtml(ev.summary)}">${escapeHtml(ev.summary)}</span>
+                <span class="event-summary">${escapeHtml(ev.summary)}</span>
             </span>
             <span class="event-time">${formatTime(ev.created_at)}</span>
         </div>`;

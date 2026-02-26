@@ -13,8 +13,8 @@ import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown
 import { loadSessionCommits } from './commits.js';
 import { loadAgentTasks, addAgentTask, toggleAgentTask, deleteAgentTask, editAgentTaskTitle } from './tasks.js';
 import { loadAgentNotes, initNotesMd } from './agent_notes.js';
-import { switchAgenticTab, loadAgentEvents, toggleEventFilter, showFilterPopup, hideFilterPopup } from './agentic_state.js';
-import { toggleHistoryEventFilter } from './history_tabs.js';
+import { switchAgenticTab, loadAgentEvents, toggleEventFilter, toggleAllEventFilters, showFilterPopup, hideFilterPopup } from './agentic_state.js';
+import { toggleHistoryEventFilter, toggleAllHistoryEventFilters } from './history_tabs.js';
 
 // ── Expose functions to HTML onclick handlers ─────────────────────────────
 window.sendCommand = sendCommand;
@@ -59,9 +59,11 @@ window.loadAgentNotes = loadAgentNotes;
 window.switchAgenticTab = switchAgenticTab;
 window.loadAgentEvents = loadAgentEvents;
 window.toggleEventFilter = toggleEventFilter;
+window.toggleAllEventFilters = toggleAllEventFilters;
 window.showFilterPopup = showFilterPopup;
 window.hideFilterPopup = hideFilterPopup;
 window.toggleHistoryEventFilter = toggleHistoryEventFilter;
+window.toggleAllHistoryEventFilters = toggleAllHistoryEventFilters;
 
 // ── History search/filter/pagination state ───────────────────────────────
 let historyPage = 1;

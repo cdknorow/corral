@@ -1575,7 +1575,18 @@ body {
 .event-filter-chip.tool-web   .event-filter-char { color: #ffa657; }
 .event-filter-chip.tool-task  .event-filter-char { color: var(--accent); }
 .event-filter-chip.tool-agent .event-filter-char { color: #d2a8ff; }
+.event-filter-chip.tool-status .event-filter-char { color: var(--accent); }
+.event-filter-chip.tool-goal   .event-filter-char { color: var(--success); }
 .event-filter-chip.tool-stop  .event-filter-char { color: var(--error); }
+
+.event-filter-chip.filter-toggle .event-filter-char { color: var(--text-secondary); }
+.event-filter-chip.filter-toggle {
+    border-color: var(--border-light);
+    margin-right: 2px;
+}
+.event-filter-chip.filter-partial {
+    opacity: 0.6;
+}
 
 .event-filter-chip:hover {
     border-color: var(--border-light);
@@ -1703,6 +1714,31 @@ body {
 
 .event-item:hover {
     background: var(--bg-hover);
+}
+
+.event-item[data-tooltip] {
+    position: relative;
+}
+
+.event-item[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 10px;
+    bottom: 100%;
+    margin-bottom: 4px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    max-width: 320px;
+    word-break: break-word;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
 }
 
 .event-icon {

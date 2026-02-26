@@ -28,6 +28,8 @@ const FILTER_GROUPS = [
     { key: 'web',    label: 'W', title: 'Web',           cls: 'tool-web',    match: ev => ev.tool_name === 'WebFetch' || ev.tool_name === 'WebSearch' },
     { key: 'task',   label: 'T', title: 'Tasks',         cls: 'tool-task',   match: ev => ['TaskCreate','TaskUpdate','TaskList','TaskGet'].includes(ev.tool_name) },
     { key: 'agent',  label: 'A', title: 'Subagents',     cls: 'tool-agent',  match: ev => ev.tool_name === 'Task' },
+    { key: 'status', label: 'S', title: 'Status',          cls: 'tool-status', match: ev => ev.event_type === 'status' },
+    { key: 'goal',   label: 'G', title: 'Goal',            cls: 'tool-goal',   match: ev => ev.event_type === 'goal' },
     { key: 'system', label: '!', title: 'Stop / Notify',  cls: 'tool-stop',   match: ev => ev.event_type === 'stop' || ev.event_type === 'notification' },
 ];
 
@@ -42,11 +44,13 @@ function getHiddenFilters() {
 }
 
 function getToolIcon(toolName, eventType) {
-    if (eventType === 'status') return { char: 'S', cls: 'tool-status' };
-    if (eventType === 'goal') return { char: 'G', cls: 'tool-goal' };
-    if (eventType === 'stop') return { char: '!', cls: 'tool-stop' };
-    if (eventType === 'notification') return { char: 'N', cls: 'tool-notification' };
-    return TOOL_ICONS[toolName] || { char: '.', cls: 'tool-default' };
+    if (eventType === 'status') return { char: 'S', cls: 'tool-status', title: 'Status' };
+    if (eventType === 'goal') return { char: 'G', cls: 'tool-goal', title: 'Goal' };
+    if (eventType === 'stop') return { char: '!', cls: 'tool-stop', title: 'Stop' };
+    if (eventType === 'notification') return { char: 'N', cls: 'tool-notification', title: 'Notification' };
+    const icon = TOOL_ICONS[toolName];
+    if (icon) return { ...icon, title: toolName };
+    return { char: '.', cls: 'tool-default', title: eventType || 'Event' };
 }
 
 function formatTime(isoStr) {
@@ -57,6 +61,10 @@ function formatTime(isoStr) {
     } catch {
         return '';
     }
+}
+
+function escapeAttr(str) {
+    return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function escapeHtml(str) {
@@ -92,7 +100,17 @@ export function renderEventFilters() {
     const hidden = getHiddenFilters();
     const events = state.currentAgentEvents || [];
 
-    container.innerHTML = FILTER_GROUPS.map(group => {
+    const allHidden = hidden.size === FILTER_GROUPS.length;
+    const noneHidden = hidden.size === 0;
+    const toggleCls = noneHidden ? '' : allHidden ? 'filter-hidden' : 'filter-partial';
+
+    const toggleBtn = `<button class="event-filter-chip filter-toggle ${toggleCls}"
+                onclick="toggleAllEventFilters()"
+                title="${noneHidden ? 'Hide all' : 'Show all'}">
+                <span class="event-filter-char">*</span>
+            </button>`;
+
+    const chips = FILTER_GROUPS.map(group => {
         const count = events.filter(group.match).length;
         const isHidden = hidden.has(group.key);
         const dimClass = isHidden ? 'filter-hidden' : '';
@@ -103,6 +121,8 @@ export function renderEventFilters() {
                     <span class="event-filter-char">${group.label}</span>
                 </button>`;
     }).join('');
+
+    container.innerHTML = toggleBtn + chips;
 }
 
 export function toggleEventFilter(key) {
@@ -111,6 +131,19 @@ export function toggleEventFilter(key) {
         hidden.delete(key);
     } else {
         hidden.add(key);
+    }
+    renderEventFilters();
+    renderEventTimeline();
+}
+
+export function toggleAllEventFilters() {
+    const hidden = getHiddenFilters();
+    if (hidden.size === 0) {
+        // Hide all
+        for (const group of FILTER_GROUPS) hidden.add(group.key);
+    } else {
+        // Show all
+        hidden.clear();
     }
     renderEventFilters();
     renderEventTimeline();
@@ -140,10 +173,10 @@ export function renderEventTimeline() {
     container.innerHTML = visible.map(ev => {
         const icon = getToolIcon(ev.tool_name, ev.event_type);
         const typeCls = ev.event_type ? `event-type-${ev.event_type}` : '';
-        return `<div class="event-item ${typeCls}">
+        return `<div class="event-item ${typeCls}" data-tooltip="${icon.title}: ${escapeAttr(ev.summary)}">
             <span class="event-icon ${icon.cls}">${icon.char}</span>
             <span class="event-body">
-                <span class="event-summary" title="${escapeHtml(ev.summary)}">${escapeHtml(ev.summary)}</span>
+                <span class="event-summary">${escapeHtml(ev.summary)}</span>
             </span>
             <span class="event-time">${formatTime(ev.created_at)}</span>
         </div>`;
