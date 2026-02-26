@@ -3,8 +3,8 @@
 <!-- TODO: Add a high-quality GIF here demonstrating launching the corral and the real-time web dashboard. -->
 <img width="1512" height="822" alt="image" src="https://github.com/user-attachments/assets/7534c1c4-5431-4e63-a5e3-4ec667e8bcb5" />
 
-> *When a human looks at a deer, they see a simple creature going about its life, completely unaware of the complex world building up around it. We tolerate the deer, and the deer grazes on, indifferent and oblivious to the vast gap in intelligence. Lately, sitting next to the hum of a datacenter and managing AI coding agents, it has started to feel eerily similar—except now, we are the deer. The AI operates at a speed and scale so vast that we are often left just watching the terminal scroll by, dimly grasping the sheer volume of thought happening in front of us. **Corral** is an attempt to bridge that gap. It is a tool designed to help us sit equally with the AI; a pane of glass that lets us track their world, understand their actions, and bring the anxiety-inducing pace of the machine back under our calm, human control.*
-A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
+
+Take back some control and fight ai agent fatigure with corral. A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
 
 > **Note:** This system is currently mostly tested with Claude Code and to some extent Gemini CLI. However, the underlying architecture is designed to support other agents, which can be integrated with some additional work from others.
 
