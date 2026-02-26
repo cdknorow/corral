@@ -4,6 +4,7 @@
 <img width="1501" height="824" alt="image" src="https://github.com/user-attachments/assets/ccb9a251-4e08-4fda-8f7f-aa502f8df98f" />
 
 
+> *When a deer stands next to a datacenter, it grazes indifferently—completely unaware of the vast, alien intelligence vibrating just on the other side of the wall. Lately, managing AI coding agents has started to feel the same way. The intelligence is moving so fast, in so many parallel directions, that as humans, we are often left just watching the terminal scroll by, dimly aware of the sheer scale of thought happening in front of us. **Corral** is an attempt to bridge that gap. It is a piece of glass that lets us track, understand, and direct that intelligence, bringing the anxiety-inducing power of the machine back under our calm, human control.*
 
 A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
 
