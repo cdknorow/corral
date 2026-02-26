@@ -9,6 +9,7 @@ export const state = {
     historySessionsList: [],    // cached history session list (from last paginated fetch)
     currentCommands: {},        // commands for current session's agent type
     sessionInputText: {},       // per-session draft text: { "sessionKey": "partial text" }
+    currentAgentTasks: [],      // tasks for the currently selected live agent
 };
 
 export function sessionKey(session) {

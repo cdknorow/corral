@@ -33,7 +33,7 @@ from agent_fleet.session_manager import (
 )
 from agent_fleet.log_streamer import get_log_snapshot
 from agent_fleet.session_store import SessionStore
-from agent_fleet.session_store import SessionStore
+from agent_fleet.task_detector import scan_log_for_tasks
 
 log = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
@@ -410,6 +410,52 @@ async def remove_session_tag(session_id: str, tag_id: int):
     return {"ok": True}
 
 
+# ── Agent Tasks Endpoints ──────────────────────────────────────────────────
+
+
+@app.get("/api/sessions/live/{name}/tasks")
+async def list_agent_tasks(name: str):
+    """List tasks for a live agent."""
+    return await store.list_agent_tasks(name)
+
+
+@app.post("/api/sessions/live/{name}/tasks")
+async def create_agent_task(name: str, body: dict):
+    """Create a task for a live agent."""
+    title = body.get("title", "").strip()
+    if not title:
+        return {"error": "title is required"}
+    task = await store.create_agent_task(name, title)
+    return task
+
+
+@app.patch("/api/sessions/live/{name}/tasks/{task_id}")
+async def update_agent_task(name: str, task_id: int, body: dict):
+    """Update a task (toggle complete, edit title, reorder)."""
+    title = body.get("title")
+    completed = body.get("completed")
+    sort_order = body.get("sort_order")
+    await store.update_agent_task(task_id, title=title, completed=completed, sort_order=sort_order)
+    return {"ok": True}
+
+
+@app.delete("/api/sessions/live/{name}/tasks/{task_id}")
+async def delete_agent_task(name: str, task_id: int):
+    """Delete a task."""
+    await store.delete_agent_task(task_id)
+    return {"ok": True}
+
+
+@app.post("/api/sessions/live/{name}/tasks/reorder")
+async def reorder_agent_tasks(name: str, body: dict):
+    """Reorder tasks by providing an ordered list of task IDs."""
+    task_ids = body.get("task_ids", [])
+    if not task_ids:
+        return {"error": "task_ids is required"}
+    await store.reorder_agent_tasks(name, task_ids)
+    return {"ok": True}
+
+
 # ── WebSocket Endpoints ─────────────────────────────────────────────────────
 
 
@@ -435,6 +481,13 @@ async def ws_fleet(websocket: WebSocket):
                     "staleness_seconds": log_info["staleness_seconds"],
                     "branch": git["branch"] if git else None,
                 })
+
+            # Scan agent logs for TASK/TASK_DONE markers
+            for agent in agents:
+                try:
+                    await scan_log_for_tasks(store, agent["agent_name"], agent["log_path"])
+                except Exception:
+                    pass
 
             current_state = json.dumps(results, sort_keys=True)
             if current_state != last_state:

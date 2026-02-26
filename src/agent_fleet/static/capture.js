@@ -6,6 +6,7 @@ import {
     CODE_FENCE_RE, DIFF_ADD_RE, DIFF_DEL_RE, DIFF_SUMMARY_RE,
     TOOL_HEADER_RE, TOOL_RESULT_RE,
 } from './syntax.js';
+import { loadAgentTasks } from './tasks.js';
 
 export function renderCaptureText(el, text) {
     el.innerHTML = "";
@@ -133,6 +134,11 @@ export async function refreshCapture() {
         }
     } catch (e) {
         console.error("Failed to refresh capture:", e);
+    }
+
+    // Poll tasks on the same interval
+    if (state.currentSession && state.currentSession.type === "live") {
+        loadAgentTasks(state.currentSession.name);
     }
 }
 
