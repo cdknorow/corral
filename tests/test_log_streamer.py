@@ -1,5 +1,5 @@
 import pytest
-from agent_fleet.log_streamer import _is_noise_line
+from corral.log_streamer import _is_noise_line
 
 def test_is_noise_line():
     # Empty or whitespace

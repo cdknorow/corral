@@ -1,11 +1,11 @@
 # Developer Documentation
 
-Welcome to the development guide for Agent Fleet! This document covers the project structure, API endpoints, and database schema to help you understand how the system works and how to contribute.
+Welcome to the development guide for Corral! This document covers the project structure, API endpoints, and database schema to help you understand how the system works and how to contribute.
 
 ## Project Structure
 
 ```
-src/agent_fleet/
+src/corral/
 ├── launch_agents.sh      # Shell script to discover worktrees, launch tmux sessions,
 │                         #   and start the web server
 ├── web_server.py         # FastAPI server (REST + WebSocket endpoints)
@@ -34,7 +34,7 @@ src/agent_fleet/
     ├── modals.js         # Launch and info modal dialogs
     ├── browser.js        # Directory browser for launch dialog
     ├── sidebar.js        # Sidebar and command pane resizing
-    ├── websocket.js      # Fleet WebSocket subscription
+    ├── websocket.js      # Corral WebSocket subscription
     ├── syntax.js         # Syntax highlighting for code blocks
     └── utils.js          # Escape functions, toast notifications
 ```
@@ -46,7 +46,7 @@ The dashboard is powered by a FastAPI backend:
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/` | Dashboard |
-| `GET` | `/api/sessions/live` | List active fleet agents with status and git branch |
+| `GET` | `/api/sessions/live` | List active corral agents with status and git branch |
 | `GET` | `/api/sessions/live/{name}` | Detailed info for a live session (`?agent_type=`) |
 | `GET` | `/api/sessions/live/{name}/capture` | Capture tmux pane content |
 | `GET` | `/api/sessions/live/{name}/info` | Enriched session metadata (git branch, commit info) |
@@ -71,11 +71,11 @@ The dashboard is powered by a FastAPI backend:
 | `DELETE` | `/api/tags/{tag_id}` | Delete a tag |
 | `POST` | `/api/indexer/refresh` | Trigger immediate re-index |
 | `GET` | `/api/filesystem/list` | List directories for the launch browser |
-| `WS` | `/ws/fleet` | Real-time fleet status updates (polls every 3s) |
+| `WS` | `/ws/corral` | Real-time corral status updates (polls every 3s) |
 
 ## Database
 
-All persistent state is stored in a SQLite database at `~/.agent-fleet/sessions.db` (using WAL mode for concurrent access):
+All persistent state is stored in a SQLite database at `~/.corral/sessions.db` (using WAL mode for concurrent access):
 
 | Table | Purpose |
 |---|---|

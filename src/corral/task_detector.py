@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from agent_fleet.session_manager import strip_ansi, clean_match
+from corral.session_manager import strip_ansi, clean_match
 
 TASK_RE = re.compile(r"\|\|TASK:\s*(.+?)\|\|")
 TASK_DONE_RE = re.compile(r"\|\|TASK_DONE:\s*(.+?)\|\|")

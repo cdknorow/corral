@@ -1,4 +1,4 @@
-# Contributing to Agent Fleet
+# Contributing to Corral
 
 We love your input! We want to make contributing to this project as easy and transparent as possible.
 
@@ -24,7 +24,7 @@ cd workflow_orchestration
 pip install -e ".[dev]"
 
 # Start the web dashboard with auto-reload
-agent-fleet --reload
+corral --reload
 ```
 
 ## Running Tests and Linting
@@ -49,4 +49,4 @@ Please note that this project is released with a Contributor Code of Conduct. By
 ## Adding Support for New Agents
 
 If you want to add native support for a new AI coding agent (e.g., Aider, OpenDevin, Cursor), we highly encourage it!
-Please review `src/agent_fleet/PROTOCOL.md` and ensure the new agent can reliably emit the required `||STATUS: ...||` tracking tokens.
+Please review `src/corral/PROTOCOL.md` and ensure the new agent can reliably emit the required `||STATUS: ...||` tracking tokens.

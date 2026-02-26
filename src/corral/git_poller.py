@@ -1,4 +1,4 @@
-"""Background poller that queries git state for live fleet agents."""
+"""Background poller that queries git state for live corral agents."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from agent_fleet.session_manager import discover_fleet_agents, _find_pane
-from agent_fleet.session_store import SessionStore
-from agent_fleet.utils import run_cmd, HISTORY_PATH
+from corral.session_manager import discover_corral_agents, _find_pane
+from corral.session_store import SessionStore
+from corral.utils import run_cmd, HISTORY_PATH
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class GitPoller:
             await asyncio.sleep(interval)
 
     async def poll_once(self) -> dict[str, int]:
-        agents = await discover_fleet_agents()
+        agents = await discover_corral_agents()
         polled = 0
         for agent in agents:
             try:

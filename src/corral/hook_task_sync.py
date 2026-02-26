@@ -1,4 +1,4 @@
-"""CLI entry point for the PostToolUse hook that syncs Claude Code tasks to the Fleet dashboard."""
+"""CLI entry point for the PostToolUse hook that syncs Claude Code tasks to the Corral dashboard."""
 
 import json
 import os
@@ -21,7 +21,7 @@ def _api(base: str, method: str, path: str, data=None):
 
 
 def _cache_dir() -> str:
-    d = os.path.join(os.environ.get("TMPDIR", "/tmp"), "fleet_task_cache")
+    d = os.path.join(os.environ.get("TMPDIR", "/tmp"), "corral_task_cache")
     os.makedirs(d, exist_ok=True)
     return d
 
@@ -63,8 +63,8 @@ def _parse_response(resp) -> dict:
 
 
 def _debug_log(msg: str) -> None:
-    """Append to debug log if FLEET_HOOK_DEBUG is set."""
-    if not os.environ.get("FLEET_HOOK_DEBUG"):
+    """Append to debug log if CORRAL_HOOK_DEBUG is set."""
+    if not os.environ.get("CORRAL_HOOK_DEBUG"):
         return
     try:
         with open(os.path.join(_cache_dir(), "debug.log"), "a") as f:
@@ -74,7 +74,7 @@ def _debug_log(msg: str) -> None:
 
 
 def main():
-    """Read hook JSON from stdin, call Fleet API to create/complete tasks."""
+    """Read hook JSON from stdin, call Corral API to create/complete tasks."""
     try:
         raw = sys.stdin.read()
         d = json.loads(raw)
@@ -83,7 +83,7 @@ def main():
 
     _debug_log(f"INPUT: {raw[:500]}")
 
-    port = os.environ.get("FLEET_PORT", "8420")
+    port = os.environ.get("CORRAL_PORT", "8420")
     base = f"http://localhost:{port}"
 
     tool = d.get("tool_name", "")

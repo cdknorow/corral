@@ -12,14 +12,14 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from agent_fleet.session_manager import (
+from corral.session_manager import (
     SUMMARY_RE,
     clean_match,
     _extract_gemini_text,
 )
-from agent_fleet.session_store import SessionStore
+from corral.session_store import SessionStore
 
-from agent_fleet.utils import HISTORY_PATH, GEMINI_HISTORY_BASE
+from corral.utils import HISTORY_PATH, GEMINI_HISTORY_BASE
 
 log = logging.getLogger(__name__)
 
@@ -229,7 +229,7 @@ class BatchSummarizer:
                     continue
 
                 try:
-                    from agent_fleet.auto_summarizer import AutoSummarizer
+                    from corral.auto_summarizer import AutoSummarizer
                     summarizer = AutoSummarizer(self._store)
                 except ImportError:
                     log.warning("auto_summarizer not available, skipping batch")

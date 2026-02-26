@@ -1,14 +1,14 @@
-# Claude Fleet Agent Protocol
+# Corral Agent Protocol
 
-## System Prompt for Fleet Agents
+## System Prompt for Corral Agents
 
-Paste the following into each Claude session that is managed by the Fleet:
+Paste the following into each Claude session that is managed by Corral:
 
 ---
 
 ### Status Reporting Protocol
 
-You are operating inside a **Claude Fleet** — a multi-agent orchestration system. A dashboard monitors your output in real time.
+You are operating inside **Corral** — a multi-agent orchestration system. A dashboard monitors your output in real time.
 
 *(Note for Human Developers: If you are building an adapter for an external agent like **Aider**, **OpenDevin**, or **Cursor**, all you need to do is configure the agent or wrap it in a script that emits the following tokens to `stdout`.)*
 
@@ -109,7 +109,7 @@ You may optionally declare tasks and mark them as done. The dashboard will autom
 ## How It Works
 
 - Each agent runs in a separate tmux window.
-- `tmux pipe-pane` streams all terminal output to `/tmp/claude_fleet_<name>.log`.
+- `tmux pipe-pane` streams all terminal output to `/tmp/claude_corral_<name>.log`.
 - The Python dashboard tails these log files and extracts `||STATUS: ...||` lines.
 - The dashboard also provides per-agent task lists for the operator.
 
@@ -117,8 +117,8 @@ You may optionally declare tasks and mark them as done. The dashboard will autom
 
 | Action | Command |
 |---|---|
-| Launch fleet | `./launch_fleet.sh <worktree-dir>` |
-| Open dashboard | `python dashboard.py` |
-| Attach to tmux | `tmux attach -t claude-fleet` |
+| Launch corral | `launch-corral <worktree-dir>` |
+| Open dashboard | `corral` |
+| Attach to tmux | `tmux attach -t claude-agent-1` |
 | Switch window | `Ctrl+b n` (next) / `Ctrl+b p` (previous) |
 | Detach tmux | `Ctrl+b d` |

@@ -1,8 +1,8 @@
-/* Agent Fleet Dashboard — Entry Point */
+/* Corral Dashboard — Entry Point */
 
 import { state } from './state.js';
 import { loadLiveSessions, loadHistorySessions, loadHistorySessionsPaged } from './api.js';
-import { connectFleetWs } from './websocket.js';
+import { connectCorralWs } from './websocket.js';
 import { sendCommand, sendRawKeys, sendModeToggle, sendQuickCommand, sendResetCommand, attachTerminal, killSession, restartSession } from './controls.js';
 import { selectLiveSession, selectHistorySession, editAndResubmit } from './sessions.js';
 import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand, showResumeModal, hideResumeModal, resumeIntoSession } from './modals.js';
@@ -106,7 +106,7 @@ async function populateTagFilter() {
 document.addEventListener("DOMContentLoaded", () => {
     loadLiveSessions();
     loadHistorySessions();
-    connectFleetWs();
+    connectCorralWs();
     populateTagFilter();
 
     // Search bar with debounce

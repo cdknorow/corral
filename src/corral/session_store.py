@@ -17,7 +17,7 @@ def _extract_first_header(text: str) -> str:
     return m.group(1).strip() if m else ""
 
 
-DB_DIR = Path.home() / ".agent-fleet"
+DB_DIR = Path.home() / ".corral"
 DB_PATH = DB_DIR / "sessions.db"
 
 

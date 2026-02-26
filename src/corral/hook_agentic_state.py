@@ -20,10 +20,10 @@ def _api(base: str, method: str, path: str, data=None):
 
 
 def _debug_log(msg: str) -> None:
-    if not os.environ.get("FLEET_HOOK_DEBUG"):
+    if not os.environ.get("CORRAL_HOOK_DEBUG"):
         return
     try:
-        d = os.path.join(os.environ.get("TMPDIR", "/tmp"), "fleet_task_cache")
+        d = os.path.join(os.environ.get("TMPDIR", "/tmp"), "corral_task_cache")
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, "debug.log"), "a") as f:
             f.write(msg + "\n")
@@ -149,7 +149,7 @@ def main():
 
     _debug_log(f"AGENTIC_STATE INPUT: {raw[:500]}")
 
-    port = os.environ.get("FLEET_PORT", "8420")
+    port = os.environ.get("CORRAL_PORT", "8420")
     base = f"http://localhost:{port}"
 
     cwd = d.get("cwd", "")
@@ -180,7 +180,7 @@ def main():
         })
 
         # Note: task sync for TaskCreate/TaskUpdate is handled by the
-        # dedicated fleet-hook-task-sync hook (hook_task_sync.py) to
+        # dedicated corral-hook-task-sync hook (hook_task_sync.py) to
         # avoid creating duplicate tasks.
 
     elif hook_type == "Stop" or d.get("stop_hook_active"):

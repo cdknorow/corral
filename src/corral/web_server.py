@@ -1,4 +1,4 @@
-"""FastAPI web server for the Agent Fleet Dashboard."""
+"""FastAPI web server for the Corral Dashboard."""
 
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
-from agent_fleet.session_manager import (
-    discover_fleet_agents,
+from corral.session_manager import (
+    discover_corral_agents,
     get_agent_log_path,
     get_log_status,
     get_session_info,
@@ -31,8 +31,8 @@ from agent_fleet.session_manager import (
     load_history_session_messages,
     launch_claude_session,
 )
-from agent_fleet.log_streamer import get_log_snapshot
-from agent_fleet.session_store import SessionStore
+from corral.log_streamer import get_log_snapshot
+from corral.session_store import SessionStore
 
 log = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
@@ -61,8 +61,8 @@ async def _track_status_summary_events(agent_name: str, status: str | None, summ
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start background indexer, batch summarizer, and git poller on server startup."""
-    from agent_fleet.session_indexer import SessionIndexer, BatchSummarizer
-    from agent_fleet.git_poller import GitPoller
+    from corral.session_indexer import SessionIndexer, BatchSummarizer
+    from corral.git_poller import GitPoller
 
     # Seed _last_known from DB so we don't re-insert events already stored.
     _last_known.update(await store.get_last_known_status_summary())
@@ -85,7 +85,7 @@ async def lifespan(app: FastAPI):
     git_task.cancel()
 
 
-app = FastAPI(title="Agent Fleet Dashboard", lifespan=lifespan)
+app = FastAPI(title="Corral Dashboard", lifespan=lifespan)
 store = SessionStore()
 
 # Mount static files and templates
@@ -98,14 +98,14 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    """Serve the fleet dashboard SPA."""
+    """Serve the corral dashboard SPA."""
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/api/sessions/live")
 async def get_live_sessions():
-    """List active fleet agents with their current status."""
-    agents = await discover_fleet_agents()
+    """List active corral agents with their current status."""
+    agents = await discover_corral_agents()
     git_state = await store.get_all_latest_git_state()
     results = []
     for agent in agents:
@@ -383,7 +383,7 @@ async def get_session_notes(session_id: str):
     # If no notes and no auto-summary, trigger summarization in background
     if not notes["notes_md"] and not notes["auto_summary"]:
         try:
-            from agent_fleet.auto_summarizer import AutoSummarizer
+            from corral.auto_summarizer import AutoSummarizer
 
             summarizer = AutoSummarizer(store)
             asyncio.create_task(summarizer.summarize_session(session_id))
@@ -406,7 +406,7 @@ async def save_session_notes(session_id: str, body: dict):
 async def resummarize_session(session_id: str):
     """Force re-generate auto-summary for a session."""
     try:
-        from agent_fleet.auto_summarizer import AutoSummarizer
+        from corral.auto_summarizer import AutoSummarizer
 
         summarizer = AutoSummarizer(store)
         summary = await summarizer.summarize_session(session_id)
@@ -616,15 +616,15 @@ async def clear_agent_events(name: str):
 # ── WebSocket Endpoints ─────────────────────────────────────────────────────
 
 
-@app.websocket("/ws/fleet")
-async def ws_fleet(websocket: WebSocket):
-    """Stream fleet-wide session list updates (polls every 3s)."""
+@app.websocket("/ws/corral")
+async def ws_corral(websocket: WebSocket):
+    """Stream corral-wide session list updates (polls every 3s)."""
     await websocket.accept()
 
     last_state = None
     try:
         while True:
-            agents = await discover_fleet_agents()
+            agents = await discover_corral_agents()
             git_state = await store.get_all_latest_git_state()
             results = []
             for agent in agents:
@@ -643,7 +643,7 @@ async def ws_fleet(websocket: WebSocket):
 
             current_state = json.dumps(results, sort_keys=True)
             if current_state != last_state:
-                await websocket.send_json({"type": "fleet_update", "sessions": results})
+                await websocket.send_json({"type": "corral_update", "sessions": results})
                 last_state = current_state
 
             await asyncio.sleep(3)
@@ -659,14 +659,14 @@ async def ws_fleet(websocket: WebSocket):
 def main():
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="Agent Fleet Dashboard")
+    parser = argparse.ArgumentParser(description="Corral Dashboard")
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=8420, help="Port to bind to (default: 8420)")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
     args = parser.parse_args()
 
     uvicorn.run(
-        "agent_fleet.web_server:app",
+        "corral.web_server:app",
         host=args.host,
         port=args.port,
         reload=args.reload,

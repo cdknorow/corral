@@ -1,17 +1,17 @@
-/* WebSocket connection for real-time fleet updates */
+/* WebSocket connection for real-time corral updates */
 
 import { state } from './state.js';
 import { renderLiveSessions, updateSessionStatus, updateSessionSummary, updateSessionBranch } from './render.js';
 
-export function connectFleetWs() {
+export function connectCorralWs() {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${proto}//${location.host}/ws/fleet`;
+    const url = `${proto}//${location.host}/ws/corral`;
 
-    state.fleetWs = new WebSocket(url);
+    state.corralWs = new WebSocket(url);
 
-    state.fleetWs.onmessage = (event) => {
+    state.corralWs.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === "fleet_update") {
+        if (data.type === "corral_update") {
             state.liveSessions = data.sessions;
             renderLiveSessions(data.sessions);
 
@@ -27,11 +27,11 @@ export function connectFleetWs() {
         }
     };
 
-    state.fleetWs.onclose = () => {
-        setTimeout(connectFleetWs, 5000);
+    state.corralWs.onclose = () => {
+        setTimeout(connectCorralWs, 5000);
     };
 
-    state.fleetWs.onerror = () => {
+    state.corralWs.onerror = () => {
         // Will trigger onclose
     };
 }

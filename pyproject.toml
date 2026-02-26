@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agent-fleet"
+name = "corral"
 version = "0.1.0"
 description = "A multi-agent orchestration system for Claude and Gemini agents in tmux."
 readme = "README.md"
@@ -26,13 +26,13 @@ dev = [
 ]
 
 [project.scripts]
-agent-fleet = "agent_fleet.web_server:main"
-launch-fleet = "agent_fleet.launch:main"
-fleet-hook-task-sync = "agent_fleet.hook_task_sync:main"
-fleet-hook-agentic-state = "agent_fleet.hook_agentic_state:main"
+corral = "corral.web_server:main"
+launch-corral = "corral.launch:main"
+corral-hook-task-sync = "corral.hook_task_sync:main"
+corral-hook-agentic-state = "corral.hook_agentic_state:main"
 
 [tool.setuptools.package-data]
-agent_fleet = ["PROTOCOL.md", "launch_agents.sh", "templates/*.html", "static/*.css", "static/*.js"]
+corral = ["PROTOCOL.md", "launch_agents.sh", "templates/*.html", "static/*.css", "static/*.js"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

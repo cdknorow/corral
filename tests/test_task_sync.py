@@ -11,8 +11,8 @@ from httpx import ASGITransport, AsyncClient
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from agent_fleet.web_server import app, store as _default_store
-from agent_fleet.session_store import SessionStore
+from corral.web_server import app, store as _default_store
+from corral.session_store import SessionStore
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ async def tmp_store(tmp_path):
 @pytest_asyncio.fixture
 async def client(tmp_store, monkeypatch):
     """AsyncClient wired to the real FastAPI app with a temp database."""
-    import agent_fleet.web_server as ws
+    import corral.web_server as ws
     monkeypatch.setattr(ws, "store", tmp_store)
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
@@ -133,7 +133,7 @@ async def test_full_hook_create_then_complete(client, tmp_store):
     """Simulate the full hook flow: TaskCreate JSON → API → TaskUpdate JSON → API.
 
     This mirrors what happens when Claude Code's PostToolUse hook fires
-    fleet-hook-task-sync for a TaskCreate followed by a TaskUpdate(completed).
+    corral-hook-task-sync for a TaskCreate followed by a TaskUpdate(completed).
     """
     agent_name = "my_agent"
 
@@ -340,7 +340,7 @@ class TestParseResponse:
     """Test _parse_response with various tool_response formats."""
 
     def test_structured_dict(self):
-        from agent_fleet.hook_task_sync import _parse_response
+        from corral.hook_task_sync import _parse_response
 
         resp = {"task": {"id": "10", "subject": "Fix bug"}}
         parsed = _parse_response(resp)
@@ -348,28 +348,28 @@ class TestParseResponse:
         assert parsed["subject"] == "Fix bug"
 
     def test_string_with_task_number(self):
-        from agent_fleet.hook_task_sync import _parse_response
+        from corral.hook_task_sync import _parse_response
 
         parsed = _parse_response("Task #7 created successfully: Do stuff")
         assert parsed["task_id"] == "7"
         assert parsed["subject"] == ""
 
     def test_flat_dict_with_taskId(self):
-        from agent_fleet.hook_task_sync import _parse_response
+        from corral.hook_task_sync import _parse_response
 
         resp = {"success": True, "taskId": "15", "updatedFields": ["status"]}
         parsed = _parse_response(resp)
         assert parsed["task_id"] == "15"
 
     def test_empty_string(self):
-        from agent_fleet.hook_task_sync import _parse_response
+        from corral.hook_task_sync import _parse_response
 
         parsed = _parse_response("")
         assert parsed["task_id"] == ""
         assert parsed["subject"] == ""
 
     def test_empty_dict(self):
-        from agent_fleet.hook_task_sync import _parse_response
+        from corral.hook_task_sync import _parse_response
 
         parsed = _parse_response({})
         assert parsed["task_id"] == ""

@@ -1,4 +1,4 @@
-"""Generic utilities and configuration for the Agent Fleet."""
+"""Generic utilities and configuration for Corral."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Tuple
 
 # Configuration Constants
 LOG_DIR = os.environ.get("TMPDIR", "/tmp").rstrip("/")
-LOG_PATTERN = f"{LOG_DIR}/*_fleet_*.log"
+LOG_PATTERN = f"{LOG_DIR}/*_corral_*.log"
 
 HISTORY_PATH = Path(os.environ.get("CLAUDE_PROJECTS_DIR", Path.home() / ".claude" / "projects"))
 GEMINI_HISTORY_BASE = Path(os.environ.get("GEMINI_TMP_DIR", Path.home() / ".gemini" / "tmp"))

@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from agent_fleet.utils import run_cmd, LOG_DIR, LOG_PATTERN, HISTORY_PATH
+from corral.utils import run_cmd, LOG_DIR, LOG_PATTERN, HISTORY_PATH
 
 ANSI_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -33,8 +33,8 @@ def clean_match(text: str) -> str:
     return " ".join(text.split())
 
 
-async def discover_fleet_agents() -> list[dict[str, Any]]:
-    """Return list of agent dicts from fleet log files, sorted by name.
+async def discover_corral_agents() -> list[dict[str, Any]]:
+    """Return list of agent dicts from corral log files, sorted by name.
 
     Cross-references log files against live tmux sessions and removes
     stale log files whose sessions no longer exist.
@@ -55,7 +55,7 @@ async def discover_fleet_agents() -> list[dict[str, Any]]:
     results = []
     for log_path in sorted(glob(LOG_PATTERN)):
         p = Path(log_path)
-        match = re.search(r"([^_]+)_fleet_(.+)", p.stem)
+        match = re.search(r"([^_]+)_corral_(.+)", p.stem)
         if not match:
             continue
 
@@ -90,14 +90,14 @@ def get_agent_log_path(agent_name: str, agent_type: str | None = None) -> Path |
     """Find the log file for a given agent name.
 
     When *agent_type* is provided the match is narrowed to the log whose
-    prefix matches (e.g. ``claude_fleet_X`` vs ``gemini_fleet_X``).
+    prefix matches (e.g. ``claude_corral_X`` vs ``gemini_corral_X``).
     """
     from glob import glob
     
     best: Path | None = None
     for log_path in glob(LOG_PATTERN):
         p = Path(log_path)
-        match = re.search(r"([^_]+)_fleet_(.+)", p.stem)
+        match = re.search(r"([^_]+)_corral_(.+)", p.stem)
         if match and match.group(2) == agent_name:
             if agent_type and match.group(1).lower() == agent_type.lower():
                 return p  # exact match — return immediately
@@ -358,7 +358,7 @@ async def kill_session(agent_name: str, agent_type: str | None = None) -> str | 
         if rc != 0:
             return f"kill-session failed: {stderr}"
 
-        # Remove the log file so the agent disappears from discover_fleet_agents
+        # Remove the log file so the agent disappears from discover_corral_agents
         log_path = get_agent_log_path(agent_name, agent_type)
         if log_path:
             try:
@@ -448,7 +448,7 @@ async def restart_session(agent_name: str, agent_type: str | None = None, resume
         #    path constructed from the agent info if glob matching fails.
         log_path = get_agent_log_path(agent_name, agent_type)
         if log_path is None:
-            log_path = Path(LOG_DIR) / f"{effective_type}_fleet_{agent_name}.log"
+            log_path = Path(LOG_DIR) / f"{effective_type}_corral_{agent_name}.log"
         log_file = str(log_path)
 
         # 0b. Explicitly close any existing pipe-pane so respawn-pane doesn't
@@ -835,7 +835,7 @@ async def launch_claude_session(working_dir: str, agent_type: str = "claude") ->
         idx += 1
 
     session_name = f"{agent_type}-agent-{idx}"
-    log_file = f"{log_dir}/{agent_type}_fleet_{folder_name}.log"
+    log_file = f"{log_dir}/{agent_type}_corral_{folder_name}.log"
 
     try:
         # Clear old log

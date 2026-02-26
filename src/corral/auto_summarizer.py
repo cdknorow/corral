@@ -6,7 +6,7 @@ import asyncio
 import shutil
 from typing import Any
 
-from agent_fleet.session_manager import load_history_session_messages
+from corral.session_manager import load_history_session_messages
 
 
 SYSTEM_PROMPT = """You are a session summarizer. Given a conversation transcript between a user and an AI coding assistant, produce a concise markdown summary with:
@@ -92,7 +92,7 @@ class AutoSummarizer:
 
         prompt = f"{SYSTEM_PROMPT}\n\nPlease summarize this coding session:\n\n{transcript}"
 
-        from agent_fleet.utils import run_cmd
+        from corral.utils import run_cmd
 
         rc, stdout, stderr = await run_cmd(
             claude_path,

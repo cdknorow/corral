@@ -10,25 +10,25 @@ MAX_AGENTS=5
 
 TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
 
-# Clean up all existing fleet logs
-rm -f "${LOG_DIR}/"*_fleet_*.log
+# Clean up all existing corral logs
+rm -f "${LOG_DIR}/"*_corral_*.log
 
 # Locate assets relative to this script
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROTOCOL_PATH="${SCRIPT_DIR}/PROTOCOL.md"
 WEB_SERVER_PATH="${SCRIPT_DIR}/web_server.py"
-WEB_SESSION="fleet-web-server"
-WEB_PORT="${FLEET_PORT:-8420}"
+WEB_SESSION="corral-web-server"
+WEB_PORT="${CORRAL_PORT:-8420}"
 
 # Launch the web server in a dedicated tmux session
 launch_web_server() {
     local cmd="python3 $WEB_SERVER_PATH --port $WEB_PORT"
 
     # Prefer the installed entry point
-    if command -v agent-fleet &>/dev/null; then
-        cmd="agent-fleet --port $WEB_PORT"
+    if command -v corral &>/dev/null; then
+        cmd="corral --port $WEB_PORT"
     elif [ ! -f "$WEB_SERVER_PATH" ]; then
-        echo "  [!] Web server skip: web_server.py not found and agent-fleet not in PATH."
+        echo "  [!] Web server skip: web_server.py not found and corral not in PATH."
         return 1
     fi
 
@@ -102,7 +102,7 @@ if [ ${#worktrees[@]} -eq 0 ]; then
     exit 1
 fi
 
-echo "=== $AGENT_TYPE Fleet Launcher (Independent Sessions) ==="
+echo "=== $AGENT_TYPE Corral Launcher (Independent Sessions) ==="
 echo "Target directory: $TARGET_DIR"
 echo "Found ${#worktrees[@]} workspace(s):"
 echo ""
@@ -111,7 +111,7 @@ agent_index=1
 for dir in "${worktrees[@]}"; do
     folder_name="$(basename "$dir")"
     session_name="${AGENT_TYPE}-agent-${agent_index}"
-    log_file="${LOG_DIR}/${AGENT_TYPE}_fleet_${folder_name}.log"
+    log_file="${LOG_DIR}/${AGENT_TYPE}_corral_${folder_name}.log"
 
     # Kill existing session if present
     tmux kill-session -t "$session_name" 2>/dev/null || true

@@ -2,7 +2,7 @@
 
 export const state = {
     currentSession: null,       // { type: "live"|"history", name: string, agent_type?: string }
-    fleetWs: null,              // WebSocket for fleet updates
+    corralWs: null,             // WebSocket for corral updates
     captureInterval: null,      // interval ID for auto-refreshing capture
     autoScroll: true,
     liveSessions: [],           // cached live session list

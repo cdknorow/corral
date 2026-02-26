@@ -1,6 +1,6 @@
-# Agent Fleet Dashboard
+# Corral
 
-<!-- TODO: Add a high-quality GIF here demonstrating launching the fleet and the real-time web dashboard. -->
+<!-- TODO: Add a high-quality GIF here demonstrating launching the corral and the real-time web dashboard. -->
 <img width="1512" height="822" alt="image" src="https://github.com/user-attachments/assets/7534c1c4-5431-4e63-a5e3-4ec667e8bcb5" />
 
 
@@ -43,7 +43,7 @@ pip install -e .
 
 ### Claude Code Hooks (settings.json)
 
-To fully integrate Claude Code's agentic state and task management into the Fleet dashboard, configure the provided `fleet-hook` scripts in your Claude Code `settings.json` (usually located at `~/.claude.json` or `~/.claude/settings.json`).
+To fully integrate Claude Code's agentic state and task management into the Corral dashboard, configure the provided `corral-hook` scripts in your Claude Code `settings.json` (usually located at `~/.claude.json` or `~/.claude/settings.json`).
 
 If you are already using other configuration options like a custom `statusLine` or other hooks, simply merge these hook definitions into your existing JSON:
 
@@ -51,11 +51,11 @@ If you are already using other configuration options like a custom `statusLine` 
 {
   "agenticStateHook": {
     "type": "command",
-    "command": "fleet-hook-agentic-state"
+    "command": "corral-hook-agentic-state"
   },
   "taskStateHook": {
     "type": "command",
-    "command": "fleet-hook-task-sync"
+    "command": "corral-hook-task-sync"
   }
 }
 ```
@@ -66,29 +66,29 @@ The launcher discovers worktree subdirectories, creates a tmux session with an a
 
 ```bash
 # Launch Claude agents and web dashboard for worktrees in the current directory
-./src/agent_fleet/launch_agents.sh .
+./src/corral/launch_agents.sh .
 
 # Launch Gemini agents from a specific path
-./src/agent_fleet/launch_agents.sh <path-to-root> gemini
+./src/corral/launch_agents.sh <path-to-root> gemini
 
 # Override the default web dashboard port (default: 8420)
-FLEET_PORT=9000 ./src/agent_fleet/launch_agents.sh .
+CORRAL_PORT=9000 ./src/corral/launch_agents.sh .
 
 # Skip launching the web server
-SKIP_WEB_SERVER=1 ./src/agent_fleet/launch_agents.sh .
+SKIP_WEB_SERVER=1 ./src/corral/launch_agents.sh .
 ```
 
 ### Web dashboard (standalone)
 
 ```bash
 # Start the web dashboard directly (default: http://localhost:8420)
-agent-fleet
+corral
 
 # Custom host/port
-agent-fleet --host 127.0.0.1 --port 9000
+corral --host 127.0.0.1 --port 9000
 
 # Auto-reload for development
-agent-fleet --reload
+corral --reload
 ```
 
 ### Managing sessions from the dashboard
@@ -134,7 +134,7 @@ Features:
 - **Filter by source** — Show only Claude or Gemini sessions
 - **Pagination** — Browse through all sessions with prev/next controls
 - **URL bookmarking** — Session URLs use hash routing (`#session/<id>`) so you can bookmark or share links
-- **Notes & tags** — Add markdown notes and color-coded tags to any session, stored in `~/.agent-fleet/sessions.db`
+- **Notes & tags** — Add markdown notes and color-coded tags to any session, stored in `~/.corral/sessions.db`
 
 ### Manual tmux management
 
@@ -159,7 +159,7 @@ Agents emit structured markers that the dashboard parses for live status:
 ||SUMMARY: <One-sentence high-level goal>||
 ```
 
-The protocol is automatically injected via `PROTOCOL.md` when launching agents. See [`src/agent_fleet/PROTOCOL.md`](src/agent_fleet/PROTOCOL.md) for the full specification.
+The protocol is automatically injected via `PROTOCOL.md` when launching agents. See [`src/corral/PROTOCOL.md`](src/corral/PROTOCOL.md) for the full specification.
 
 
 

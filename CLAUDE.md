@@ -1,10 +1,10 @@
 # CLAUDE.md - Project Guide
 
 ## Project Overview
-**Agent Fleet** is a multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux. It features a web dashboard, real-time logging, complete session history with FTS5 search, and git state polling.
+**Corral** is a multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux. It features a web dashboard, real-time logging, complete session history with FTS5 search, and git state polling.
 
 ## Project Structure Highlights
-- `src/agent_fleet/`: Main package directory
+- `src/corral/`: Main package directory
   - `launch_agents.sh`: Bash script to discover worktrees, launch tmux sessions, and start the web server.
   - `web_server.py`: FastAPI web dashboard (REST + WebSocket endpoints).
   - `session_manager.py`: Core logic for tmux discovery, pane targeting, history loading, session launch/kill.
@@ -21,31 +21,31 @@
 pip install -e .
 ```
 
-### Launching the Fleet
+### Launching the Corral
 ```bash
 # Launch Claude agents and web dashboard for worktrees in the current directory
-./src/agent_fleet/launch_agents.sh .
+./src/corral/launch_agents.sh .
 
 # Launch Gemini agents from a specific path
-./src/agent_fleet/launch_agents.sh <path-to-root> gemini
+./src/corral/launch_agents.sh <path-to-root> gemini
 
 # Override the web dashboard port (default: 8420)
-FLEET_PORT=9000 ./src/agent_fleet/launch_agents.sh .
+CORRAL_PORT=9000 ./src/corral/launch_agents.sh .
 ```
 
 ### Running the Web Dashboard (standalone)
 ```bash
 # Start the web dashboard (default: http://localhost:8420)
-agent-fleet
+corral
 
 # Custom host/port
-agent-fleet --host 127.0.0.1 --port 9000
+corral --host 127.0.0.1 --port 9000
 ```
 
 ### Managing Agents
 - **Attach to tmux (Claude):** `tmux attach -t claude-agent-1`
 - **Attach to tmux (Gemini):** `tmux attach -t gemini-agent-1`
-- **Attach to web server:** `tmux attach -t fleet-web-server`
+- **Attach to web server:** `tmux attach -t corral-web-server`
 - **Switch window:** `Ctrl+b n` (next) / `Ctrl+b p` (previous)
 - **Detach tmux:** `Ctrl+b d`
 
@@ -57,5 +57,5 @@ Agents must emit status and summary lines for the dashboard to track:
 ## Development Guidelines
 - **Build System:** Setuptools with `pyproject.toml`.
 - **Dependencies:** `fastapi`, `uvicorn`, `jinja2` (Python 3.8+).
-- **Database:** SQLite (`~/.agent-fleet/sessions.db`) using WAL mode.
-- **Logs:** Agents stream output to `/tmp/<agent_type>_fleet_<folder_name>.log` via `tmux pipe-pane`.
+- **Database:** SQLite (`~/.corral/sessions.db`) using WAL mode.
+- **Logs:** Agents stream output to `/tmp/<agent_type>_corral_<folder_name>.log` via `tmux pipe-pane`.
