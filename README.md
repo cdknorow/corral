@@ -27,18 +27,24 @@ A multi-agent orchestration system for managing AI coding agents (Claude and Gem
 
 ## Installation
 
-Install directly from GitHub:
+Install from PyPI:
+
+```bash
+pip install agent-corral
+```
+
+Or install directly from GitHub:
 
 ```bash
 pip install git+https://github.com/cdknorow/workflow_orchestration.git
 ```
 
-Or for local development:
+For local development:
 
 ```bash
 git clone https://github.com/cdknorow/workflow_orchestration.git
 cd workflow_orchestration
-pip install -e .
+pip install -e ".[dev]"
 ```
 
 ## Usage

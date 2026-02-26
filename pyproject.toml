@@ -3,10 +3,11 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "corral"
+name = "agent-corral"
 version = "0.1.0"
-description = "A multi-agent orchestration system for Claude and Gemini agents in tmux."
+description = "A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) in parallel git worktrees with a real-time web dashboard."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.8"
 dependencies = [
     "fastapi>=0.104.0",
@@ -17,12 +18,44 @@ dependencies = [
 authors = [
     { name = "Chris Knorowski" }
 ]
+keywords = [
+    "ai",
+    "agents",
+    "claude",
+    "gemini",
+    "orchestration",
+    "tmux",
+    "multi-agent",
+    "coding-agents",
+    "dashboard",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Build Tools",
+]
+
+[project.urls]
+Homepage = "https://github.com/cdknorow/workflow_orchestration"
+Repository = "https://github.com/cdknorow/workflow_orchestration"
+Issues = "https://github.com/cdknorow/workflow_orchestration/issues"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "flake8>=6.0.0",
     "black>=23.0.0",
+    "build>=1.0.0",
+    "twine>=5.0.0",
 ]
 
 [project.scripts]
