@@ -29,6 +29,42 @@ export function initSidebarResize() {
     });
 }
 
+/* Task bar drag-to-resize functionality */
+
+export function initTaskBarResize() {
+    const handle = document.getElementById("task-bar-resize-handle");
+    const taskBar = document.getElementById("task-bar");
+    const outputArea = document.querySelector(".output-area");
+
+    if (!handle || !taskBar || !outputArea) return;
+
+    let dragging = false;
+
+    handle.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        dragging = true;
+        handle.classList.add("dragging");
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+    });
+
+    document.addEventListener("mousemove", (e) => {
+        if (!dragging) return;
+        const rect = outputArea.getBoundingClientRect();
+        const newWidth = rect.right - e.clientX;
+        const clamped = Math.min(Math.max(newWidth, 180), rect.width * 0.5);
+        taskBar.style.width = clamped + "px";
+    });
+
+    document.addEventListener("mouseup", () => {
+        if (!dragging) return;
+        dragging = false;
+        handle.classList.remove("dragging");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+    });
+}
+
 /* Command pane drag-to-resize functionality */
 
 export function initCommandPaneResize() {

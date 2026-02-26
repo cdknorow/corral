@@ -71,6 +71,39 @@ If you do not emit a `||SUMMARY:||` line, the Goal box on your dashboard card wi
 
 ---
 
+### Task Reporting Protocol (Optional)
+
+You may optionally declare tasks and mark them as done. The dashboard will automatically populate the agent's task bar.
+
+**Declare a task you plan to do:**
+
+```
+||TASK: <title>||
+```
+
+**Mark a task as completed:**
+
+```
+||TASK_DONE: <title>||
+```
+
+**Examples:**
+
+```
+||TASK: Fix login bug||
+||TASK: Add unit tests for auth module||
+||TASK_DONE: Fix login bug||
+```
+
+**Guidelines:**
+
+1. Emit `||TASK:||` when you identify a new subtask or work item.
+2. Emit `||TASK_DONE:||` when you finish — the title must match exactly.
+3. Tasks are created idempotently — emitting the same title twice will not create duplicates.
+4. Keep titles short (under 60 characters).
+
+---
+
 ## How It Works
 
 - Each agent runs in a separate tmux window.

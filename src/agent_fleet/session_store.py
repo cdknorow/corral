@@ -106,6 +106,19 @@ class SessionStore:
                 CREATE INDEX IF NOT EXISTS idx_git_snap_agent
                     ON git_snapshots(agent_name, recorded_at DESC);
 
+                CREATE TABLE IF NOT EXISTS agent_tasks (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_name TEXT NOT NULL,
+                    title      TEXT NOT NULL,
+                    completed  INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_agent_tasks_agent
+                    ON agent_tasks(agent_name, sort_order);
+
             """)
             # FTS5 virtual table — created separately because CREATE VIRTUAL TABLE
             # cannot be used inside executescript on all SQLite builds.
@@ -582,6 +595,120 @@ class SessionStore:
                               AND g.recorded_at = latest.max_ts"""
             )).fetchall()
             return {r["agent_name"]: dict(r) for r in rows}
+        finally:
+            await conn.close()
+
+    # ── Agent Tasks ────────────────────────────────────────────────────────
+
+    async def list_agent_tasks(self, agent_name: str) -> list[dict[str, Any]]:
+        conn = await self._connect()
+        try:
+            rows = await (await conn.execute(
+                "SELECT id, agent_name, title, completed, sort_order, created_at, updated_at "
+                "FROM agent_tasks WHERE agent_name = ? ORDER BY sort_order",
+                (agent_name,),
+            )).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()
+
+    async def create_agent_task(self, agent_name: str, title: str) -> dict[str, Any]:
+        now = datetime.now(timezone.utc).isoformat()
+        conn = await self._connect()
+        try:
+            row = await (await conn.execute(
+                "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order "
+                "FROM agent_tasks WHERE agent_name = ?",
+                (agent_name,),
+            )).fetchone()
+            sort_order = row["next_order"] if row else 0
+            cur = await conn.execute(
+                "INSERT INTO agent_tasks (agent_name, title, sort_order, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (agent_name, title, sort_order, now, now),
+            )
+            await conn.commit()
+            return {"id": cur.lastrowid, "agent_name": agent_name, "title": title,
+                    "completed": 0, "sort_order": sort_order,
+                    "created_at": now, "updated_at": now}
+        finally:
+            await conn.close()
+
+    async def create_agent_task_if_not_exists(self, agent_name: str, title: str) -> dict[str, Any] | None:
+        """Idempotent creation: only insert if no task with the same title exists for this agent."""
+        conn = await self._connect()
+        try:
+            existing = await (await conn.execute(
+                "SELECT id, agent_name, title, completed, sort_order, created_at, updated_at "
+                "FROM agent_tasks WHERE agent_name = ? AND title = ?",
+                (agent_name, title),
+            )).fetchone()
+            if existing:
+                return dict(existing)
+        finally:
+            await conn.close()
+        return await self.create_agent_task(agent_name, title)
+
+    async def update_agent_task(self, task_id: int, title: str | None = None,
+                                completed: int | None = None,
+                                sort_order: int | None = None) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        conn = await self._connect()
+        try:
+            fields = ["updated_at = ?"]
+            params: list[Any] = [now]
+            if title is not None:
+                fields.append("title = ?")
+                params.append(title)
+            if completed is not None:
+                fields.append("completed = ?")
+                params.append(completed)
+            if sort_order is not None:
+                fields.append("sort_order = ?")
+                params.append(sort_order)
+            params.append(task_id)
+            await conn.execute(
+                f"UPDATE agent_tasks SET {', '.join(fields)} WHERE id = ?",
+                params,
+            )
+            await conn.commit()
+        finally:
+            await conn.close()
+
+    async def complete_agent_task_by_title(self, agent_name: str, title: str) -> None:
+        """Mark a task as completed by matching agent_name and title."""
+        now = datetime.now(timezone.utc).isoformat()
+        conn = await self._connect()
+        try:
+            await conn.execute(
+                "UPDATE agent_tasks SET completed = 1, updated_at = ? "
+                "WHERE agent_name = ? AND title = ? AND completed = 0",
+                (now, agent_name, title),
+            )
+            await conn.commit()
+        finally:
+            await conn.close()
+
+    async def delete_agent_task(self, task_id: int) -> None:
+        conn = await self._connect()
+        try:
+            await conn.execute("DELETE FROM agent_tasks WHERE id = ?", (task_id,))
+            await conn.commit()
+        finally:
+            await conn.close()
+
+    async def reorder_agent_tasks(self, agent_name: str, task_ids: list[int]) -> None:
+        """Reorder tasks by setting sort_order based on position in the list."""
+        now = datetime.now(timezone.utc).isoformat()
+        conn = await self._connect()
+        try:
+            for idx, tid in enumerate(task_ids):
+                await conn.execute(
+                    "UPDATE agent_tasks SET sort_order = ?, updated_at = ? "
+                    "WHERE id = ? AND agent_name = ?",
+                    (idx, now, tid, agent_name),
+                )
+            await conn.commit()
         finally:
             await conn.close()
 

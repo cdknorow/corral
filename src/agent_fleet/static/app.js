@@ -7,10 +7,11 @@ import { sendCommand, sendRawKeys, sendModeToggle, sendQuickCommand, sendResetCo
 import { selectLiveSession, selectHistorySession, editAndResubmit } from './sessions.js';
 import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand } from './modals.js';
 import { toggleBrowser, browserNavigateTo, browserNavigateUp } from './browser.js';
-import { initSidebarResize, initCommandPaneResize } from './sidebar.js';
+import { initSidebarResize, initCommandPaneResize, initTaskBarResize } from './sidebar.js';
 import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesEdit, switchHistoryTab } from './notes.js';
 import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown, hideTagDropdown, createTag, loadAllTags } from './tags.js';
 import { loadSessionCommits } from './commits.js';
+import { loadAgentTasks, addAgentTask, toggleAgentTask, deleteAgentTask, editAgentTaskTitle } from './tasks.js';
 
 // ── Expose functions to HTML onclick handlers ─────────────────────────────
 window.sendCommand = sendCommand;
@@ -46,6 +47,11 @@ window.showTagDropdown = showTagDropdown;
 window.hideTagDropdown = hideTagDropdown;
 window.createTag = createTag;
 window.loadHistoryPage = loadHistoryPage;
+window.loadAgentTasks = loadAgentTasks;
+window.addAgentTask = addAgentTask;
+window.toggleAgentTask = toggleAgentTask;
+window.deleteAgentTask = deleteAgentTask;
+window.editAgentTaskTitle = editAgentTaskTitle;
 
 // ── History search/filter/pagination state ───────────────────────────────
 let historyPage = 1;
@@ -122,6 +128,21 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Task bar: Enter adds task, button click adds task
+    const taskInput = document.getElementById("task-bar-input");
+    if (taskInput) {
+        taskInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                addAgentTask();
+            }
+        });
+    }
+    const taskAddBtn = document.querySelector(".task-bar-add-btn");
+    if (taskAddBtn) {
+        taskAddBtn.addEventListener("click", () => addAgentTask());
+    }
+
     // Enter sends command, Shift+Enter inserts newline
     document.getElementById("command-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -163,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Resize handles
     initSidebarResize();
     initCommandPaneResize();
+    initTaskBarResize();
 
     // Restore session from URL hash
     const hash = window.location.hash;
