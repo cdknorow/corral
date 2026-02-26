@@ -2,7 +2,6 @@
 
 import json
 import os
-import re
 import sys
 import urllib.request
 
@@ -20,51 +19,13 @@ def _api(base: str, method: str, path: str, data=None):
         return None
 
 
-def _cache_dir() -> str:
-    d = os.path.join(os.environ.get("TMPDIR", "/tmp"), "fleet_task_cache")
-    os.makedirs(d, exist_ok=True)
-    return d
-
-
-def _cache_write(task_id: str, subject: str) -> None:
-    try:
-        with open(os.path.join(_cache_dir(), f"task_{task_id}"), "w") as f:
-            f.write(subject)
-    except OSError:
-        pass
-
-
-def _cache_read(task_id: str) -> str:
-    try:
-        with open(os.path.join(_cache_dir(), f"task_{task_id}")) as f:
-            return f.read().strip()
-    except OSError:
-        return ""
-
-
-def _parse_response(resp) -> dict:
-    """Extract task id and subject from tool_response (may be dict or string)."""
-    result = {"task_id": "", "subject": ""}
-    if isinstance(resp, dict):
-        task = resp.get("task", {})
-        if isinstance(task, dict):
-            result["task_id"] = str(task.get("id", ""))
-            result["subject"] = task.get("subject", "")
-        if not result["task_id"]:
-            result["task_id"] = str(resp.get("taskId", ""))
-    resp_str = resp if isinstance(resp, str) else json.dumps(resp)
-    if not result["task_id"]:
-        m = re.search(r"Task #(\d+)", resp_str)
-        if m:
-            result["task_id"] = m.group(1)
-    return result
-
-
 def _debug_log(msg: str) -> None:
     if not os.environ.get("FLEET_HOOK_DEBUG"):
         return
     try:
-        with open(os.path.join(_cache_dir(), "debug.log"), "a") as f:
+        d = os.path.join(os.environ.get("TMPDIR", "/tmp"), "fleet_task_cache")
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "debug.log"), "a") as f:
             f.write(msg + "\n")
     except OSError:
         pass
@@ -178,39 +139,8 @@ def _make_detail_json(tool_name: str, inp: dict) -> str | None:
     return raw[:500] if len(raw) > 500 else raw
 
 
-def _handle_task_sync(tool: str, inp: dict, resp_parsed: dict, agent_name: str, base: str, session_id: str | None = None):
-    """Delegate task sync logic for TaskCreate/TaskUpdate (preserves existing behavior)."""
-    task_id = str(inp.get("taskId", ""))
-    subject = inp.get("subject", "")
-    status = inp.get("status", "")
-
-    if tool == "TaskCreate" and subject:
-        payload = {"title": subject}
-        if session_id:
-            payload["session_id"] = session_id
-        _api(base, "POST", f"/api/sessions/live/{agent_name}/tasks", payload)
-        cache_id = resp_parsed["task_id"] or task_id
-        if cache_id:
-            _cache_write(cache_id, subject)
-
-    elif tool == "TaskUpdate":
-        if task_id and subject:
-            _cache_write(task_id, subject)
-        if status in ("completed", "in_progress"):
-            title = subject or resp_parsed.get("subject", "") or (_cache_read(task_id) if task_id else "")
-            completed_value = 1 if status == "completed" else 2
-            if title:
-                tasks = _api(base, "GET", f"/api/sessions/live/{agent_name}/tasks")
-                if tasks:
-                    for t in tasks:
-                        if t.get("title") == title and t.get("completed") != 1:
-                            _api(base, "PATCH", f"/api/sessions/live/{agent_name}/tasks/{t['id']}",
-                                 {"completed": completed_value})
-                            break
-
-
 def main():
-    """Read hook JSON from stdin, create event + sync tasks."""
+    """Read hook JSON from stdin, create event for the activity timeline."""
     try:
         raw = sys.stdin.read()
         d = json.loads(raw)
@@ -249,10 +179,9 @@ def main():
             "detail_json": detail_json,
         })
 
-        # Delegate task sync for TaskCreate/TaskUpdate
-        if tool in ("TaskCreate", "TaskUpdate"):
-            resp_parsed = _parse_response(d.get("tool_response", ""))
-            _handle_task_sync(tool, inp, resp_parsed, agent_name, base, session_id=session_id)
+        # Note: task sync for TaskCreate/TaskUpdate is handled by the
+        # dedicated fleet-hook-task-sync hook (hook_task_sync.py) to
+        # avoid creating duplicate tasks.
 
     elif hook_type == "Stop" or d.get("stop_hook_active"):
         event_type = "stop"
