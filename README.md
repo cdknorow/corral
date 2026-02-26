@@ -34,14 +34,14 @@ pip install corral
 Or install directly from GitHub:
 
 ```bash
-pip install git+https://github.com/cdknorow/workflow_orchestration.git
+pip install git+https://github.com/cdknorow/Corral.git
 ```
 
 For local development:
 
 ```bash
-git clone https://github.com/cdknorow/workflow_orchestration.git
-cd workflow_orchestration
+git clone https://github.com/cdknorow/Corral.git
+cd Corral
 pip install -e ".[dev]"
 ```
 

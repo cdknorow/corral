@@ -45,9 +45,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/cdknorow/workflow_orchestration"
-Repository = "https://github.com/cdknorow/workflow_orchestration"
-Issues = "https://github.com/cdknorow/workflow_orchestration/issues"
+Homepage = "https://github.com/cdknorow/Corral"
+Repository = "https://github.com/cdknorow/Corral"
+Issues = "https://github.com/cdknorow/Corral/issues"
 
 [project.optional-dependencies]
 dev = [
