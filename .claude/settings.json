@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "fleet-hook-task-sync"
+            "command": "corral-hook-task-sync"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "fleet-hook-agentic-state"
+            "command": "corral-hook-agentic-state"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "fleet-hook-agentic-state"
+            "command": "corral-hook-agentic-state"
           }
         ]
       }
@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "fleet-hook-agentic-state"
+            "command": "corral-hook-agentic-state"
           }
         ]
       }
