@@ -10,6 +10,7 @@ import { loadSessionNotes, switchHistoryTab } from './notes.js';
 import { loadSessionTags } from './tags.js';
 import { loadSessionCommits } from './commits.js';
 import { loadAgentTasks } from './tasks.js';
+import { loadAgentNotes } from './agent_notes.js';
 import { loadAgentEvents } from './agentic_state.js';
 
 export async function selectLiveSession(name, agentType) {
@@ -63,8 +64,9 @@ export async function selectLiveSession(name, agentType) {
     // Highlight in sidebar
     updateSidebarActive();
 
-    // Load tasks and events for this agent
+    // Load tasks, notes, and events for this agent
     loadAgentTasks(name);
+    loadAgentNotes(name);
     loadAgentEvents(name);
 
     // Start auto-refreshing capture

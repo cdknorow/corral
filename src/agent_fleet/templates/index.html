@@ -98,6 +98,7 @@
                         <div class="agentic-state-tabs">
                             <button class="agentic-tab active" onclick="switchAgenticTab('activity')" id="agentic-tab-activity">Activity</button>
                             <button class="agentic-tab" onclick="switchAgenticTab('tasks')" id="agentic-tab-tasks">Tasks <span id="task-bar-count" class="task-bar-count"></span></button>
+                            <button class="agentic-tab" onclick="switchAgenticTab('notes')" id="agentic-tab-notes">Notes <span id="note-bar-count" class="task-bar-count"></span></button>
                         </div>
                         <!-- Activity tab -->
                         <div id="agentic-panel-activity" class="agentic-panel active">
@@ -113,9 +114,15 @@
                             <div class="task-bar-list" id="task-bar-list">
                                 <div class="task-empty">No tasks yet</div>
                             </div>
-                            <div class="task-bar-input-area">
-                                <input type="text" id="task-bar-input" placeholder="Add a task...">
-                                <button class="btn btn-small btn-primary task-bar-add-btn">+</button>
+                        </div>
+                        <!-- Notes tab -->
+                        <div id="agentic-panel-notes" class="agentic-panel">
+                            <div class="note-bar-list" id="note-bar-list">
+                                <div class="note-empty">No notes yet</div>
+                            </div>
+                            <div class="note-bar-input-area">
+                                <input type="text" id="note-bar-input" placeholder="Add a note...">
+                                <button class="btn btn-small btn-primary note-bar-add-btn">+</button>
                             </div>
                         </div>
                     </div>

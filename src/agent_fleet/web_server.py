@@ -466,6 +466,46 @@ async def reorder_agent_tasks(name: str, body: dict):
     return {"ok": True}
 
 
+# ── Agent Notes Endpoints ──────────────────────────────────────────────────
+
+
+@app.get("/api/sessions/live/{name}/notes")
+async def list_agent_notes(name: str):
+    """List notes for the current session of a live agent."""
+    session_id = await store.get_agent_session_id(name)
+    if session_id is None:
+        return []
+    return await store.list_agent_notes(name, session_id=session_id)
+
+
+@app.post("/api/sessions/live/{name}/notes")
+async def create_agent_note(name: str, body: dict):
+    """Create a note for a live agent, scoped to the current session."""
+    content = body.get("content", "").strip()
+    if not content:
+        return {"error": "content is required"}
+    session_id = await store.get_agent_session_id(name)
+    note = await store.create_agent_note(name, content, session_id=session_id)
+    return note
+
+
+@app.patch("/api/sessions/live/{name}/notes/{note_id}")
+async def update_agent_note(name: str, note_id: int, body: dict):
+    """Update a note's content."""
+    content = body.get("content")
+    if content is None:
+        return {"error": "content is required"}
+    await store.update_agent_note(note_id, content)
+    return {"ok": True}
+
+
+@app.delete("/api/sessions/live/{name}/notes/{note_id}")
+async def delete_agent_note(name: str, note_id: int):
+    """Delete a note."""
+    await store.delete_agent_note(note_id)
+    return {"ok": True}
+
+
 # ── Agent Events Endpoints ─────────────────────────────────────────────────
 
 

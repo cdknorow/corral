@@ -126,6 +126,18 @@ class SessionStore:
                     current_session_id TEXT
                 );
 
+                CREATE TABLE IF NOT EXISTS agent_notes (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_name TEXT NOT NULL,
+                    session_id TEXT,
+                    content    TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_agent_notes_agent
+                    ON agent_notes(agent_name, created_at DESC);
+
                 CREATE TABLE IF NOT EXISTS agent_events (
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
                     agent_name  TEXT NOT NULL,
@@ -823,6 +835,63 @@ class SessionStore:
                     "WHERE id = ? AND agent_name = ?",
                     (idx, now, tid, agent_name),
                 )
+            await conn.commit()
+        finally:
+            await conn.close()
+
+    # ── Agent Notes ────────────────────────────────────────────────────────
+
+    async def list_agent_notes(self, agent_name: str, session_id: str | None = None) -> list[dict[str, Any]]:
+        conn = await self._connect()
+        try:
+            if session_id is not None:
+                rows = await (await conn.execute(
+                    "SELECT id, agent_name, content, created_at, updated_at "
+                    "FROM agent_notes WHERE agent_name = ? AND session_id = ? ORDER BY created_at DESC",
+                    (agent_name, session_id),
+                )).fetchall()
+            else:
+                rows = await (await conn.execute(
+                    "SELECT id, agent_name, content, created_at, updated_at "
+                    "FROM agent_notes WHERE agent_name = ? ORDER BY created_at DESC",
+                    (agent_name,),
+                )).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()
+
+    async def create_agent_note(self, agent_name: str, content: str, session_id: str | None = None) -> dict[str, Any]:
+        now = datetime.now(timezone.utc).isoformat()
+        conn = await self._connect()
+        try:
+            cur = await conn.execute(
+                "INSERT INTO agent_notes (agent_name, session_id, content, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (agent_name, session_id, content, now, now),
+            )
+            await conn.commit()
+            result = {"id": cur.lastrowid, "agent_name": agent_name, "content": content,
+                      "created_at": now, "updated_at": now}
+        finally:
+            await conn.close()
+        return result
+
+    async def update_agent_note(self, note_id: int, content: str) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        conn = await self._connect()
+        try:
+            await conn.execute(
+                "UPDATE agent_notes SET content = ?, updated_at = ? WHERE id = ?",
+                (content, now, note_id),
+            )
+            await conn.commit()
+        finally:
+            await conn.close()
+
+    async def delete_agent_note(self, note_id: int) -> None:
+        conn = await self._connect()
+        try:
+            await conn.execute("DELETE FROM agent_notes WHERE id = ?", (note_id,))
             await conn.commit()
         finally:
             await conn.close()
