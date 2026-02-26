@@ -54,6 +54,8 @@ function formatTime(isoStr) {
 }
 
 function getToolIcon(toolName, eventType) {
+    if (eventType === 'status') return { char: 'S', cls: 'tool-status' };
+    if (eventType === 'goal') return { char: 'G', cls: 'tool-goal' };
     if (eventType === 'stop') return { char: '!', cls: 'tool-stop' };
     if (eventType === 'notification') return { char: 'N', cls: 'tool-notification' };
     return TOOL_ICONS[toolName] || { char: '.', cls: 'tool-default' };
@@ -128,7 +130,8 @@ function renderHistoryEventTimeline() {
 
     container.innerHTML = visible.map(ev => {
         const icon = getToolIcon(ev.tool_name, ev.event_type);
-        return `<div class="event-item">
+        const typeCls = ev.event_type ? `event-type-${ev.event_type}` : '';
+        return `<div class="event-item ${typeCls}">
             <span class="event-icon ${icon.cls}">${icon.char}</span>
             <span class="event-body">
                 <span class="event-summary" title="${escapeHtml(ev.summary)}">${escapeHtml(ev.summary)}</span>
