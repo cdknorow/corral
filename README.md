@@ -1,4 +1,5 @@
-<img width="4160" height="1024" alt="Gemini_Generated_Image_pftejmpftejmpfte" src="https://github.com/user-attachments/assets/c49e0ddb-bff5-4301-9606-75170009c486" />
+<img width="1024" height="250" alt="image" src="https://github.com/user-attachments/assets/bb08e5c8-9f4f-4d93-b07c-6bee039ee16b" />
+
 
 
 Take back control and fight AI fatigue with corral 🤠 ➰ 🤖 🤖. An MIT licensed open-source multi-agent orchestration application for managing AI coding agents across git worktrees running locally on your local or remote machine. The  Its application is built using tmux and FastAPI for easy extensibilty and modification.
