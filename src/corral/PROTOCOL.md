@@ -79,39 +79,6 @@ If you do not emit a `||PULSE:SUMMARY||` line, the Goal box on your dashboard ca
 
 ---
 
-### Task Reporting (Optional)
-
-You may optionally declare tasks and mark them as done. The dashboard will automatically populate the agent's task bar.
-
-**Declare a task you plan to do:**
-
-```
-||PULSE:TASK <title>||
-```
-
-**Mark a task as completed:**
-
-```
-||PULSE:TASK_DONE <title>||
-```
-
-**Examples:**
-
-```
-||PULSE:TASK Fix login bug||
-||PULSE:TASK Add unit tests for auth module||
-||PULSE:TASK_DONE Fix login bug||
-```
-
-**Guidelines:**
-
-1. Emit `||PULSE:TASK||` when you identify a new subtask or work item.
-2. Emit `||PULSE:TASK_DONE||` when you finish — the title must match exactly.
-3. Tasks are created idempotently — emitting the same title twice will not create duplicates.
-4. Keep titles short (under 60 characters).
-
----
-
 ## How It Works
 
 - Each agent runs in a separate tmux window.

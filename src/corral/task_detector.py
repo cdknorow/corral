@@ -10,10 +10,6 @@ from corral.session_manager import strip_ansi, clean_match
 # Generic regex that captures ANY ||PULSE:<TYPE> <payload>|| event
 PULSE_EVENT_RE = re.compile(r"\|\|PULSE:(\S+)\s+(.*?)\|\|")
 
-# Specific regexes kept for targeted matching
-TASK_RE = re.compile(r"\|\|PULSE:TASK\s+(.+?)\|\|")
-TASK_DONE_RE = re.compile(r"\|\|PULSE:TASK_DONE\s+(.+?)\|\|")
-
 # Track file positions to avoid re-scanning the same content
 _file_positions: dict[str, int] = {}
 
@@ -22,7 +18,6 @@ async def scan_log_for_pulse_events(store, agent_name: str, log_path: str) -> No
     """Scan new content in a log file for all PULSE events.
 
     - All pulse events are stored as activities in agent_events.
-    - TASK/TASK_DONE events additionally create/complete tasks.
     - STATUS and SUMMARY are skipped here (handled by _track_status_summary_events
       in web_server.py which deduplicates on change).
     """
@@ -72,16 +67,3 @@ async def scan_log_for_pulse_events(store, agent_name: str, log_path: str) -> No
         await store.insert_agent_event(
             agent_name, event_type.lower(), payload, session_id=session_id,
         )
-
-        # TASK-specific: also create the task
-        if event_type == "TASK":
-            await store.create_agent_task_if_not_exists(agent_name, payload, session_id=session_id)
-
-        # TASK_DONE-specific: also mark the task complete
-        if event_type == "TASK_DONE":
-            await store.complete_agent_task_by_title(agent_name, payload, session_id=session_id)
-
-
-# Keep backward-compatible aliases
-scan_log_for_tasks = scan_log_for_pulse_events
-scan_log_for_protocol_events = scan_log_for_pulse_events
