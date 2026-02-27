@@ -18,9 +18,12 @@ Take back some control and fight AI fatigue with corral. A multi-agent orchestra
 - **Attach/Kill/Restart/Resume** — Open a terminal attached to any agent's tmux session, or kill it directly from the UI, or relaunch as a neew session
 - **Git integration & PR Linking** Tracks, commits, and remote URL per agent & session
 
+As Demoed by Claude 😂😂😂
 <p align="center">
   <img src="corral-dashboard-tour.gif" alt="Corral Dashboard Tour" width="800" />
 </p>
+
+
 
 ## Installation
 
