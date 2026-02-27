@@ -33,8 +33,11 @@ export function connectCorralWs() {
                     }
                     if (s.name !== state.currentSession.name) {
                         state.currentSession.name = s.name;
-                        document.getElementById("session-name").textContent = s.name;
                     }
+                    // Sync display_name and update header
+                    const headerName = s.display_name || s.name;
+                    state.currentSession.display_name = s.display_name || null;
+                    document.getElementById("session-name").textContent = headerName;
                     updateSessionStatus(s.status);
                     updateSessionSummary(s.summary);
                     updateSessionBranch(s.branch);

@@ -41,15 +41,17 @@ export function renderLiveSessions(sessions) {
             const typeTag = s.agent_type && s.agent_type !== "claude" ? ` <span class="badge ${escapeHtml(s.agent_type)}">${escapeHtml(s.agent_type)}</span>` : "";
             const branchTag = s.branch ? ` <span class="sidebar-branch">${escapeHtml(s.branch)}</span>` : "";
             const goal = s.summary ? escapeHtml(s.summary) : "No goal set";
-            const label = isMulti ? (s.session_id ? s.session_id.substring(0, 8) : s.name) : s.name;
+            const displayLabel = s.display_name || (isMulti ? (s.session_id ? s.session_id.substring(0, 8) : s.name) : s.name);
             const indentCls = isMulti ? " session-group-item" : "";
             const sid = s.session_id ? escapeHtml(s.session_id) : "";
+            const editBtn = `<button class="sidebar-edit-btn" onclick="event.stopPropagation(); renameAgent('${escapeHtml(s.name)}', '${escapeHtml(s.agent_type)}', '${sid}')" title="Rename agent">&#x270E;</button>`;
             html += `<li class="${isActive ? 'active' : ''}${indentCls}" onclick="selectLiveSession('${escapeHtml(s.name)}', '${escapeHtml(s.agent_type)}', '${sid}')">
                 <span class="session-dot ${dotClass}"></span>
                 <div class="session-info">
-                    <span class="session-label">${escapeHtml(label)}${typeTag}${branchTag}</span>
+                    <span class="session-label">${escapeHtml(displayLabel)}${typeTag}${branchTag}</span>
                     <span class="session-goal">${goal}</span>
                 </div>
+                ${editBtn}
             </li>`;
         }
     }

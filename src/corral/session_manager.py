@@ -594,6 +594,15 @@ async def restart_session(
             "tmux", "send-keys", "-t", target, "Enter"
         )
 
+        # Migrate display_name from old session to new
+        if session_id:
+            try:
+                from corral.session_store import SessionStore
+                _store = SessionStore()
+                await _store.migrate_display_name(session_id, new_session_id)
+            except Exception:
+                pass  # Non-critical
+
         return {
             "ok": True,
             "agent_name": agent_name,
@@ -894,7 +903,7 @@ def load_history_session_messages(session_id: str) -> list[dict[str, Any]]:
     return []
 
 
-async def launch_claude_session(working_dir: str, agent_type: str = "claude") -> dict[str, str]:
+async def launch_claude_session(working_dir: str, agent_type: str = "claude", display_name: str | None = None) -> dict[str, str]:
     """Launch a new tmux session with a Claude/Gemini agent.
 
     Returns dict with session_name, session_id, log_file, and any error.
@@ -952,6 +961,15 @@ async def launch_claude_session(working_dir: str, agent_type: str = "claude") ->
         await asyncio.create_subprocess_exec(
             "tmux", "send-keys", "-t", f"{session_name}.0", cmd, "Enter"
         )
+
+        # Store display_name if provided
+        if display_name:
+            try:
+                from corral.session_store import SessionStore
+                _store = SessionStore()
+                await _store.set_display_name(session_id, display_name)
+            except Exception:
+                pass  # Non-critical
 
         return {
             "session_name": session_name,

@@ -6,7 +6,8 @@ import { loadLiveSessions } from './api.js';
 
 export function showLaunchModal() {
     document.getElementById("launch-modal").style.display = "flex";
-    document.getElementById("launch-dir").focus();
+    document.getElementById("launch-agent-name").value = "";
+    document.getElementById("launch-agent-name").focus();
 }
 
 export function hideLaunchModal() {
@@ -16,17 +17,21 @@ export function hideLaunchModal() {
 export async function launchSession() {
     const dir = document.getElementById("launch-dir").value.trim();
     const type = document.getElementById("launch-type").value;
+    const agentName = document.getElementById("launch-agent-name").value.trim();
 
     if (!dir) {
         showToast("Working directory is required", true);
         return;
     }
 
+    const payload = { working_dir: dir, agent_type: type };
+    if (agentName) payload.display_name = agentName;
+
     try {
         const resp = await fetch("/api/sessions/launch", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ working_dir: dir, agent_type: type }),
+            body: JSON.stringify(payload),
         });
         const result = await resp.json();
         if (result.error) {

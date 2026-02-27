@@ -48,6 +48,7 @@ class SessionStore:
                     notes_md     TEXT DEFAULT '',
                     auto_summary TEXT DEFAULT '',
                     is_user_edited INTEGER DEFAULT 0,
+                    display_name TEXT,
                     created_at   TEXT NOT NULL,
                     updated_at   TEXT NOT NULL
                 );
@@ -179,6 +180,12 @@ class SessionStore:
             except aiosqlite.OperationalError:
                 pass  # Column already exists
 
+            # Add display_name to session_meta if missing (migration)
+            try:
+                await conn.execute("ALTER TABLE session_meta ADD COLUMN display_name TEXT")
+            except aiosqlite.OperationalError:
+                pass  # Column already exists
+
             # Create agent_live_state if missing (migration)
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS agent_live_state (
@@ -251,6 +258,71 @@ class SessionStore:
                 (session_id, summary, now, now),
             )
             await conn.commit()
+        finally:
+            await conn.close()
+
+    # ── Display Names ──────────────────────────────────────────────────────
+
+    async def get_display_name(self, session_id: str) -> str | None:
+        conn = await self._connect()
+        try:
+            row = await (await conn.execute(
+                "SELECT display_name FROM session_meta WHERE session_id = ?",
+                (session_id,),
+            )).fetchone()
+            return row["display_name"] if row else None
+        finally:
+            await conn.close()
+
+    async def set_display_name(self, session_id: str, display_name: str) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        conn = await self._connect()
+        try:
+            await conn.execute(
+                """INSERT INTO session_meta (session_id, display_name, created_at, updated_at)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(session_id) DO UPDATE SET
+                       display_name = excluded.display_name,
+                       updated_at = excluded.updated_at""",
+                (session_id, display_name, now, now),
+            )
+            await conn.commit()
+        finally:
+            await conn.close()
+
+    async def get_display_names(self, session_ids: list[str]) -> dict[str, str]:
+        if not session_ids:
+            return {}
+        conn = await self._connect()
+        try:
+            placeholders = ",".join("?" for _ in session_ids)
+            rows = await (await conn.execute(
+                f"SELECT session_id, display_name FROM session_meta "
+                f"WHERE session_id IN ({placeholders}) AND display_name IS NOT NULL",
+                session_ids,
+            )).fetchall()
+            return {r["session_id"]: r["display_name"] for r in rows}
+        finally:
+            await conn.close()
+
+    async def migrate_display_name(self, old_session_id: str, new_session_id: str) -> None:
+        conn = await self._connect()
+        try:
+            row = await (await conn.execute(
+                "SELECT display_name FROM session_meta WHERE session_id = ? AND display_name IS NOT NULL",
+                (old_session_id,),
+            )).fetchone()
+            if row and row["display_name"]:
+                now = datetime.now(timezone.utc).isoformat()
+                await conn.execute(
+                    """INSERT INTO session_meta (session_id, display_name, created_at, updated_at)
+                       VALUES (?, ?, ?, ?)
+                       ON CONFLICT(session_id) DO UPDATE SET
+                           display_name = excluded.display_name,
+                           updated_at = excluded.updated_at""",
+                    (new_session_id, row["display_name"], now, now),
+                )
+                await conn.commit()
         finally:
             await conn.close()
 

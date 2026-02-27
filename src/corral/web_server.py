@@ -120,6 +120,9 @@ async def get_live_sessions():
     """List active corral agents with their current status."""
     agents = await discover_corral_agents()
     git_state = await store.get_all_latest_git_state()
+    # Bulk-fetch display names for all live sessions
+    session_ids = [a["session_id"] for a in agents if a.get("session_id")]
+    display_names = await store.get_display_names(session_ids)
     results = []
     for agent in agents:
         log_info = get_log_status(agent["log_path"])
@@ -137,6 +140,7 @@ async def get_live_sessions():
             "staleness_seconds": log_info["staleness_seconds"],
             "commands": COMMAND_MAP.get(agent["agent_type"].lower(), COMMAND_MAP["claude"]),
             "branch": git["branch"] if git else None,
+            "display_name": display_names.get(sid) if sid else None,
         }
         results.append(entry)
         await _track_status_summary_events(name, log_info["status"], log_info["summary"], session_id=sid)
@@ -361,6 +365,19 @@ async def attach_terminal(name: str, body: dict | None = None):
     return {"ok": True}
 
 
+@app.put("/api/sessions/live/{name}/display-name")
+async def set_display_name(name: str, body: dict):
+    """Set or update the display name for a live session."""
+    display_name = body.get("display_name", "").strip()
+    session_id = body.get("session_id")
+    if not session_id:
+        return {"error": "session_id is required"}
+    if not display_name:
+        return {"error": "display_name is required"}
+    await store.set_display_name(session_id, display_name)
+    return {"ok": True, "display_name": display_name}
+
+
 @app.get("/api/filesystem/list")
 async def list_filesystem(path: str = "~"):
     """List directories at a given path for the directory browser."""
@@ -387,11 +404,12 @@ async def launch_session(body: dict):
     """Launch a new Claude/Gemini session."""
     working_dir = body.get("working_dir", "").strip()
     agent_type = body.get("agent_type", "claude").strip()
+    display_name = body.get("display_name", "").strip() or None
 
     if not working_dir:
         return {"error": "working_dir is required"}
 
-    result = await launch_claude_session(working_dir, agent_type)
+    result = await launch_claude_session(working_dir, agent_type, display_name=display_name)
     return result
 
 
@@ -638,6 +656,9 @@ async def ws_corral(websocket: WebSocket):
         while True:
             agents = await discover_corral_agents()
             git_state = await store.get_all_latest_git_state()
+            # Bulk-fetch display names
+            ws_session_ids = [a["session_id"] for a in agents if a.get("session_id")]
+            ws_display_names = await store.get_display_names(ws_session_ids)
             results = []
             for agent in agents:
                 log_info = get_log_status(agent["log_path"])
@@ -653,6 +674,7 @@ async def ws_corral(websocket: WebSocket):
                     "summary": log_info["summary"],
                     "staleness_seconds": log_info["staleness_seconds"],
                     "branch": git["branch"] if git else None,
+                    "display_name": ws_display_names.get(sid) if sid else None,
                 })
                 await _track_status_summary_events(name, log_info["status"], log_info["summary"], session_id=sid)
                 await scan_log_for_pulse_events(store, name, agent["log_path"], session_id=sid)
