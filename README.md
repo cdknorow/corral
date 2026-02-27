@@ -28,21 +28,13 @@ Take back some control and fight ai agent fatigure with corral. A multi-agent or
 Install from PyPI:
 
 ```bash
-pip install corral
+pip install agent-corral
 ```
 
 Or install directly from GitHub:
 
 ```bash
-pip install git+https://github.com/cdknorow/Corral.git
-```
-
-For local development:
-
-```bash
-git clone https://github.com/cdknorow/Corral.git
-cd Corral
-pip install -e ".[dev]"
+pip install git+https://github.com/cdknorow/corral.git
 ```
 
 ## Usage
@@ -72,29 +64,31 @@ The launcher discovers worktree subdirectories, creates a tmux session with an a
 
 ```bash
 # Launch Claude agents and web dashboard for worktrees in the current directory
-./src/corral/launch_agents.sh .
+launch-corral
 
 # Launch Gemini agents from a specific path
-./src/corral/launch_agents.sh <path-to-root> gemini
+launch-corral <path-to-root> gemini
 
 # Override the default web dashboard port (default: 8420)
-CORRAL_PORT=9000 ./src/corral/launch_agents.sh .
+CORRAL_PORT=9000 launch-corral .
 
 # Skip launching the web server
-SKIP_WEB_SERVER=1 ./src/corral/launch_agents.sh .
+SKIP_WEB_SERVER=1 launch-corral .
 ```
 
 ### Web dashboard (standalone)
 
+You can launch the web server directly using `corral` or `corral-dashboard`:
+
 ```bash
 # Start the web dashboard directly (default: http://localhost:8420)
-corral
+corral-dashboard
 
 # Custom host/port
-corral --host 127.0.0.1 --port 9000
+corral-dashboard --host 127.0.0.1 --port 9000
 
 # Auto-reload for development
-corral --reload
+corral-dashboard --reload
 ```
 
 ### Managing sessions from the dashboard

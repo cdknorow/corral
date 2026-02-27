@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "corral"
-version = "0.1.0"
+name = "agent-corral"
+version = "0.1.2"
 description = "A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) in parallel git worktrees with a real-time web dashboard."
 readme = "README.md"
 license = "MIT"
@@ -60,6 +60,7 @@ dev = [
 
 [project.scripts]
 corral = "corral.web_server:main"
+corral-dashboard = "corral.web_server:main"
 launch-corral = "corral.launch:main"
 corral-hook-task-sync = "corral.hook_task_sync:main"
 corral-hook-agentic-state = "corral.hook_agentic_state:main"
