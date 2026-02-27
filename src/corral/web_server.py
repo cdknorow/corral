@@ -46,6 +46,9 @@ async def _track_status_summary_events(
     agent_name: str, status: str | None, summary: str | None, session_id: str | None = None,
 ):
     """Insert agent_events when status or summary changes for a live agent."""
+    # Resolve session_id from store if not provided
+    if session_id is None:
+        session_id = await store.get_agent_session_id(agent_name)
     # Dedup key: use session_id if available, fall back to agent_name
     dedup_key = session_id or agent_name
     prev = _last_known.get(dedup_key, {"status": None, "summary": None})
@@ -90,6 +93,7 @@ async def lifespan(app: FastAPI):
     indexer_task.cancel()
     summarizer_task.cancel()
     git_task.cancel()
+    await store.close()
 
 
 app = FastAPI(title="Corral Dashboard", lifespan=lifespan)

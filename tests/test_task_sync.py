@@ -23,10 +23,9 @@ async def tmp_store(tmp_path):
     """Create a SessionStore backed by a temp SQLite database."""
     db_path = tmp_path / "test.db"
     s = SessionStore(db_path=db_path)
-    # Force schema creation
-    conn = await s._connect()
-    await conn.close()
-    return s
+    await s._get_conn()  # Force schema creation
+    yield s
+    await s.close()
 
 
 @pytest_asyncio.fixture
@@ -158,7 +157,7 @@ async def test_full_hook_create_then_complete(client, tmp_store):
 
     # Step 2: Hook fires for TaskUpdate(completed) — find task by title, PATCH it
     # The hook resolves the title from its cache (or response), then:
-    list_resp = await client.get(f"/api/sessions/live/{agent_name}/tasks")
+    list_resp = await client.get(f"/api/sessions/live/{agent_name}/tasks?session_id={session_id}")
     assert list_resp.status_code == 200
     task_list = list_resp.json()
 
