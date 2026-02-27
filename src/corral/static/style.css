@@ -1788,6 +1788,11 @@ body {
 .activity-chart:empty {
     display: none;
 }
+.activity-chart-bottom {
+    border-bottom: none;
+    border-top: 1px solid var(--border-light);
+    padding: 6px 14px 10px;
+}
 .activity-chart-row {
     display: flex;
     align-items: center;

@@ -198,6 +198,59 @@ export function renderEventTimeline() {
             <span class="event-time">${formatTime(ev.created_at)}</span>
         </div>`;
     }).join('');
+
+    renderLiveActivityChart();
+}
+
+function renderLiveActivityChart() {
+    const container = document.getElementById('live-activity-chart');
+    if (!container) return;
+
+    const events = state.currentAgentEvents || [];
+    if (events.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const counts = [];
+    const matched = new Set();
+
+    for (const group of FILTER_GROUPS) {
+        let groupCount = 0;
+        events.forEach((ev, idx) => {
+            if (group.match(ev)) {
+                groupCount++;
+                matched.add(idx);
+            }
+        });
+        if (groupCount > 0) {
+            counts.push({ key: group.key, label: group.title, cls: group.cls, count: groupCount });
+        }
+    }
+
+    const unmatchedCount = events.length - matched.size;
+    if (unmatchedCount > 0) {
+        counts.push({ key: 'other', label: 'Other', cls: 'tool-default', count: unmatchedCount });
+    }
+
+    if (counts.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    counts.sort((a, b) => b.count - a.count);
+    const maxCount = counts[0].count;
+
+    container.innerHTML = counts.map(item => {
+        const pct = Math.max(2, (item.count / maxCount) * 100);
+        return `<div class="activity-chart-row">
+            <span class="activity-chart-label">${escapeHtml(item.label)}</span>
+            <div class="activity-chart-bar-track">
+                <div class="activity-chart-bar ${item.cls}" style="width: ${pct}%"></div>
+            </div>
+            <span class="activity-chart-count">${item.count}</span>
+        </div>`;
+    }).join('');
 }
 
 let _popupTimer = null;
