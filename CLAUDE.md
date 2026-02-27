@@ -50,9 +50,11 @@ corral --host 127.0.0.1 --port 9000
 - **Detach tmux:** `Ctrl+b d`
 
 ## Agent Protocol
-Agents must emit status and summary lines for the dashboard to track:
+All agent events use the `||PULSE:<EVENT_TYPE> <payload>||` format. The dashboard parses these from agent output in real time.
+
+- `||PULSE:STATUS <Short Description>||`: Current task (emit before/after each subtask).
 - `||PULSE:SUMMARY <Goal Description>||`: High-level goal (emit once at start or when goal changes).
-- `||PULSE:STATUS <Task Description>||`: Current task (emit before/after subtasks).
+- `||PULSE:CONFIDENCE <1-5> <short reason>||`: Certainty about a decision or suggestion (optional, emit when useful).
 
 ## Development Guidelines
 - **Build System:** Setuptools with `pyproject.toml`.
