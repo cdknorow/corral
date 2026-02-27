@@ -173,11 +173,12 @@ Ctrl+b d
 
 ## Agent Protocol
 
-Agents emit structured markers that the dashboard parses for live status:
+Agents emit structured markers using the `||PULSE:<EVENT_TYPE> <payload>||` format. The dashboard parses these from agent output in real time:
 
 ```
 ||PULSE:STATUS <Short description of current task>||
 ||PULSE:SUMMARY <One-sentence high-level goal>||
+||PULSE:CONFIDENCE <1-5> <short reason>||
 ```
 
 The protocol is automatically injected via `PROTOCOL.md` when launching agents. See [`src/corral/PROTOCOL.md`](src/corral/PROTOCOL.md) for the full specification.
