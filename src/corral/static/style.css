@@ -38,7 +38,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 20px;
+    padding: 10px 20px 10px 12px;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
 }
@@ -101,7 +101,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px 8px 16px;
+    padding: 0 12px 8px 12px;
 }
 
 .sidebar-section-header h2 {
@@ -121,6 +121,14 @@ body {
     letter-spacing: 0.05em;
     color: var(--text-secondary);
     padding: 0 16px 8px;
+}
+
+.sidebar-section .sidebar-section-header h2 {
+    font-size: 14px;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--text-primary);
+    padding: 0;
 }
 
 /* History search & filters */
@@ -261,7 +269,7 @@ body {
 
 /* Grouped sessions (multiple sessions in same worktree) */
 .session-group-header {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     color: var(--text-secondary);
     padding: 6px 12px 2px !important;
