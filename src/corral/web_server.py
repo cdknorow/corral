@@ -33,6 +33,7 @@ from corral.session_manager import (
 )
 from corral.log_streamer import get_log_snapshot
 from corral.session_store import SessionStore
+from corral.task_detector import scan_log_for_pulse_events
 
 log = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
@@ -127,6 +128,8 @@ async def get_live_sessions():
         }
         results.append(entry)
         await _track_status_summary_events(name, log_info["status"], log_info["summary"])
+        # Scan log for all protocol events (TASK, TASK_DONE, custom events)
+        await scan_log_for_pulse_events(store, name, agent["log_path"])
     return results
 
 
@@ -643,6 +646,7 @@ async def ws_corral(websocket: WebSocket):
                     "branch": git["branch"] if git else None,
                 })
                 await _track_status_summary_events(name, log_info["status"], log_info["summary"])
+                await scan_log_for_pulse_events(store, name, agent["log_path"])
 
             current_state = json.dumps(results, sort_keys=True)
             if current_state != last_state:

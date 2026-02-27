@@ -51,8 +51,8 @@ corral --host 127.0.0.1 --port 9000
 
 ## Agent Protocol
 Agents must emit status and summary lines for the dashboard to track:
-- `||SUMMARY: <Goal Description>||`: High-level goal (emit once at start or when goal changes).
-- `||STATUS: <Task Description>||`: Current task (emit before/after subtasks).
+- `||PULSE:SUMMARY <Goal Description>||`: High-level goal (emit once at start or when goal changes).
+- `||PULSE:STATUS <Task Description>||`: Current task (emit before/after subtasks).
 
 ## Development Guidelines
 - **Build System:** Setuptools with `pyproject.toml`.

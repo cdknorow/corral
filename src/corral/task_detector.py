@@ -1,4 +1,4 @@
-"""Detect TASK and TASK_DONE markers in agent log files."""
+"""Scan agent log files for ||PULSE:*|| events and store as activities."""
 
 from __future__ import annotations
 
@@ -7,15 +7,25 @@ from pathlib import Path
 
 from corral.session_manager import strip_ansi, clean_match
 
-TASK_RE = re.compile(r"\|\|TASK:\s*(.+?)\|\|")
-TASK_DONE_RE = re.compile(r"\|\|TASK_DONE:\s*(.+?)\|\|")
+# Generic regex that captures ANY ||PULSE:<TYPE> <payload>|| event
+PULSE_EVENT_RE = re.compile(r"\|\|PULSE:(\S+)\s+(.*?)\|\|")
+
+# Specific regexes kept for targeted matching
+TASK_RE = re.compile(r"\|\|PULSE:TASK\s+(.+?)\|\|")
+TASK_DONE_RE = re.compile(r"\|\|PULSE:TASK_DONE\s+(.+?)\|\|")
 
 # Track file positions to avoid re-scanning the same content
 _file_positions: dict[str, int] = {}
 
 
-async def scan_log_for_tasks(store, agent_name: str, log_path: str) -> None:
-    """Scan new content in a log file for TASK/TASK_DONE markers and upsert into the store."""
+async def scan_log_for_pulse_events(store, agent_name: str, log_path: str) -> None:
+    """Scan new content in a log file for all PULSE events.
+
+    - All pulse events are stored as activities in agent_events.
+    - TASK/TASK_DONE events additionally create/complete tasks.
+    - STATUS and SUMMARY are skipped here (handled by _track_status_summary_events
+      in web_server.py which deduplicates on change).
+    """
     path = Path(log_path)
     if not path.exists():
         return
@@ -44,15 +54,34 @@ async def scan_log_for_tasks(store, agent_name: str, log_path: str) -> None:
 
     clean = strip_ansi(new_content)
 
-    # Get current session_id so tasks are scoped to the active session
+    # Get current session_id so events are scoped to the active session
     session_id = await store.get_agent_session_id(agent_name)
 
-    for match in TASK_RE.finditer(clean):
-        title = clean_match(match.group(1))
-        if title:
-            await store.create_agent_task_if_not_exists(agent_name, title, session_id=session_id)
+    # Process all pulse events
+    for match in PULSE_EVENT_RE.finditer(clean):
+        event_type = match.group(1)
+        payload = clean_match(match.group(2))
+        if not payload:
+            continue
 
-    for match in TASK_DONE_RE.finditer(clean):
-        title = clean_match(match.group(1))
-        if title:
-            await store.complete_agent_task_by_title(agent_name, title, session_id=session_id)
+        # STATUS and SUMMARY are tracked with deduplication in web_server.py
+        if event_type in ("STATUS", "SUMMARY"):
+            continue
+
+        # Store as activity
+        await store.insert_agent_event(
+            agent_name, event_type.lower(), payload, session_id=session_id,
+        )
+
+        # TASK-specific: also create the task
+        if event_type == "TASK":
+            await store.create_agent_task_if_not_exists(agent_name, payload, session_id=session_id)
+
+        # TASK_DONE-specific: also mark the task complete
+        if event_type == "TASK_DONE":
+            await store.complete_agent_task_by_title(agent_name, payload, session_id=session_id)
+
+
+# Keep backward-compatible aliases
+scan_log_for_tasks = scan_log_for_pulse_events
+scan_log_for_protocol_events = scan_log_for_pulse_events

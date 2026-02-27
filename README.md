@@ -176,8 +176,8 @@ Ctrl+b d
 Agents emit structured markers that the dashboard parses for live status:
 
 ```
-||STATUS: <Short description of current task>||
-||SUMMARY: <One-sentence high-level goal>||
+||PULSE:STATUS <Short description of current task>||
+||PULSE:SUMMARY <One-sentence high-level goal>||
 ```
 
 The protocol is automatically injected via `PROTOCOL.md` when launching agents. See [`src/corral/PROTOCOL.md`](src/corral/PROTOCOL.md) for the full specification.

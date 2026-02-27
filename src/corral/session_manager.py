@@ -16,8 +16,8 @@ from corral.utils import run_cmd, LOG_DIR, LOG_PATTERN, HISTORY_PATH
 
 ANSI_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
-STATUS_RE = re.compile(r"\|\|STATUS: (.*?)\|\|")
-SUMMARY_RE = re.compile(r"\|\|SUMMARY: (.*?)\|\|")
+STATUS_RE = re.compile(r"\|\|PULSE:STATUS (.*?)\|\|")
+SUMMARY_RE = re.compile(r"\|\|PULSE:SUMMARY (.*?)\|\|")
 
 
 def strip_ansi(text: str) -> str:
@@ -621,7 +621,7 @@ def _load_claude_history_sessions() -> list[dict[str, Any]]:
         except OSError:
             continue
 
-    # Build summaries: prefer ||SUMMARY:|| marker, fall back to first human message
+    # Build summaries: prefer ||PULSE:SUMMARY|| marker, fall back to first human message
     result = []
     for sid, data in sessions.items():
         summary_marker = ""
@@ -690,7 +690,7 @@ def _load_gemini_history_sessions() -> list[dict[str, Any]]:
         first_ts = data.get("startTime")
         last_ts = data.get("lastUpdated")
 
-        # Build summary: prefer ||SUMMARY:|| in gemini messages, fall back to first user message
+        # Build summary: prefer ||PULSE:SUMMARY|| in gemini messages, fall back to first user message
         summary_marker = ""
         first_user = ""
         for msg in messages:

@@ -28,5 +28,5 @@ def test_is_noise_line():
     
     # Valid lines (Not noise)
     assert _is_noise_line("This is an actual log message") is False
-    assert _is_noise_line("||STATUS: Working on it||") is False
+    assert _is_noise_line("||PULSE:STATUS Working on it||") is False
     assert _is_noise_line("def foo():") is False
