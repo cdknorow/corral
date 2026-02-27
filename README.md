@@ -1,7 +1,8 @@
 # Corral 🤠 ➰ 🤖 🤖 
 
-<!-- TODO: Add a high-quality GIF here demonstrating launching the corral and the real-time web dashboard. -->
-<img width="1512" height="822" alt="image" src="https://github.com/user-attachments/assets/7534c1c4-5431-4e63-a5e3-4ec667e8bcb5" />
+<p align="center">
+  <img src="corral-dashboard-tour.gif" alt="Corral Dashboard Tour" width="800" />
+</p>
 
 Take back some control and fight AI fatigue with corral. A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
 
