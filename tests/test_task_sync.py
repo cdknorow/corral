@@ -140,10 +140,11 @@ async def test_full_hook_create_then_complete(client, tmp_store):
     # Step 1: Hook fires for TaskCreate — extract title and POST to API
     create_input = TASK_CREATE_PAYLOAD["tool_input"]
     subject = create_input["subject"]
+    session_id = TASK_CREATE_PAYLOAD["session_id"]
 
     resp = await client.post(
         f"/api/sessions/live/{agent_name}/tasks",
-        json={"title": subject},
+        json={"title": subject, "session_id": session_id},
     )
     assert resp.status_code == 200
     dashboard_task = resp.json()
