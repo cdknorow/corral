@@ -17,8 +17,24 @@ export function connectCorralWs() {
 
             // Update status/summary/branch if we're viewing a live session
             if (state.currentSession && state.currentSession.type === "live") {
-                const s = data.sessions.find(s => s.name === state.currentSession.name);
+                const sid = state.currentSession.session_id;
+                // Try matching by session_id first, then fall back to name
+                let s = sid
+                    ? data.sessions.find(s => s.session_id === sid)
+                    : null;
+                if (!s) {
+                    s = data.sessions.find(s => s.name === state.currentSession.name);
+                }
                 if (s) {
+                    // Keep state in sync with backend (handles restarts
+                    // where session_id or name may change)
+                    if (s.session_id && s.session_id !== state.currentSession.session_id) {
+                        state.currentSession.session_id = s.session_id;
+                    }
+                    if (s.name !== state.currentSession.name) {
+                        state.currentSession.name = s.name;
+                        document.getElementById("session-name").textContent = s.name;
+                    }
                     updateSessionStatus(s.status);
                     updateSessionSummary(s.summary);
                     updateSessionBranch(s.branch);

@@ -19,7 +19,7 @@ export async function sendCommand() {
         const resp = await fetch(`/api/sessions/live/${encodeURIComponent(state.currentSession.name)}/send`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ command, agent_type: state.currentSession.agent_type }),
+            body: JSON.stringify({ command, agent_type: state.currentSession.agent_type, session_id: state.currentSession.session_id }),
         });
         if (!resp.ok) {
             const text = await resp.text();
@@ -77,7 +77,7 @@ export async function sendRawKeys(keys) {
         const resp = await fetch(`/api/sessions/live/${encodeURIComponent(state.currentSession.name)}/keys`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ keys, agent_type: state.currentSession ? state.currentSession.agent_type : null }),
+            body: JSON.stringify({ keys, agent_type: state.currentSession.agent_type, session_id: state.currentSession.session_id }),
         });
         const result = await resp.json();
         if (result.error) {
@@ -101,7 +101,7 @@ export async function attachTerminal() {
         const resp = await fetch(`/api/sessions/live/${encodeURIComponent(state.currentSession.name)}/attach`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agent_type: state.currentSession.agent_type }),
+            body: JSON.stringify({ agent_type: state.currentSession.agent_type, session_id: state.currentSession.session_id }),
         });
         const result = await resp.json();
         if (result.error) {
@@ -129,21 +129,20 @@ export async function killSession() {
         const resp = await fetch(`/api/sessions/live/${encodeURIComponent(state.currentSession.name)}/kill`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agent_type: state.currentSession.agent_type }),
+            body: JSON.stringify({ agent_type: state.currentSession.agent_type, session_id: state.currentSession.session_id }),
         });
         const result = await resp.json();
         if (result.error) {
             showToast(result.error, true);
         } else {
-            const killedName = state.currentSession.name;
-            const killedType = state.currentSession.agent_type;
-            showToast(`Killed: ${killedName}`);
+            const killedSid = state.currentSession.session_id;
+            showToast(`Killed: ${state.currentSession.name}`);
             stopCaptureRefresh();
             state.currentSession = null;
             document.getElementById("live-session-view").style.display = "none";
             document.getElementById("welcome-screen").style.display = "flex";
             // Remove from cached list and re-render immediately
-            state.liveSessions = state.liveSessions.filter(s => !(s.name === killedName && s.agent_type === killedType));
+            state.liveSessions = state.liveSessions.filter(s => s.session_id !== killedSid);
             renderLiveSessions(state.liveSessions);
         }
     } catch (e) {
@@ -168,7 +167,7 @@ export async function restartSession() {
 
     try {
         showToast(`Restarting ${state.currentSession.name}...`);
-        const payload = { agent_type: state.currentSession.agent_type };
+        const payload = { agent_type: state.currentSession.agent_type, session_id: state.currentSession.session_id };
         if (extraFlags.trim()) {
             payload.extra_flags = extraFlags.trim();
         }
@@ -181,6 +180,14 @@ export async function restartSession() {
         if (result.error) {
             showToast(result.error, true);
         } else {
+            // Update state with the new session_id (tmux session was renamed)
+            if (result.session_id) {
+                state.currentSession.session_id = result.session_id;
+            }
+            if (result.agent_name) {
+                state.currentSession.name = result.agent_name;
+                document.getElementById("session-name").textContent = result.agent_name;
+            }
             showToast(`Restarted: ${state.currentSession.name}`);
         }
     } catch (e) {

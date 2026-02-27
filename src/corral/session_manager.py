@@ -9,6 +9,7 @@ import platform
 import re
 import shutil
 import time
+import uuid as _uuid
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,14 @@ ANSI_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 STATUS_RE = re.compile(r"\|\|PULSE:STATUS (.*?)\|\|")
 SUMMARY_RE = re.compile(r"\|\|PULSE:SUMMARY (.*?)\|\|")
+
+# Regex to parse new-format tmux session names: {agent_type}-{uuid}
+_UUID_RE = re.compile(
+    r"^(\w+)-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
+    re.IGNORECASE,
+)
+# Regex to parse old-format tmux session names: {agent_type}-agent-{N}
+_OLD_SESSION_RE = re.compile(r"^(\w+)-agent-(\d+)$", re.IGNORECASE)
 
 
 def strip_ansi(text: str) -> str:
@@ -34,75 +43,85 @@ def clean_match(text: str) -> str:
 
 
 async def discover_corral_agents() -> list[dict[str, Any]]:
-    """Return list of agent dicts from corral log files, sorted by name.
+    """Discover live corral agents from tmux sessions.
 
-    Cross-references log files against live tmux sessions and removes
-    stale log files whose sessions no longer exist.
+    Parses tmux session names to extract session_id (new UUID format)
+    or falls back to old agent-N naming. Derives agent_name from the
+    pane's working directory.
     """
     from glob import glob
-    
+
     panes = await list_tmux_sessions()
-    live_sessions = {s["session_name"].lower() for s in panes}
-    # Also collect pane titles and working-dir basenames for matching
-    live_tokens: set[str] = set()
-    for s in panes:
-        live_tokens.add(s["pane_title"].lower())
-        live_tokens.add(s["session_name"].lower())
-        path_base = os.path.basename(s.get("current_path", "").rstrip("/")).lower()
-        if path_base:
-            live_tokens.add(path_base)
-
     results = []
-    for log_path in sorted(glob(LOG_PATTERN)):
-        p = Path(log_path)
-        match = re.search(r"([^_]+)_corral_(.+)", p.stem)
-        if not match:
-            continue
+    seen_session_ids: set[str] = set()
 
-        agent_type = match.group(1)
-        agent_name = match.group(2)
-        agent_low = agent_name.lower()
-        norm_name = agent_name.replace("_", "-").lower()
+    for pane in panes:
+        session_name = pane["session_name"]
+        current_path = pane.get("current_path", "")
+        agent_name = os.path.basename(current_path.rstrip("/")) if current_path else ""
 
-        # Check if any live tmux pane matches this agent
-        alive = any(
-            agent_low in tok or norm_name in tok
-            for tok in live_tokens
-        )
+        # Match new format: {agent_type}-{uuid}
+        m = _UUID_RE.match(session_name)
+        if not m:
+            continue  # not a corral session
 
-        if alive:
-            results.append({
-                "agent_type": agent_type,
-                "agent_name": agent_name,
-                "log_path": str(p),
-            })
-        else:
-            # Stale log — remove it
+        agent_type = m.group(1)
+        session_id = m.group(2).lower()
+        if session_id in seen_session_ids:
+            continue  # skip duplicate panes of same session
+        seen_session_ids.add(session_id)
+
+        log_path = os.path.join(LOG_DIR, f"{agent_type}_corral_{session_id}.log")
+        results.append({
+            "agent_type": agent_type,
+            "agent_name": agent_name or session_id[:8],
+            "session_id": session_id,
+            "tmux_session": session_name,
+            "log_path": log_path,
+        })
+
+    # Clean up stale log files that don't match any live session
+    live_log_paths = {r["log_path"] for r in results}
+    for log_path in glob(LOG_PATTERN):
+        if log_path not in live_log_paths:
             try:
-                p.unlink()
+                Path(log_path).unlink()
             except OSError:
                 pass
 
-    return results
+    return sorted(results, key=lambda r: r["agent_name"])
 
 
-def get_agent_log_path(agent_name: str, agent_type: str | None = None) -> Path | None:
-    """Find the log file for a given agent name.
+def get_agent_log_path(
+    agent_name: str, agent_type: str | None = None, session_id: str | None = None,
+) -> Path | None:
+    """Find the log file for a given agent name or session_id.
 
-    When *agent_type* is provided the match is narrowed to the log whose
-    prefix matches (e.g. ``claude_corral_X`` vs ``gemini_corral_X``).
+    When *session_id* is provided, looks for ``{type}_corral_{session_id}.log``
+    first. Falls back to matching by agent_name.
     """
     from glob import glob
-    
+
+    # Fast path: session_id-based log file
+    if session_id:
+        if agent_type:
+            p = Path(LOG_DIR) / f"{agent_type}_corral_{session_id}.log"
+            if p.exists():
+                return p
+        # Try any type prefix
+        for log_path in glob(os.path.join(LOG_DIR, f"*_corral_{session_id}.log")):
+            return Path(log_path)
+
+    # Fallback: match by agent_name
     best: Path | None = None
     for log_path in glob(LOG_PATTERN):
         p = Path(log_path)
         match = re.search(r"([^_]+)_corral_(.+)", p.stem)
         if match and match.group(2) == agent_name:
             if agent_type and match.group(1).lower() == agent_type.lower():
-                return p  # exact match — return immediately
+                return p
             if best is None:
-                best = p  # keep as fallback
+                best = p
     return best
 
 
@@ -210,14 +229,26 @@ async def list_tmux_sessions() -> list[dict[str, str]]:
         return []
 
 
-async def _find_pane(agent_name: str, agent_type: str | None = None) -> dict[str, str] | None:
-    """Find the tmux pane dict for a given agent name.
+async def _find_pane(
+    agent_name: str,
+    agent_type: str | None = None,
+    session_id: str | None = None,
+) -> dict[str, str] | None:
+    """Find the tmux pane dict for a given agent.
 
-    Matches against pane title, session name, and current working directory.
-    When *agent_type* is provided, panes whose title or session name also
-    contain the agent type are preferred (disambiguates same-worktree agents).
+    When *session_id* is provided, matches by tmux session name containing
+    that UUID (new format). Falls back to fuzzy agent_name matching.
     """
     sessions = await list_tmux_sessions()
+
+    # Fast path: match by session_id in tmux session name
+    if session_id:
+        sid_low = session_id.lower()
+        for s in sessions:
+            if sid_low in s["session_name"].lower():
+                return s
+
+    # Fallback: fuzzy match by agent_name
     agent_low = agent_name.lower()
     norm_name = agent_name.replace("_", "-").lower()
     type_low = agent_type.lower() if agent_type else None
@@ -251,16 +282,19 @@ async def _find_pane(agent_name: str, agent_type: str | None = None) -> dict[str
     return fallback
 
 
-async def get_session_info(agent_name: str, agent_type: str | None = None) -> dict[str, Any] | None:
+async def get_session_info(
+    agent_name: str, agent_type: str | None = None, session_id: str | None = None,
+) -> dict[str, Any] | None:
     """Return enriched metadata for a live session (used by the Info modal)."""
-    pane = await _find_pane(agent_name, agent_type)
+    pane = await _find_pane(agent_name, agent_type, session_id=session_id)
     if not pane:
         return None
 
-    log_path = get_agent_log_path(agent_name, agent_type)
+    log_path = get_agent_log_path(agent_name, agent_type, session_id=session_id)
     return {
         "agent_name": agent_name,
         "agent_type": agent_type or "claude",
+        "session_id": session_id,
         "tmux_session_name": pane["session_name"],
         "tmux_target": pane["target"],
         "tmux_command": f"tmux attach -t {pane['session_name']}",
@@ -270,15 +304,19 @@ async def get_session_info(agent_name: str, agent_type: str | None = None) -> di
     }
 
 
-async def find_pane_target(agent_name: str, agent_type: str | None = None) -> str | None:
+async def find_pane_target(
+    agent_name: str, agent_type: str | None = None, session_id: str | None = None,
+) -> str | None:
     """Find the tmux pane target address for a given agent name."""
-    pane = await _find_pane(agent_name, agent_type)
+    pane = await _find_pane(agent_name, agent_type, session_id=session_id)
     return pane["target"] if pane else None
 
 
-async def send_to_tmux(agent_name: str, command: str, agent_type: str | None = None) -> str | None:
+async def send_to_tmux(
+    agent_name: str, command: str, agent_type: str | None = None, session_id: str | None = None,
+) -> str | None:
     """Send a command to the tmux pane for the given agent. Returns error string or None."""
-    target = await find_pane_target(agent_name, agent_type)
+    target = await find_pane_target(agent_name, agent_type, session_id=session_id)
     if not target:
         return f"Pane '{agent_name}' not found in any tmux session"
 
@@ -305,9 +343,11 @@ async def send_to_tmux(agent_name: str, command: str, agent_type: str | None = N
         return str(e)
 
 
-async def send_raw_keys(agent_name: str, keys: list[str], agent_type: str | None = None) -> str | None:
+async def send_raw_keys(
+    agent_name: str, keys: list[str], agent_type: str | None = None, session_id: str | None = None,
+) -> str | None:
     """Send raw tmux key names (e.g. BTab, Escape) to a pane. Returns error string or None."""
-    target = await find_pane_target(agent_name, agent_type)
+    target = await find_pane_target(agent_name, agent_type, session_id=session_id)
     if not target:
         return f"Pane '{agent_name}' not found in any tmux session"
 
@@ -324,9 +364,11 @@ async def send_raw_keys(agent_name: str, keys: list[str], agent_type: str | None
         return str(e)
 
 
-async def capture_pane(agent_name: str, lines: int = 200, agent_type: str | None = None) -> str | None:
+async def capture_pane(
+    agent_name: str, lines: int = 200, agent_type: str | None = None, session_id: str | None = None,
+) -> str | None:
     """Capture the current content of a tmux pane. Returns text or None on error."""
-    target = await find_pane_target(agent_name, agent_type)
+    target = await find_pane_target(agent_name, agent_type, session_id=session_id)
     if not target:
         return None
 
@@ -341,12 +383,14 @@ async def capture_pane(agent_name: str, lines: int = 200, agent_type: str | None
         return None
 
 
-async def kill_session(agent_name: str, agent_type: str | None = None) -> str | None:
+async def kill_session(
+    agent_name: str, agent_type: str | None = None, session_id: str | None = None,
+) -> str | None:
     """Kill the tmux session for a given agent and remove its log file.
 
     Returns error string or None.
     """
-    pane = await _find_pane(agent_name, agent_type)
+    pane = await _find_pane(agent_name, agent_type, session_id=session_id)
     if not pane:
         return f"Pane '{agent_name}' not found in any tmux session"
 
@@ -359,7 +403,7 @@ async def kill_session(agent_name: str, agent_type: str | None = None) -> str | 
             return f"kill-session failed: {stderr}"
 
         # Remove the log file so the agent disappears from discover_corral_agents
-        log_path = get_agent_log_path(agent_name, agent_type)
+        log_path = get_agent_log_path(agent_name, agent_type, session_id=session_id)
         if log_path:
             try:
                 log_path.unlink()
@@ -412,7 +456,13 @@ def _ensure_session_in_project_dir(session_id: str, working_dir: str) -> None:
         shutil.copytree(source_dir, target_dir)
 
 
-async def restart_session(agent_name: str, agent_type: str | None = None, resume_session_id: str | None = None, extra_flags: str | None = None) -> dict[str, Any]:
+async def restart_session(
+    agent_name: str,
+    agent_type: str | None = None,
+    resume_session_id: str | None = None,
+    extra_flags: str | None = None,
+    session_id: str | None = None,
+) -> dict[str, Any]:
     """Restart the Claude/Gemini session in the same tmux pane.
 
     Uses ``tmux respawn-pane -k`` to forcefully kill the running process
@@ -425,7 +475,7 @@ async def restart_session(agent_name: str, agent_type: str | None = None, resume
 
     Returns a dict with result info or an ``error`` key.
     """
-    pane = await _find_pane(agent_name, agent_type)
+    pane = await _find_pane(agent_name, agent_type, session_id=session_id)
     if not pane:
         return {"error": f"Pane '{agent_name}' not found in any tmux session"}
 
@@ -443,45 +493,65 @@ async def restart_session(agent_name: str, agent_type: str | None = None, resume
         _ensure_session_in_project_dir(resume_session_id, working_dir)
 
     try:
-        # 0. Resolve the log file path BEFORE killing the pane so glob lookup
-        #    isn't racing against a cleared file.  Fall back to a deterministic
-        #    path constructed from the agent info if glob matching fails.
-        log_path = get_agent_log_path(agent_name, agent_type)
-        if log_path is None:
-            log_path = Path(LOG_DIR) / f"{effective_type}_corral_{agent_name}.log"
-        log_file = str(log_path)
+        # 0. Generate a new UUID for the restarted session.  This UUID is
+        #    used for *both* the tmux session name and the Claude --session-id
+        #    so that discover_corral_agents, the log file, and Claude all
+        #    agree on the same identifier.
+        new_session_id = str(_uuid.uuid4())
+        new_session_name = f"{effective_type}-{new_session_id}"
+        new_log_path = Path(LOG_DIR) / f"{effective_type}_corral_{new_session_id}.log"
+        new_log_file = str(new_log_path)
 
         # 0b. Explicitly close any existing pipe-pane so respawn-pane doesn't
         #     leave a stale pipe that swallows output.
         await run_cmd("tmux", "pipe-pane", "-t", target)
 
-        # 1. Kill the running process and respawn a fresh shell in the same pane
-        rc, _, stderr = await run_cmd(
-            "tmux", "respawn-pane", "-k", "-t", target
-        )
+        # 1. Kill the running process and respawn a fresh shell in the same pane.
+        respawn_args = ["tmux", "respawn-pane", "-k", "-t", target]
+        if working_dir:
+            respawn_args.extend(["-c", working_dir])
+        rc, _, stderr = await run_cmd(*respawn_args)
         if rc != 0:
             return {"error": f"respawn-pane failed: {stderr}"}
+
+        # 2. Rename the tmux session so discover_corral_agents picks up
+        #    the new UUID from the session name.
+        rc, _, stderr = await run_cmd(
+            "tmux", "rename-session", "-t", session_name, new_session_name
+        )
+        if rc != 0:
+            return {"error": f"rename-session failed: {stderr}"}
+
+        # The target has changed after rename — update for subsequent commands.
+        # Use the new session name with pane 0.
+        target = f"{new_session_name}:0.0"
 
         # Wait for the shell to initialise
         await asyncio.sleep(1)
 
-        # 1b. Clear the tmux pane scrollback so capture_pane returns fresh content
+        # 2b. Clear the tmux pane scrollback so capture_pane returns fresh content
         await run_cmd(
             "tmux", "clear-history", "-t", target
         )
 
-        # 2. Clear the log file so the dashboard starts fresh
+        # 3. Remove the old log file and create a fresh one for the new session
+        old_log_path = get_agent_log_path(agent_name, agent_type, session_id=session_id)
+        if old_log_path and old_log_path.exists():
+            try:
+                old_log_path.unlink()
+            except OSError:
+                pass
         try:
-            log_path.write_text("")
+            new_log_path.write_text("")
         except OSError:
             pass
 
-        # 3. Re-establish pipe-pane logging
+        # 4. Establish pipe-pane logging for the new log file
         await run_cmd(
-            "tmux", "pipe-pane", "-t", target, "-o", f"cat >> '{log_file}'"
+            "tmux", "pipe-pane", "-t", target, "-o", f"cat >> '{new_log_file}'"
         )
 
-        # 4. Restore the pane title
+        # 5. Restore the pane title
         folder_name = os.path.basename(working_dir.rstrip("/")) if working_dir else agent_name
         await run_cmd(
             "tmux", "send-keys", "-t", target,
@@ -489,7 +559,7 @@ async def restart_session(agent_name: str, agent_type: str | None = None, resume
         )
         await asyncio.sleep(0.3)
 
-        # 5. Re-launch the agent with the same system prompt
+        # 6. Re-launch the agent with the same system prompt
         script_dir = Path(__file__).parent
         protocol_path = script_dir / "PROTOCOL.md"
 
@@ -504,6 +574,8 @@ async def restart_session(agent_name: str, agent_type: str | None = None, resume
             parts = ["claude"]
             if resume_session_id:
                 parts.append(f"--resume {resume_session_id}")
+            else:
+                parts.append(f"--session-id {new_session_id}")
             if protocol_path.exists():
                 parts.append(f"--append-system-prompt \"$(cat '{protocol_path}')\"")
             if extra_flags:
@@ -527,18 +599,21 @@ async def restart_session(agent_name: str, agent_type: str | None = None, resume
             "agent_name": agent_name,
             "agent_type": effective_type,
             "working_dir": working_dir,
+            "session_id": new_session_id,
         }
     except Exception as e:
         return {"error": str(e)}
 
 
-async def open_terminal_attached(agent_name: str, agent_type: str | None = None) -> str | None:
+async def open_terminal_attached(
+    agent_name: str, agent_type: str | None = None, session_id: str | None = None,
+) -> str | None:
     """Open a local terminal window attached to the agent's tmux session.
 
     Returns an error string on failure, or None on success.
     Uses osascript on macOS, or falls back to common terminal emulators on Linux.
     """
-    pane = await _find_pane(agent_name, agent_type)
+    pane = await _find_pane(agent_name, agent_type, session_id=session_id)
     if not pane:
         return f"Pane '{agent_name}' not found in any tmux session"
 
@@ -822,7 +897,7 @@ def load_history_session_messages(session_id: str) -> list[dict[str, Any]]:
 async def launch_claude_session(working_dir: str, agent_type: str = "claude") -> dict[str, str]:
     """Launch a new tmux session with a Claude/Gemini agent.
 
-    Returns dict with session_name, log_file, and any error.
+    Returns dict with session_name, session_id, log_file, and any error.
     """
     working_dir = os.path.abspath(working_dir)
     if not os.path.isdir(working_dir):
@@ -831,15 +906,9 @@ async def launch_claude_session(working_dir: str, agent_type: str = "claude") ->
     folder_name = os.path.basename(working_dir)
     log_dir = os.environ.get("TMPDIR", "/tmp").rstrip("/")
 
-    # Find next available agent index
-    existing = await list_tmux_sessions()
-    existing_names = {s["session_name"] for s in existing}
-    idx = 1
-    while f"{agent_type}-agent-{idx}" in existing_names:
-        idx += 1
-
-    session_name = f"{agent_type}-agent-{idx}"
-    log_file = f"{log_dir}/{agent_type}_corral_{folder_name}.log"
+    session_id = str(_uuid.uuid4())
+    session_name = f"{agent_type}-{session_id}"
+    log_file = f"{log_dir}/{agent_type}_corral_{session_id}.log"
 
     try:
         # Clear old log
@@ -875,10 +944,10 @@ async def launch_claude_session(working_dir: str, agent_type: str = "claude") ->
             else:
                 cmd = "gemini"
         else:
+            parts = [f"claude --session-id {session_id}"]
             if protocol_path.exists():
-                cmd = f"claude --append-system-prompt \"$(cat '{protocol_path}')\""
-            else:
-                cmd = "claude"
+                parts.append(f"--append-system-prompt \"$(cat '{protocol_path}')\"")
+            cmd = " ".join(parts)
 
         await asyncio.create_subprocess_exec(
             "tmux", "send-keys", "-t", f"{session_name}.0", cmd, "Enter"
@@ -886,6 +955,7 @@ async def launch_claude_session(working_dir: str, agent_type: str = "claude") ->
 
         return {
             "session_name": session_name,
+            "session_id": session_id,
             "log_file": log_file,
             "working_dir": working_dir,
             "agent_type": agent_type,
