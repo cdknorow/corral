@@ -1,10 +1,10 @@
 # Corral 🤠 ➰ 🤖 🤖 
 
-<p align="center">
-  <img src="corral-dashboard-tour.gif" alt="Corral Dashboard Tour" width="800" />
-</p>
 
 Take back some control and fight AI fatigue with corral. A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
+
+
+<img width="1504" height="824" alt="image" src="https://github.com/user-attachments/assets/18fe9a2b-c00b-445e-8bb0-b6a3b2c55e60" />
 
 ## Features
 
@@ -17,6 +17,10 @@ Take back some control and fight AI fatigue with corral. A multi-agent orchestra
 - **Remote control** — Send commands, navigate modes, and manage agents from the dashboard
 - **Attach/Kill/Restart/Resume** — Open a terminal attached to any agent's tmux session, or kill it directly from the UI, or relaunch as a neew session
 - **Git integration & PR Linking** Tracks, commits, and remote URL per agent & session
+
+<p align="center">
+  <img src="corral-dashboard-tour.gif" alt="Corral Dashboard Tour" width="800" />
+</p>
 
 ## Installation
 
