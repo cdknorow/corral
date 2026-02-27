@@ -243,4 +243,13 @@ export function sendResetCommand() {
 export function updateSidebarActive() {
     document.querySelectorAll(".session-list li").forEach(li => li.classList.remove("active"));
     if (state.liveSessions.length) renderLiveSessions(state.liveSessions);
+
+    // Highlight the active history session by matching onclick session_id
+    if (state.currentSession && state.currentSession.type === "history") {
+        const sid = state.currentSession.name;
+        document.querySelectorAll("#history-sessions-list li").forEach(li => {
+            const onclick = li.getAttribute("onclick") || "";
+            if (onclick.includes(sid)) li.classList.add("active");
+        });
+    }
 }
