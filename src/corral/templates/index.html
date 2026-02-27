@@ -9,14 +9,16 @@
 <body>
     <header class="top-bar">
         <h1>Agent Corral</h1>
-        <button id="btn-new-session" class="btn btn-primary" onclick="showLaunchModal()">+ New Session</button>
     </header>
 
     <div class="layout">
         <!-- Left Sidebar -->
         <aside class="sidebar">
             <section class="sidebar-section">
-                <h2>Live Sessions</h2>
+                <div class="sidebar-section-header">
+                    <h2>Live Sessions</h2>
+                    <button class="btn btn-small btn-primary sidebar-new-btn" onclick="showLaunchModal()">+ New</button>
+                </div>
                 <ul id="live-sessions-list" class="session-list">
                     <li class="empty-state">No live sessions</li>
                 </ul>

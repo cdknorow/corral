@@ -97,6 +97,23 @@ body {
     overflow-y: auto;
 }
 
+.sidebar-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px 8px 16px;
+}
+
+.sidebar-section-header h2 {
+    padding: 0;
+}
+
+.sidebar-new-btn {
+    margin: 0 !important;
+    padding: 2px 8px !important;
+    font-size: 11px !important;
+}
+
 .sidebar-section h2 {
     font-size: 11px;
     font-weight: 600;
