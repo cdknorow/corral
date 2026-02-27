@@ -1,27 +1,22 @@
-# Corral
+# Corral 🐄 Your AI Agents
 
 <!-- TODO: Add a high-quality GIF here demonstrating launching the corral and the real-time web dashboard. -->
 <img width="1512" height="822" alt="image" src="https://github.com/user-attachments/assets/7534c1c4-5431-4e63-a5e3-4ec667e8bcb5" />
 
-
-Take back some control and fight ai agent fatigure with corral. A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
-
-> **Note:** This system is currently mostly tested with Claude Code and to some extent Gemini CLI. However, the underlying architecture is designed to support other agents, which can be integrated with some additional work from others.
+Take back some control and fight AI fatigue with corral. A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
 
 ## Features
 
-- **Multi-agent support** — Launch and manage both Claude and Gemini agents side-by-side
-- **Parallel worktrees** — Each agent runs in its own git worktree and tmux session
+- **Multi-agent support** — Launch and manage both Claude and Gemini agents side-by-side across worktrees
 - **Web dashboard** — Real-time monitoring with pane capture, status tracking, and command input
 - **Session history** — Browse past sessions from both Claude (`~/.claude/projects/`) and Gemini (`~/.gemini/tmp/`)
 - **Full-text search** — Search across all session content using FTS5
 - **Auto-summarization** — Background summarization of sessions using Claude
 - **Session notes & tags** — Add markdown notes and color-coded tags to any session
 - **Remote control** — Send commands, navigate modes, and manage agents from the dashboard
-- **Attach / Kill** — Open a terminal attached to any agent's tmux session, or kill it directly from the UI
-- **Git integration** — Background polling tracks branch, commits, and remote URL per agent
-- **PR linking** — Stored remote URLs enable linking sessions to pull requests
-- **Stale session cleanup** — Dead sessions are automatically detected and removed
+- **Attach/Kill/Restart/Resume** — Open a terminal attached to any agent's tmux session, or kill it directly from the UI, or relaunch as a neew session
+- **Git integration & PR Linking** Tracks, commits, and remote URL per agent
+
 
 ## Installation
 
@@ -39,24 +34,6 @@ pip install git+https://github.com/cdknorow/corral.git
 
 ## Usage
 
-### Claude Code Hooks (settings.json)
-
-To fully integrate Claude Code's agentic state and task management into the Corral dashboard, configure the provided `corral-hook` scripts in your Claude Code `settings.json` (usually located at `~/.claude.json` or `~/.claude/settings.json`).
-
-If you are already using other configuration options like a custom `statusLine` or other hooks, simply merge these hook definitions into your existing JSON:
-
-```json
-{
-  "agenticStateHook": {
-    "type": "command",
-    "command": "corral-hook-agentic-state"
-  },
-  "taskStateHook": {
-    "type": "command",
-    "command": "corral-hook-task-sync"
-  }
-}
-```
 
 ### Launch agents and web dashboard
 
@@ -69,12 +46,10 @@ launch-corral
 # Launch Gemini agents from a specific path
 launch-corral <path-to-root> gemini
 
-# Override the default web dashboard port (default: 8420)
-CORRAL_PORT=9000 launch-corral .
-
-# Skip launching the web server
-SKIP_WEB_SERVER=1 launch-corral .
 ```
+
+> **Note:** This system is currently mostly tested with Claude Code and to some extent Gemini CLI. However, the underlying architecture is designed to support other agents, which can be integrated with some additional work from others.
+
 
 ### Web dashboard (standalone)
 
@@ -87,8 +62,60 @@ corral-dashboard
 # Custom host/port
 corral-dashboard --host 127.0.0.1 --port 9000
 
-# Auto-reload for development
-corral-dashboard --reload
+```
+
+
+### Claude Code Hooks (settings.json)
+
+To fully integrate Claude Code's agentic state and task management into the Corral dashboard, configure the provided `corral-hook` scripts in your Claude Code `settings.json` (usually located at `~/.claude.json` or `~/.claude/settings.json`).
+
+If you are already using other configuration options like a custom `statusLine` or other hooks, simply merge these hook definitions into your existing JSON:
+
+```json
+"hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "TaskCreate|TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "corral-hook-task-sync"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "corral-hook-agentic-state"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "corral-hook-agentic-state"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "corral-hook-agentic-state"
+          }
+        ]
+      }
+    ]
+
 ```
 
 ### Managing sessions from the dashboard
@@ -182,7 +209,6 @@ Agents emit structured markers using the `||PULSE:<EVENT_TYPE> <payload>||` form
 ```
 
 The protocol is automatically injected via `PROTOCOL.md` when launching agents. See [`src/corral/PROTOCOL.md`](src/corral/PROTOCOL.md) for the full specification.
-
 
 
 ## Advanced Information

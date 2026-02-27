@@ -17,8 +17,8 @@ To run the web dashboard locally with auto-reload for development:
 
 ```bash
 # Clone the repository
-git clone https://github.com/cdknorow/workflow_orchestration.git
-cd workflow_orchestration
+git clone https://github.com/cdknorow/corral.git
+cd corral
 
 # Install in editable mode with development dependencies
 pip install -e ".[dev]"
