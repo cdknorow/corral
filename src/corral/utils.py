@@ -17,8 +17,21 @@ HISTORY_PATH = Path(os.environ.get("CLAUDE_PROJECTS_DIR", Path.home() / ".claude
 GEMINI_HISTORY_BASE = Path(os.environ.get("GEMINI_TMP_DIR", Path.home() / ".gemini" / "tmp"))
 
 
+def _hook_entry_exists(matcher_groups: list, command: str) -> bool:
+    """Check if a hook command already exists in a list of matcher groups."""
+    for group in matcher_groups:
+        for hook in group.get("hooks", []):
+            if hook.get("command") == command:
+                return True
+    return False
+
+
 def install_hooks():
-    """Ensure Claude hooks for Corral are installed in settings.local.json."""
+    """Ensure Claude hooks for Corral are installed in settings.local.json.
+
+    Merges corral hooks into existing user hooks without overriding them.
+    Skips any hook that is already present (matched by command name).
+    """
     settings_path = Path.home() / ".claude" / "settings.local.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -27,21 +40,35 @@ def install_hooks():
     else:
         settings = {}
 
-    hooks = {
-        "agenticStateHook": {
-            "type": "command",
-            "command": "corral-hook-agentic-state",
-        },
-        "taskStateHook": {
-            "type": "command",
-            "command": "corral-hook-task-sync",
-        },
-    }
+    # Clean up any old-format keys from previous versions
+    for old_key in ("agenticStateHook", "taskStateHook"):
+        settings.pop(old_key, None)
+
+    hooks = settings.setdefault("hooks", {})
+
+    # Hooks we want to ensure exist: (event, matcher_group_to_add)
+    desired = [
+        ("PostToolUse", {
+            "matcher": "TaskCreate|TaskUpdate",
+            "hooks": [{"type": "command", "command": "corral-hook-task-sync"}],
+        }),
+        ("PostToolUse", {
+            "hooks": [{"type": "command", "command": "corral-hook-agentic-state"}],
+        }),
+        ("Stop", {
+            "hooks": [{"type": "command", "command": "corral-hook-agentic-state"}],
+        }),
+        ("Notification", {
+            "hooks": [{"type": "command", "command": "corral-hook-agentic-state"}],
+        }),
+    ]
 
     modified = False
-    for key, value in hooks.items():
-        if settings.get(key) != value:
-            settings[key] = value
+    for event, group in desired:
+        event_list = hooks.setdefault(event, [])
+        command = group["hooks"][0]["command"]
+        if not _hook_entry_exists(event_list, command):
+            event_list.append(group)
             modified = True
 
     if modified:
