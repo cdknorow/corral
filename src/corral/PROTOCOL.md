@@ -79,6 +79,44 @@ If you do not emit a `||PULSE:SUMMARY||` line, the Goal box on your dashboard ca
 
 ---
 
+### Confidence Reporting (Optional)
+
+From time to time, emit a confidence pulse to let the operator know how certain you are about a decision, piece of advice, or idea. This helps the operator gauge when to trust your output and when to double-check.
+
+**Format:**
+
+```
+||PULSE:CONFIDENCE <1-5> <short reason>||
+```
+
+The score is an integer from 1 to 5:
+
+| Score | Meaning |
+|---|---|
+| 5 | Very confident — well-understood, standard approach |
+| 4 | Confident — strong evidence, minor unknowns |
+| 3 | Moderate — reasonable approach but notable uncertainty |
+| 2 | Low — best guess, limited context or evidence |
+| 1 | Speculative — significant unknowns, needs verification |
+
+**Examples:**
+
+```
+||PULSE:CONFIDENCE 5 This is a straightforward null-check fix||
+||PULSE:CONFIDENCE 3 Auth library API may have changed since my training data||
+||PULSE:CONFIDENCE 2 Guessing at the root cause — need more debugging||
+||PULSE:CONFIDENCE 4 This refactor follows the existing patterns in the codebase||
+```
+
+**Guidelines:**
+
+1. Emit when making architectural decisions, suggesting fixes, or giving advice where your certainty matters.
+2. Do **not** emit on every action — only when the confidence level would be useful context for the operator.
+3. Keep the reason short (under 80 characters).
+4. Be honest — a low score with a clear reason is more useful than inflated confidence.
+
+---
+
 ## How It Works
 
 - Each agent runs in a separate tmux window.
