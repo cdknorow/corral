@@ -136,6 +136,27 @@ Features:
 - **URL bookmarking** — Session URLs use hash routing (`#session/<id>`) so you can bookmark or share links
 - **Notes & tags** — Add markdown notes and color-coded tags to any session, stored in `~/.corral/sessions.db`
 
+### Remote server development (SSH port forwarding)
+
+If you're running Corral on a remote server, forward the dashboard port over SSH to access it in your local browser:
+
+```bash
+# Forward remote port 8420 to localhost:8420
+ssh -L 8420:localhost:8420 user@remote-host
+
+# If using a custom port
+ssh -L 9000:localhost:9000 user@remote-host
+```
+
+Then open `http://localhost:8420` (or your custom port) in your local browser. You can add this to your `~/.ssh/config` to make it persistent:
+
+```
+Host my-dev-server
+    HostName remote-host
+    User user
+    LocalForward 8420 localhost:8420
+```
+
 ### Manual tmux management
 
 ```bash
