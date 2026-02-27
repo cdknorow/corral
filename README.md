@@ -12,7 +12,7 @@ Take back some control and fight AI fatigue with corral. A multi-agent orchestra
 - **Session history** — Browse past sessions from both Claude and Gemini
 - **Full-text search** — Search across all session content 
 - **Auto-summarization** — Summarization of sessions are stored for text search later
-- **Session notes & activity ** — Add markdown notes and see the activty that occured in each seassion live and historically
+- **Session Notes & Activity** — Add markdown notes and see the activty that occured in each seassion live and historically
 - **Remote control** — Send commands, navigate modes, and manage agents from the dashboard
 - **Attach/Kill/Restart/Resume** — Open a terminal attached to any agent's tmux session, or kill it directly from the UI, or relaunch as a neew session
 - **Git integration & PR Linking** Tracks, commits, and remote URL per agent & session
