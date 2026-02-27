@@ -313,9 +313,10 @@ async def kill_live_session(name: str, body: dict | None = None):
 async def restart_live_session(name: str, body: dict | None = None):
     """Restart the agent session: exit the current session and launch a fresh one in the same pane."""
     agent_type = (body or {}).get("agent_type") or None
+    extra_flags = (body or {}).get("extra_flags") or None
     # Clear session_id so the new session starts with a clean task/event slate
     await store.clear_agent_session_id(name)
-    result = await restart_session(name, agent_type=agent_type)
+    result = await restart_session(name, agent_type=agent_type, extra_flags=extra_flags)
     return result
 
 

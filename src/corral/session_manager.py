@@ -412,7 +412,7 @@ def _ensure_session_in_project_dir(session_id: str, working_dir: str) -> None:
         shutil.copytree(source_dir, target_dir)
 
 
-async def restart_session(agent_name: str, agent_type: str | None = None, resume_session_id: str | None = None) -> dict[str, Any]:
+async def restart_session(agent_name: str, agent_type: str | None = None, resume_session_id: str | None = None, extra_flags: str | None = None) -> dict[str, Any]:
     """Restart the Claude/Gemini session in the same tmux pane.
 
     Uses ``tmux respawn-pane -k`` to forcefully kill the running process
@@ -498,12 +498,16 @@ async def restart_session(agent_name: str, agent_type: str | None = None, resume
                 cmd = f'GEMINI_SYSTEM_MD="{protocol_path}" gemini'
             else:
                 cmd = "gemini"
+            if extra_flags:
+                cmd += f" {extra_flags}"
         else:
             parts = ["claude"]
             if resume_session_id:
                 parts.append(f"--resume {resume_session_id}")
             if protocol_path.exists():
                 parts.append(f"--append-system-prompt \"$(cat '{protocol_path}')\"")
+            if extra_flags:
+                parts.append(extra_flags)
             cmd = " ".join(parts)
 
         rc, _, stderr = await run_cmd(

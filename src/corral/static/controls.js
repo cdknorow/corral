@@ -158,16 +158,24 @@ export async function restartSession() {
         return;
     }
 
-    if (!confirm(`Restart session "${state.currentSession.name}"? This will exit the current session and start a fresh one with the same system prompt.`)) {
+    const extraFlags = prompt(
+        `Restart session "${state.currentSession.name}"?\n\nOptional extra flags (e.g. --chrome):`,
+        ""
+    );
+    if (extraFlags === null) {
         return;
     }
 
     try {
         showToast(`Restarting ${state.currentSession.name}...`);
+        const payload = { agent_type: state.currentSession.agent_type };
+        if (extraFlags.trim()) {
+            payload.extra_flags = extraFlags.trim();
+        }
         const resp = await fetch(`/api/sessions/live/${encodeURIComponent(state.currentSession.name)}/restart`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agent_type: state.currentSession.agent_type }),
+            body: JSON.stringify(payload),
         });
         const result = await resp.json();
         if (result.error) {
