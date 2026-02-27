@@ -660,13 +660,20 @@ async def ws_corral(websocket: WebSocket):
 
 
 def main():
+    import threading
+    import webbrowser
     import uvicorn
 
     parser = argparse.ArgumentParser(description="Corral Dashboard")
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=8420, help="Port to bind to (default: 8420)")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
+    parser.add_argument("--no-browser", action="store_true", help="Don't open the browser on startup")
     args = parser.parse_args()
+
+    if not args.no_browser:
+        url = f"http://localhost:{args.port}"
+        threading.Timer(1.5, webbrowser.open, args=(url,)).start()
 
     uvicorn.run(
         "corral.web_server:app",

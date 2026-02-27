@@ -26,7 +26,7 @@ launch_web_server() {
 
     # Prefer the installed entry point
     if command -v corral &>/dev/null; then
-        cmd="corral --port $WEB_PORT"
+        cmd="corral --no-browser --port $WEB_PORT"
     elif [ ! -f "$WEB_SERVER_PATH" ]; then
         echo "  [!] Web server skip: web_server.py not found and corral not in PATH."
         return 1
@@ -159,6 +159,16 @@ done
 
 
 launch_web_server
+
+# Open the dashboard in the default browser
+if [ -z "${SSH_CONNECTION:-}" ]; then
+    sleep 1
+    if command -v open &>/dev/null; then
+        open "http://localhost:$WEB_PORT"
+    elif command -v xdg-open &>/dev/null; then
+        xdg-open "http://localhost:$WEB_PORT" &>/dev/null &
+    fi
+fi
 
 echo "=== All sessions launched ==="
 echo ""
