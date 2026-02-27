@@ -1,7 +1,8 @@
-# Corral 🤠 ➰ 🤖 🤖 
+<img width="4160" height="1024" alt="Gemini_Generated_Image_pftejmpftejmpfte" src="https://github.com/user-attachments/assets/c49e0ddb-bff5-4301-9606-75170009c486" />
 
 
-Take back some control and fight AI fatigue with corral. A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux.
+Take back  control and fight AI fatigue with corral 🤠 ➰ 🤖 🤖. A multi-agent orchestration application for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux and FastAPI server running locally on your local or remote machine.
+
 
 
 <img width="1504" height="824" alt="image" src="https://github.com/user-attachments/assets/18fe9a2b-c00b-445e-8bb0-b6a3b2c55e60" />
