@@ -63,6 +63,9 @@ async def lifespan(app: FastAPI):
     """Start background indexer, batch summarizer, and git poller on server startup."""
     from corral.session_indexer import SessionIndexer, BatchSummarizer
     from corral.git_poller import GitPoller
+    from corral.utils import install_hooks
+
+    install_hooks()
 
     # Seed _last_known from DB so we don't re-insert events already stored.
     _last_known.update(await store.get_last_known_status_summary())

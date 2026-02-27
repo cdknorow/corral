@@ -6,6 +6,10 @@ from pathlib import Path
 
 
 def main():
+    from corral.utils import install_hooks
+
+    install_hooks()
+
     script = Path(__file__).parent / "launch_agents.sh"
     if not script.exists():
         print(f"Error: launch_agents.sh not found at {script}", file=sys.stderr)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -14,6 +15,37 @@ LOG_PATTERN = f"{LOG_DIR}/*_corral_*.log"
 
 HISTORY_PATH = Path(os.environ.get("CLAUDE_PROJECTS_DIR", Path.home() / ".claude" / "projects"))
 GEMINI_HISTORY_BASE = Path(os.environ.get("GEMINI_TMP_DIR", Path.home() / ".gemini" / "tmp"))
+
+
+def install_hooks():
+    """Ensure Claude hooks for Corral are installed in settings.local.json."""
+    settings_path = Path.home() / ".claude" / "settings.local.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if settings_path.exists():
+        settings = json.loads(settings_path.read_text())
+    else:
+        settings = {}
+
+    hooks = {
+        "agenticStateHook": {
+            "type": "command",
+            "command": "corral-hook-agentic-state",
+        },
+        "taskStateHook": {
+            "type": "command",
+            "command": "corral-hook-task-sync",
+        },
+    }
+
+    modified = False
+    for key, value in hooks.items():
+        if settings.get(key) != value:
+            settings[key] = value
+            modified = True
+
+    if modified:
+        settings_path.write_text(json.dumps(settings, indent=2) + "\n")
 
 
 async def run_cmd(*args: str, timeout: float | None = None) -> Tuple[int, str, str]:
