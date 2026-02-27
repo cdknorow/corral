@@ -109,8 +109,64 @@ export async function loadHistoryEvents(sessionId) {
     const countEl = document.getElementById('history-activity-count');
     if (countEl) countEl.textContent = historyEvents.length > 0 ? historyEvents.length : '';
 
+    renderHistoryActivityChart();
     renderHistoryEventFilters();
     renderHistoryEventTimeline();
+}
+
+function renderHistoryActivityChart() {
+    const container = document.getElementById('history-activity-chart');
+    if (!container) return;
+
+    if (historyEvents.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    // Count events by their filter group
+    const counts = [];
+    const matched = new Set();
+
+    for (const group of FILTER_GROUPS) {
+        let groupCount = 0;
+        historyEvents.forEach((ev, idx) => {
+            if (group.match(ev)) {
+                groupCount++;
+                matched.add(idx);
+            }
+        });
+        if (groupCount > 0) {
+            counts.push({ key: group.key, label: group.title, cls: group.cls, count: groupCount });
+        }
+    }
+
+    // Catch unmatched events
+    const unmatchedCount = historyEvents.length - matched.size;
+    if (unmatchedCount > 0) {
+        counts.push({ key: 'other', label: 'Other', cls: 'tool-default', count: unmatchedCount });
+    }
+
+    if (counts.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    // Sort by count descending
+    counts.sort((a, b) => b.count - a.count);
+    const maxCount = counts[0].count;
+
+    const bars = counts.map(item => {
+        const pct = Math.max(2, (item.count / maxCount) * 100);
+        return `<div class="activity-chart-row">
+            <span class="activity-chart-label">${escapeHtml(item.label)}</span>
+            <div class="activity-chart-bar-track">
+                <div class="activity-chart-bar ${item.cls}" style="width: ${pct}%"></div>
+            </div>
+            <span class="activity-chart-count">${item.count}</span>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = bars;
 }
 
 function renderHistoryEventFilters() {

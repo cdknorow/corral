@@ -1777,6 +1777,70 @@ body {
 .event-icon.tool-pulse { color: #bc8cff; background: rgba(188, 140, 255, 0.15); }
 .event-icon.tool-default { color: var(--text-muted); background: rgba(72, 79, 88, 0.2); }
 
+/* Activity bar chart */
+.activity-chart {
+    padding: 10px 14px 6px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.activity-chart:empty {
+    display: none;
+}
+.activity-chart-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 20px;
+}
+.activity-chart-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    width: 80px;
+    text-align: right;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.activity-chart-bar-track {
+    flex: 1;
+    height: 14px;
+    background: rgba(72, 79, 88, 0.15);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.activity-chart-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+.activity-chart-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Bar colors — inherit from filter chip/icon classes */
+.activity-chart-bar.tool-read   { background: rgba(63, 185, 80, 0.6); }
+.activity-chart-bar.tool-write  { background: rgba(248, 81, 73, 0.6); }
+.activity-chart-bar.tool-edit   { background: rgba(210, 153, 34, 0.6); }
+.activity-chart-bar.tool-bash   { background: rgba(210, 168, 255, 0.6); }
+.activity-chart-bar.tool-grep   { background: rgba(121, 192, 255, 0.6); }
+.activity-chart-bar.tool-web    { background: rgba(255, 166, 87, 0.6); }
+.activity-chart-bar.tool-task   { background: rgba(88, 166, 255, 0.6); }
+.activity-chart-bar.tool-agent  { background: rgba(210, 168, 255, 0.6); }
+.activity-chart-bar.tool-status { background: rgba(88, 166, 255, 0.6); }
+.activity-chart-bar.tool-goal   { background: rgba(63, 185, 80, 0.6); }
+.activity-chart-bar.tool-confidence { background: rgba(227, 179, 65, 0.6); }
+.activity-chart-bar.tool-stop   { background: rgba(248, 81, 73, 0.6); }
+.activity-chart-bar.tool-pulse  { background: rgba(188, 140, 255, 0.6); }
+.activity-chart-bar.tool-default { background: rgba(72, 79, 88, 0.4); }
+
 .event-body {
     flex: 1;
     min-width: 0;
