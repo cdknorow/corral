@@ -1575,9 +1575,11 @@ body {
 .event-filter-chip.tool-web   .event-filter-char { color: #ffa657; }
 .event-filter-chip.tool-task  .event-filter-char { color: var(--accent); }
 .event-filter-chip.tool-agent .event-filter-char { color: #d2a8ff; }
-.event-filter-chip.tool-status .event-filter-char { color: var(--accent); }
-.event-filter-chip.tool-goal   .event-filter-char { color: var(--success); }
-.event-filter-chip.tool-stop  .event-filter-char { color: var(--error); }
+.event-filter-chip.tool-status     .event-filter-char { color: var(--accent); }
+.event-filter-chip.tool-goal       .event-filter-char { color: var(--success); }
+.event-filter-chip.tool-confidence .event-filter-char { color: #e3b341; }
+.event-filter-chip.tool-stop       .event-filter-char { color: var(--error); }
+.event-filter-chip.tool-pulse      .event-filter-char { color: #bc8cff; }
 
 .event-filter-chip.filter-toggle .event-filter-char { color: var(--text-secondary); }
 .event-filter-chip.filter-toggle {
@@ -1711,6 +1713,9 @@ body {
 .event-item.event-type-goal {
     background: rgba(63, 185, 80, 0.1);
 }
+.event-item.event-type-confidence {
+    background: rgba(227, 179, 65, 0.1);
+}
 
 .event-item:hover {
     background: var(--bg-hover);
@@ -1768,6 +1773,8 @@ body {
 .event-icon.tool-goal { color: var(--success); background: rgba(63, 185, 80, 0.15); }
 .event-icon.tool-stop { color: var(--error); background: rgba(248, 81, 73, 0.1); }
 .event-icon.tool-notification { color: var(--warning); background: rgba(210, 153, 34, 0.1); }
+.event-icon.tool-confidence { color: #e3b341; background: rgba(227, 179, 65, 0.15); }
+.event-icon.tool-pulse { color: #bc8cff; background: rgba(188, 140, 255, 0.15); }
 .event-icon.tool-default { color: var(--text-muted); background: rgba(72, 79, 88, 0.2); }
 
 .event-body {

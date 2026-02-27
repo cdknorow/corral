@@ -28,9 +28,11 @@ const FILTER_GROUPS = [
     { key: 'web',    label: 'W', title: 'Web',           cls: 'tool-web',    match: ev => ev.tool_name === 'WebFetch' || ev.tool_name === 'WebSearch' },
     { key: 'task',   label: 'T', title: 'Tasks',         cls: 'tool-task',   match: ev => ['TaskCreate','TaskUpdate','TaskList','TaskGet'].includes(ev.tool_name) },
     { key: 'agent',  label: 'A', title: 'Subagents',     cls: 'tool-agent',  match: ev => ev.tool_name === 'Task' },
-    { key: 'status', label: 'S', title: 'Status',          cls: 'tool-status', match: ev => ev.event_type === 'status' },
-    { key: 'goal',   label: 'G', title: 'Goal',            cls: 'tool-goal',   match: ev => ev.event_type === 'goal' },
-    { key: 'system', label: '!', title: 'Stop / Notify',  cls: 'tool-stop',   match: ev => ev.event_type === 'stop' || ev.event_type === 'notification' },
+    { key: 'status',     label: 'S', title: 'Status',          cls: 'tool-status',     match: ev => ev.event_type === 'status' },
+    { key: 'goal',       label: 'G', title: 'Goal',            cls: 'tool-goal',       match: ev => ev.event_type === 'goal' },
+    { key: 'confidence', label: 'C', title: 'Confidence',      cls: 'tool-confidence', match: ev => ev.event_type === 'confidence' },
+    { key: 'system',     label: '!', title: 'Stop / Notify',   cls: 'tool-stop',       match: ev => ev.event_type === 'stop' || ev.event_type === 'notification' },
+    { key: 'pulse',      label: 'P', title: 'Pulse (other)',   cls: 'tool-pulse',      match: ev => ev.event_type && !ev.tool_name && !['status','goal','confidence','stop','notification'].includes(ev.event_type) },
 ];
 
 // Per-session filter state for history
@@ -59,13 +61,28 @@ function formatTime(isoStr) {
     }
 }
 
+// Known pulse event types — add new PULSE:<TYPE> entries here
+const PULSE_ICONS = {
+    status:       { char: 'S', cls: 'tool-status',     title: 'Status' },
+    goal:         { char: 'G', cls: 'tool-goal',       title: 'Goal' },
+    confidence:   { char: 'C', cls: 'tool-confidence', title: 'Confidence' },
+    stop:         { char: '!', cls: 'tool-stop',       title: 'Stop' },
+    notification: { char: 'N', cls: 'tool-notification', title: 'Notification' },
+};
+
 function getToolIcon(toolName, eventType) {
-    if (eventType === 'status') return { char: 'S', cls: 'tool-status', title: 'Status' };
-    if (eventType === 'goal') return { char: 'G', cls: 'tool-goal', title: 'Goal' };
-    if (eventType === 'stop') return { char: '!', cls: 'tool-stop', title: 'Stop' };
-    if (eventType === 'notification') return { char: 'N', cls: 'tool-notification', title: 'Notification' };
+    // Check pulse event types first
+    const pulse = PULSE_ICONS[eventType];
+    if (pulse) return { ...pulse };
+    // Tool-based events
     const icon = TOOL_ICONS[toolName];
     if (icon) return { ...icon, title: toolName };
+    // Generic fallback for unknown pulse event types
+    if (eventType && !toolName) {
+        const label = eventType.charAt(0).toUpperCase();
+        const title = eventType.charAt(0).toUpperCase() + eventType.slice(1);
+        return { char: label, cls: 'tool-pulse', title };
+    }
     return { char: '.', cls: 'tool-default', title: eventType || 'Event' };
 }
 
