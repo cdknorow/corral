@@ -83,12 +83,17 @@
                         <div id="session-status" class="status-line">
                             <strong>Status:</strong> <span class="status-text">Idle</span>
                         </div>
+                        <div class="live-view-toggle">
+                            <button class="live-view-btn active" id="btn-view-chat" onclick="switchLiveView('chat')">Chat</button>
+                            <button class="live-view-btn" id="btn-view-terminal" onclick="switchLiveView('terminal')">Terminal</button>
+                        </div>
                     </div>
                 </div>
 
                 <div class="live-body">
                     <div class="live-left-column">
-                        <div id="pane-capture" class="output-scroll capture-text"></div>
+                        <div id="live-chat-messages" class="chat-messages live-chat-view"></div>
+                        <div id="pane-capture" class="output-scroll capture-text" style="display:none"></div>
                         <div class="command-pane-resize-handle" id="command-pane-resize-handle"></div>
                         <div class="command-pane" id="command-pane">
                             <div class="command-pane-toolbar" id="command-toolbar">

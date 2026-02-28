@@ -15,30 +15,33 @@ export function renderCaptureText(el, text) {
 export async function refreshCapture() {
     if (!state.currentSession || state.currentSession.type !== "live") return;
 
-    try {
-        const params = new URLSearchParams();
-        if (state.currentSession.agent_type) params.set("agent_type", state.currentSession.agent_type);
-        if (state.currentSession.session_id) params.set("session_id", state.currentSession.session_id);
-        const qs = params.toString() ? `?${params}` : "";
-        let captureUrl = `/api/sessions/live/${encodeURIComponent(state.currentSession.name)}/capture${qs}`;
-        const resp = await fetch(captureUrl);
-        const data = await resp.json();
-        const el = document.getElementById("pane-capture");
-        const text = data.capture || data.error || "No capture available";
+    // Only fetch tmux capture in terminal mode
+    if (state.liveViewMode === "terminal") {
+        try {
+            const params = new URLSearchParams();
+            if (state.currentSession.agent_type) params.set("agent_type", state.currentSession.agent_type);
+            if (state.currentSession.session_id) params.set("session_id", state.currentSession.session_id);
+            const qs = params.toString() ? `?${params}` : "";
+            let captureUrl = `/api/sessions/live/${encodeURIComponent(state.currentSession.name)}/capture${qs}`;
+            const resp = await fetch(captureUrl);
+            const data = await resp.json();
+            const el = document.getElementById("pane-capture");
+            const text = data.capture || data.error || "No capture available";
 
-        // Only update if content changed to avoid scroll jank
-        if (el._lastCapture !== text) {
-            el._lastCapture = text;
-            renderCaptureText(el, text);
-            if (state.autoScroll) {
-                el.scrollTop = el.scrollHeight;
+            // Only update if content changed to avoid scroll jank
+            if (el._lastCapture !== text) {
+                el._lastCapture = text;
+                renderCaptureText(el, text);
+                if (state.autoScroll) {
+                    el.scrollTop = el.scrollHeight;
+                }
             }
+        } catch (e) {
+            console.error("Failed to refresh capture:", e);
         }
-    } catch (e) {
-        console.error("Failed to refresh capture:", e);
     }
 
-    // Poll tasks and events on the same interval
+    // Poll tasks and events unconditionally
     if (state.currentSession && state.currentSession.type === "live") {
         const sid = state.currentSession.session_id;
         loadAgentTasks(state.currentSession.name, sid);

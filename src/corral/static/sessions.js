@@ -13,9 +13,11 @@ import { loadAgentTasks } from './tasks.js';
 import { loadAgentNotes } from './agent_notes.js';
 import { loadAgentEvents } from './agentic_state.js';
 import { loadHistoryEvents, loadHistoryTasks, loadHistoryAgentNotes } from './history_tabs.js';
+import { startLiveChatPoll, stopLiveChatPoll, resetLiveChat } from './live_chat.js';
 
 export async function selectLiveSession(name, agentType, sessionId) {
     stopCaptureRefresh();
+    stopLiveChatPoll();
 
     // Save current input text for the old session
     const input = document.getElementById("command-input");
@@ -24,13 +26,14 @@ export async function selectLiveSession(name, agentType, sessionId) {
         state.sessionInputText[oldKey] = input.value;
     }
 
-    // Look up display_name from live sessions data
+    // Look up display_name and working_directory from live sessions data
     const agentData = state.liveSessions.find(s => s.session_id === sessionId);
     const displayName = agentData ? agentData.display_name : null;
+    const workingDirectory = agentData ? agentData.working_directory : "";
 
     state.currentSession = {
         type: "live", name, agent_type: agentType || null, session_id: sessionId || null,
-        display_name: displayName || null,
+        display_name: displayName || null, working_directory: workingDirectory || "",
     };
 
     // Restore input text for the new session
@@ -77,8 +80,12 @@ export async function selectLiveSession(name, agentType, sessionId) {
     loadAgentNotes(name, sessionId);
     loadAgentEvents(name, sessionId);
 
-    // Start auto-refreshing capture
+    // Reset live chat and start appropriate polling
+    resetLiveChat();
     startCaptureRefresh();
+    if (state.liveViewMode === "chat") {
+        startLiveChatPoll();
+    }
 }
 
 export async function selectHistorySession(sessionId) {

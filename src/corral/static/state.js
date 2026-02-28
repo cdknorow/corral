@@ -13,6 +13,7 @@ export const state = {
     currentAgentNotes: [],      // user notes for the currently selected live agent
     currentAgentEvents: [],     // events for the currently selected live agent
     eventFiltersHidden: null,   // Set of hidden filter keys (lazily initialized)
+    liveViewMode: "chat",       // "chat" or "terminal" — which live view to show
 };
 
 export function sessionKey(session) {
