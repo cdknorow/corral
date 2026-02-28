@@ -73,6 +73,53 @@ The dashboard is powered by a FastAPI backend:
 | `GET` | `/api/filesystem/list` | List directories for the launch browser |
 | `WS` | `/ws/corral` | Real-time corral status updates (polls every 3s) |
 
+## Testing the Dashboard
+
+### Setup
+
+Install the package in editable mode and start the web server:
+
+```bash
+pip install -e .
+corral
+```
+
+The dashboard runs at `http://localhost:8420/` by default.
+
+### Reinstalling After Code Changes
+
+The web server serves static files and templates from the installed package in site-packages, not from the source tree. After making changes, you need to reinstall:
+
+```bash
+# Option A: Send commands to the tmux session non-interactively
+tmux send-keys -t corral-web-server C-c
+sleep 1
+tmux send-keys -t corral-web-server 'cd <current-worktree> && python -m pip install . && cd ../ && corral' Enter
+
+# Option B: Attach to tmux and run manually
+tmux attach -t corral-web-server
+# Ctrl+C to stop, then:
+cd <current-worktree> && python -m pip install . && cd ../ && corral
+```
+
+### Browser Testing with Claude in Chrome
+
+You can use the Claude in Chrome MCP extension to visually inspect and interact with the dashboard:
+
+1. Call `tabs_context_mcp` to get available browser tabs
+2. Navigate to `http://localhost:8420/`
+3. Use `screenshot` and `zoom` to inspect UI elements
+4. Use `read_network_requests` to check for 404s or failed requests
+5. Use `read_console_messages` with a pattern filter to check for JS errors
+6. Hard refresh with `cmd+shift+r` to bypass cached assets
+
+### Common Gotchas
+
+- **Static files returning 404**: New file types in `src/corral/static/` must have their glob pattern added to `pyproject.toml` under `[tool.setuptools.package-data]` (e.g. `static/*.png`, `static/*.ico`).
+- **Changes not taking effect**: Source edits alone won't appear until you reinstall with `pip install .` since files are copied to site-packages.
+- **Favicon not updating**: Browsers cache favicons aggressively. Hard refresh or open the favicon URL directly to verify.
+- **Finding the installed package**: `python -c "import corral; import os; print(os.path.dirname(corral.__file__))"`
+
 ## Database
 
 All persistent state is stored in a SQLite database at `~/.corral/sessions.db` (using WAL mode for concurrent access):
