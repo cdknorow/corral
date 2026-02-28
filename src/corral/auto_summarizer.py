@@ -9,14 +9,14 @@ from typing import Any
 from corral.session_manager import load_history_session_messages
 
 
-SYSTEM_PROMPT = """You are a session summarizer. Given a conversation transcript between a user and an AI coding assistant, produce a concise markdown summary with:
+SYSTEM_PROMPT = """You are a session summarizer. You will be given a chat transcript or log of chats between a user and an AI coding assistant, produce a concise markdown summary with:
 
 1. A one-line **title** (## heading)
 2. A brief **summary** paragraph (2-3 sentences describing what was accomplished)
 3. A **task checklist** of what was done (using - [x] for completed, - [ ] for incomplete)
 4. **Key files** modified (bulleted list, if identifiable)
 
-Keep it concise — under 300 words total. Use markdown formatting."""
+Keep it concise — under 300 words total. Use markdown formatting. Do not ask for more information, do the best with what you have been given."""
 
 
 def _condense_messages(messages: list[dict[str, Any]], max_chars: int = 30000) -> str:
