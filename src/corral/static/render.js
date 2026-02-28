@@ -4,6 +4,15 @@ import { state } from './state.js';
 import { escapeHtml } from './utils.js';
 import { renderSidebarTagDots } from './tags.js';
 
+function formatShortTime(isoStr) {
+    const d = new Date(isoStr);
+    if (isNaN(d)) return "";
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+}
+
 function getDotClass(staleness) {
     if (staleness === null || staleness === undefined) return "stale";
     if (staleness < 60) return "active";
@@ -71,10 +80,13 @@ export function renderHistorySessions(sessions, total, page, pageSize) {
         const truncated = label.length > 40 ? label.substring(0, 40) + "..." : label;
         const isActive = state.currentSession && state.currentSession.type === "history" && state.currentSession.name === s.session_id;
         const typeTag = s.source_type === "gemini" ? ' <span class="badge gemini">gemini</span>' : "";
-        const branchTag = s.branch ? ` <span class="sidebar-branch">${escapeHtml(s.branch)}</span>` : "";
+        const branchTag = s.branch ? `<span class="sidebar-branch">${escapeHtml(s.branch)}</span>` : "";
         const tagDots = s.tags ? renderSidebarTagDots(s.tags) : "";
+        const timeStr = s.last_timestamp ? formatShortTime(s.last_timestamp) : "";
+        const timeTag = timeStr ? `<span class="session-time">${escapeHtml(timeStr)}</span>` : "";
         return `<li class="${isActive ? 'active' : ''}" onclick="selectHistorySession('${escapeHtml(s.session_id)}')">
-            <span class="session-label" title="${escapeHtml(label)}">${escapeHtml(truncated)}${typeTag}${branchTag}${tagDots}</span>
+            <div class="session-row-top">${timeTag}<span class="session-label" title="${escapeHtml(label)}">${escapeHtml(truncated)}${typeTag}${tagDots}</span></div>
+            ${branchTag ? `<div class="session-row-bottom">${branchTag}</div>` : ""}
         </li>`;
     }).join("");
 

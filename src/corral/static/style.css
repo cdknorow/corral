@@ -190,6 +190,20 @@ body {
     transition: background 0.15s;
 }
 
+#history-sessions-list li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 8px;
+}
+
+.session-row-top {
+    display: contents;
+}
+
+.session-row-bottom {
+    grid-column: 2;
+}
+
 .session-list li:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
@@ -223,6 +237,12 @@ body {
 .session-dot.active { background: var(--success); }
 .session-dot.recent { background: var(--warning); }
 .session-dot.stale { background: var(--text-muted); }
+
+.session-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
 
 .session-label {
     overflow: hidden;
