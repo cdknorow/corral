@@ -199,6 +199,8 @@ class SessionIndexer:
             display_summary=summary,
             file_mtime=mtime,
         )
+        body = "\n".join(texts)[:FTS_BODY_CAP]
+        await self._store.upsert_fts(sid, body)
         await self._store.enqueue_for_summarization(sid)
         return 1
 

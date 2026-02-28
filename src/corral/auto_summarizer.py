@@ -39,7 +39,7 @@ def _condense_messages(messages: list[dict[str, Any]], max_chars: int = 30000) -
         if not content.strip():
             continue
 
-        role = "User" if msg_type == "human" else "Assistant"
+        role = "User" if msg_type in ("human", "user") else "Assistant"
         parts.append(f"### {role}\n{content}")
 
     full_text = "\n\n".join(parts)
