@@ -4,13 +4,18 @@ import { escapeHtml, escapeAttr } from './utils.js';
 
 let browserCurrentPath = "~";
 
+function getCorralRoot() {
+    const input = document.getElementById("launch-dir");
+    return (input && input.dataset.corralRoot) || "~";
+}
+
 export function toggleBrowser() {
     const browser = document.getElementById("dir-browser");
     const isVisible = browser.style.display !== "none";
     browser.style.display = isVisible ? "none" : "";
     if (!isVisible) {
         const inputPath = document.getElementById("launch-dir").value.trim();
-        browserCurrentPath = inputPath || "~";
+        browserCurrentPath = inputPath || getCorralRoot();
         loadBrowserEntries(browserCurrentPath);
     }
 }

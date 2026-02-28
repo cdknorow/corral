@@ -115,7 +115,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Serve the corral dashboard SPA."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    import os
+    return templates.TemplateResponse("index.html", {"request": request, "corral_root": os.getcwd()})
 
 
 COMMAND_MAP = {
