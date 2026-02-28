@@ -66,7 +66,7 @@ corral-hook-task-sync = "corral.hook_task_sync:main"
 corral-hook-agentic-state = "corral.hook_agentic_state:main"
 
 [tool.setuptools.package-data]
-corral = ["PROTOCOL.md", "launch_agents.sh", "templates/*.html", "static/*.css", "static/*.js"]
+corral = ["PROTOCOL.md", "launch_agents.sh", "templates/*.html", "static/*.css", "static/*.js", "static/*.png", "static/*.ico"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

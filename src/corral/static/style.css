@@ -43,6 +43,19 @@ body {
     border-bottom: 1px solid var(--border);
 }
 
+.top-bar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.top-bar-logo {
+    height: 28px;
+    width: 28px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
 .top-bar h1 {
     font-size: 16px;
     font-weight: 600;
