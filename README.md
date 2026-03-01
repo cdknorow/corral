@@ -103,6 +103,8 @@ You can also type arbitrary commands in the input bar and send them to the selec
 
 <!-- TODO: Add a GIF here showing full-text search across past Claude/Gemini sessions and adding notes/tags. -->
 <img width="1512" height="799" alt="image" src="https://github.com/user-attachments/assets/37561737-caf9-438b-81af-8c48a6cfe30a" />
+<img width="1498" height="815" alt="image" src="https://github.com/user-attachments/assets/a1f6bbb3-ee15-4fc3-867c-0d41d0f717ea" />
+
 
 
 The sidebar History section includes a search bar and filters for browsing your entire AI coding session history along with activity, notes, and git commit tracking
