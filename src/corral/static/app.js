@@ -16,7 +16,6 @@ import { loadAgentNotes, initNotesMd } from './agent_notes.js';
 import { switchAgenticTab, loadAgentEvents, toggleEventFilter, toggleAllEventFilters, showFilterPopup, hideFilterPopup } from './agentic_state.js';
 import { toggleHistoryEventFilter, toggleAllHistoryEventFilters } from './history_tabs.js';
 import { copyBranchName } from './utils.js';
-import { switchLiveView } from './live_chat.js';
 
 // ── Expose functions to HTML onclick handlers ─────────────────────────────
 window.sendCommand = sendCommand;
@@ -74,7 +73,6 @@ window.showFilterPopup = showFilterPopup;
 window.hideFilterPopup = hideFilterPopup;
 window.toggleHistoryEventFilter = toggleHistoryEventFilter;
 window.toggleAllHistoryEventFilters = toggleAllHistoryEventFilters;
-window.switchLiveView = switchLiveView;
 
 // ── History search/filter/pagination state ───────────────────────────────
 let historyPage = 1;
@@ -185,17 +183,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Auto-scroll detection for capture pane and live chat
+    // Auto-scroll detection for capture pane and live history
     const capture = document.getElementById("pane-capture");
     capture.addEventListener("scroll", () => {
         const { scrollTop, scrollHeight, clientHeight } = capture;
         state.autoScroll = (scrollHeight - scrollTop - clientHeight) < 50;
     });
-    const liveChat = document.getElementById("live-chat-messages");
-    liveChat.addEventListener("scroll", () => {
-        const { scrollTop, scrollHeight, clientHeight } = liveChat;
-        state.autoScroll = (scrollHeight - scrollTop - clientHeight) < 50;
-    });
+    const liveHistory = document.getElementById("live-history-messages");
+    if (liveHistory) {
+        liveHistory.addEventListener("scroll", () => {
+            const { scrollTop, scrollHeight, clientHeight } = liveHistory;
+            state.autoScroll = (scrollHeight - scrollTop - clientHeight) < 50;
+        });
+    }
 
     // Resize handles
     initSidebarResize();

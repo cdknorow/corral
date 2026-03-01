@@ -13,11 +13,11 @@ import { loadAgentTasks } from './tasks.js';
 import { loadAgentNotes } from './agent_notes.js';
 import { loadAgentEvents } from './agentic_state.js';
 import { loadHistoryEvents, loadHistoryTasks, loadHistoryAgentNotes } from './history_tabs.js';
-import { startLiveChatPoll, stopLiveChatPoll, resetLiveChat } from './live_chat.js';
+import { startLiveHistoryPoll, stopLiveHistoryPoll, resetLiveHistory } from './live_chat.js';
 
 export async function selectLiveSession(name, agentType, sessionId) {
     stopCaptureRefresh();
-    stopLiveChatPoll();
+    stopLiveHistoryPoll();
 
     // Save current input text for the old session
     const input = document.getElementById("command-input");
@@ -80,11 +80,14 @@ export async function selectLiveSession(name, agentType, sessionId) {
     loadAgentNotes(name, sessionId);
     loadAgentEvents(name, sessionId);
 
-    // Reset live chat and start appropriate polling
-    resetLiveChat();
+    // Reset live history and start capture polling
+    resetLiveHistory();
     startCaptureRefresh();
-    if (state.liveViewMode === "chat") {
-        startLiveChatPoll();
+
+    // Start history poll if the history tab is currently active
+    const historyTab = document.getElementById("agentic-tab-history");
+    if (historyTab && historyTab.classList.contains("active")) {
+        startLiveHistoryPoll();
     }
 }
 

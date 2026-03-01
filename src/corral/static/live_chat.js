@@ -1,10 +1,10 @@
-/* Live chat view — renders JSONL messages for live sessions */
+/* Live history view — renders JSONL messages as a read-only conversation log */
 
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
 
-let chatPollInterval = null;
-let chatMessageCount = 0;
+let historyPollInterval = null;
+let historyMessageCount = 0;
 
 function renderMarkdown(text) {
     if (typeof marked !== 'undefined') {
@@ -180,80 +180,56 @@ function renderMessage(msg, container) {
     }
 }
 
-export async function refreshLiveChat() {
+export async function refreshLiveHistory() {
     if (!state.currentSession || state.currentSession.type !== "live") return;
-    if (state.liveViewMode !== "chat") return;
 
     const session = state.currentSession;
     if (!session.session_id) return;
 
-    try {
-        const params = new URLSearchParams();
-        params.set("session_id", session.session_id);
-        params.set("after", chatMessageCount);
-        if (session.working_directory) {
-            params.set("working_directory", session.working_directory);
-        }
+    const container = document.getElementById("live-history-messages");
+    if (!container) return;
 
-        const resp = await fetch(
-            `/api/sessions/live/${encodeURIComponent(session.name)}/chat?${params}`
-        );
+    const params = new URLSearchParams();
+    params.set("session_id", session.session_id);
+    params.set("after", historyMessageCount);
+    if (session.working_directory) {
+        params.set("working_directory", session.working_directory);
+    }
+
+    try {
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(session.name)}/chat?${params}`);
         const data = await resp.json();
 
-        if (!data.messages || data.messages.length === 0) return;
-
-        const container = document.getElementById("live-chat-messages");
-        for (const msg of data.messages) {
-            renderMessage(msg, container);
+        if (data.messages && data.messages.length > 0) {
+            for (const msg of data.messages) {
+                renderMessage(msg, container);
+            }
+            historyMessageCount = data.total;
         }
-        chatMessageCount = data.total;
 
         if (state.autoScroll) {
             container.scrollTop = container.scrollHeight;
         }
     } catch (e) {
-        console.error("Failed to refresh live chat:", e);
+        console.error("Failed to refresh live history:", e);
     }
 }
 
-export function startLiveChatPoll() {
-    stopLiveChatPoll();
-    refreshLiveChat();
-    chatPollInterval = setInterval(refreshLiveChat, 1000);
+export function startLiveHistoryPoll() {
+    stopLiveHistoryPoll();
+    refreshLiveHistory();
+    historyPollInterval = setInterval(refreshLiveHistory, 1000);
 }
 
-export function stopLiveChatPoll() {
-    if (chatPollInterval) {
-        clearInterval(chatPollInterval);
-        chatPollInterval = null;
+export function stopLiveHistoryPoll() {
+    if (historyPollInterval) {
+        clearInterval(historyPollInterval);
+        historyPollInterval = null;
     }
 }
 
-export function resetLiveChat() {
-    const container = document.getElementById("live-chat-messages");
+export function resetLiveHistory() {
+    const container = document.getElementById("live-history-messages");
     if (container) container.innerHTML = "";
-    chatMessageCount = 0;
-}
-
-export function switchLiveView(mode) {
-    state.liveViewMode = mode;
-
-    const chatContainer = document.getElementById("live-chat-messages");
-    const termContainer = document.getElementById("pane-capture");
-    const btnChat = document.getElementById("btn-view-chat");
-    const btnTerm = document.getElementById("btn-view-terminal");
-
-    if (mode === "chat") {
-        chatContainer.style.display = "";
-        termContainer.style.display = "none";
-        btnChat.classList.add("active");
-        btnTerm.classList.remove("active");
-        startLiveChatPoll();
-    } else {
-        chatContainer.style.display = "none";
-        termContainer.style.display = "";
-        btnChat.classList.remove("active");
-        btnTerm.classList.add("active");
-        stopLiveChatPoll();
-    }
+    historyMessageCount = 0;
 }

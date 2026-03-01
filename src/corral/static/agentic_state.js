@@ -1,6 +1,7 @@
 /* Agentic State — event loading, timeline rendering, tab switching, filtering */
 
 import { state } from './state.js';
+import { startLiveHistoryPoll, stopLiveHistoryPoll } from './live_chat.js';
 
 const TOOL_ICONS = {
     Read:       { char: 'R', cls: 'tool-read' },
@@ -325,4 +326,11 @@ export function switchAgenticTab(tabName) {
     document.querySelectorAll('.agentic-panel').forEach(panel => panel.classList.remove('active'));
     const activePanel = document.getElementById(`agentic-panel-${tabName}`);
     if (activePanel) activePanel.classList.add('active');
+
+    // Start/stop history polling based on tab
+    if (tabName === 'history') {
+        startLiveHistoryPoll();
+    } else {
+        stopLiveHistoryPoll();
+    }
 }

@@ -83,17 +83,12 @@
                         <div id="session-status" class="status-line">
                             <strong>Status:</strong> <span class="status-text">Idle</span>
                         </div>
-                        <div class="live-view-toggle">
-                            <button class="live-view-btn active" id="btn-view-chat" onclick="switchLiveView('chat')">Chat</button>
-                            <button class="live-view-btn" id="btn-view-terminal" onclick="switchLiveView('terminal')">Terminal</button>
-                        </div>
                     </div>
                 </div>
 
                 <div class="live-body">
                     <div class="live-left-column">
-                        <div id="live-chat-messages" class="chat-messages live-chat-view"></div>
-                        <div id="pane-capture" class="output-scroll capture-text" style="display:none"></div>
+                        <div id="pane-capture" class="output-scroll capture-text"></div>
                         <div class="command-pane-resize-handle" id="command-pane-resize-handle"></div>
                         <div class="command-pane" id="command-pane">
                             <div class="command-pane-toolbar" id="command-toolbar">
@@ -112,6 +107,7 @@
                             <button class="agentic-tab active" onclick="switchAgenticTab('activity')" id="agentic-tab-activity">Activity</button>
                             <button class="agentic-tab" onclick="switchAgenticTab('tasks')" id="agentic-tab-tasks">Tasks <span id="task-bar-count" class="task-bar-count"></span></button>
                             <button class="agentic-tab" onclick="switchAgenticTab('notes')" id="agentic-tab-notes">Notes <span id="note-bar-count" class="task-bar-count"></span></button>
+                            <button class="agentic-tab" onclick="switchAgenticTab('history')" id="agentic-tab-history">History</button>
                         </div>
                         <!-- Activity tab -->
                         <div id="agentic-panel-activity" class="agentic-panel active">
@@ -135,6 +131,10 @@
                                 <div class="note-md-placeholder">Click to add notes...</div>
                             </div>
                             <textarea id="note-md-editor" class="note-md-editor" placeholder="Write notes in markdown..." style="display:none"></textarea>
+                        </div>
+                        <!-- History tab (read-only JSONL conversation log) -->
+                        <div id="agentic-panel-history" class="agentic-panel">
+                            <div id="live-history-messages" class="chat-messages live-history-panel"></div>
                         </div>
                     </div>
                 </div>

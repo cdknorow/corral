@@ -991,46 +991,24 @@ body {
     color: var(--text-primary);
 }
 
-/* Live View Toggle */
-.live-view-toggle {
-    display: inline-flex;
-    gap: 0;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-left: auto;
-    flex-shrink: 0;
-}
-
-.live-view-btn {
-    padding: 3px 12px;
-    font-size: 12px;
-    font-weight: 500;
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    border: none;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-}
-
-.live-view-btn:first-child {
-    border-right: 1px solid var(--border);
-}
-
-.live-view-btn.active {
-    background: var(--accent);
-    color: #fff;
-}
-
-.live-view-btn:hover:not(.active) {
-    background: var(--bg-hover);
-}
-
-/* Live Chat View */
-.live-chat-view {
+/* Live History Panel (inside right sidebar) */
+.live-history-panel {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 20px;
+    padding: 8px 10px;
+}
+
+.live-history-panel .chat-bubble {
+    font-size: 12px;
+    padding: 8px 10px;
+}
+
+.live-history-panel .chat-bubble .role-label {
+    font-size: 10px;
+}
+
+.live-history-panel .chat-bubble .message-text {
+    font-size: 12px;
 }
 
 /* Tool Cards */
@@ -1100,6 +1078,7 @@ body {
     color: var(--text-muted);
     margin-top: 2px;
 }
+
 
 .tool-card-command {
     margin: 3px 0 0;
