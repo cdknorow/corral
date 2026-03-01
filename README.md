@@ -2,8 +2,9 @@
 
 ---
 
+Corral is designed to bring back some sanity to coding with AI agents, especially as you start to code with multiple sessions/worktrees across the day. It generates automated goals and status for each session and displays them prominantly. You can do full text search across previous sessions and resume them. The activity across all your agent is visible so you see which ones need attention. All of the things they are doing in the background is brough to the activity pannel so you can follow along and start to get a better understanding of just what these things are actually doing. 
 
-Corral is an MIT licensed multi-agent orchestration application for managing AI coding agents across git worktrees running locally on your local or remote machine. The application is built using tmux and FastAPI for easy extensibilty and modification. It is designed with the hope that we can back some sanity to coding with AI agents across multiple worktrees and sessions. The automated goals and status for each session are displayed prominantly, you can do full text search across previous sessions and resume them. The activity of the agent is visible so you can follow along and start to get a better understanding of just what these things are doing. We welcome feedback, commits and hope it brings you some stress releif to corral those little AIs.
+Corral is an MIT licensed multi-agent orchestration application built using tmux and FastAPI and basic HTML5/JS for easy extensibilty and modification. We welcome feedback, commits and hope it brings you some stress releif to corral those little AIs.
 
 
 ![main_loop](https://github.com/user-attachments/assets/6af60c92-1d72-45bd-9b46-7f1eab2ce5fe)
