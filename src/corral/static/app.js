@@ -183,12 +183,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Auto-scroll detection for capture pane
+    // Auto-scroll detection for capture pane and live history
     const capture = document.getElementById("pane-capture");
     capture.addEventListener("scroll", () => {
         const { scrollTop, scrollHeight, clientHeight } = capture;
         state.autoScroll = (scrollHeight - scrollTop - clientHeight) < 50;
     });
+    const liveHistory = document.getElementById("live-history-messages");
+    if (liveHistory) {
+        liveHistory.addEventListener("scroll", () => {
+            const { scrollTop, scrollHeight, clientHeight } = liveHistory;
+            state.autoScroll = (scrollHeight - scrollTop - clientHeight) < 50;
+        });
+    }
 
     // Resize handles
     initSidebarResize();

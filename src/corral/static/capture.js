@@ -38,7 +38,7 @@ export async function refreshCapture() {
         console.error("Failed to refresh capture:", e);
     }
 
-    // Poll tasks and events on the same interval
+    // Poll tasks and events unconditionally
     if (state.currentSession && state.currentSession.type === "live") {
         const sid = state.currentSession.session_id;
         loadAgentTasks(state.currentSession.name, sid);

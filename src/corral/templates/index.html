@@ -107,6 +107,7 @@
                             <button class="agentic-tab active" onclick="switchAgenticTab('activity')" id="agentic-tab-activity">Activity</button>
                             <button class="agentic-tab" onclick="switchAgenticTab('tasks')" id="agentic-tab-tasks">Tasks <span id="task-bar-count" class="task-bar-count"></span></button>
                             <button class="agentic-tab" onclick="switchAgenticTab('notes')" id="agentic-tab-notes">Notes <span id="note-bar-count" class="task-bar-count"></span></button>
+                            <button class="agentic-tab" onclick="switchAgenticTab('history')" id="agentic-tab-history">History</button>
                         </div>
                         <!-- Activity tab -->
                         <div id="agentic-panel-activity" class="agentic-panel active">
@@ -130,6 +131,10 @@
                                 <div class="note-md-placeholder">Click to add notes...</div>
                             </div>
                             <textarea id="note-md-editor" class="note-md-editor" placeholder="Write notes in markdown..." style="display:none"></textarea>
+                        </div>
+                        <!-- History tab (read-only JSONL conversation log) -->
+                        <div id="agentic-panel-history" class="agentic-panel">
+                            <div id="live-history-messages" class="chat-messages live-history-panel"></div>
                         </div>
                     </div>
                 </div>

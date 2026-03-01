@@ -34,6 +34,7 @@ from corral.session_manager import (
 from corral.log_streamer import get_log_snapshot
 from corral.session_store import SessionStore
 from corral.task_detector import scan_log_for_pulse_events
+from corral.jsonl_reader import JsonlSessionReader
 
 log = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
@@ -103,6 +104,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Corral Dashboard", lifespan=lifespan)
 store = SessionStore()
+jsonl_reader = JsonlSessionReader()
 
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
@@ -151,6 +153,7 @@ async def get_live_sessions():
             "commands": COMMAND_MAP.get(agent["agent_type"].lower(), COMMAND_MAP["claude"]),
             "branch": git["branch"] if git else None,
             "display_name": display_names.get(sid) if sid else None,
+            "working_directory": agent.get("working_directory", ""),
         }
         results.append(entry)
         await _track_status_summary_events(name, log_info["status"], log_info["summary"], session_id=sid)
@@ -189,6 +192,23 @@ async def get_pane_capture(name: str, agent_type: str | None = None, session_id:
     if text is None:
         return {"error": f"Could not capture pane for '{name}'"}
     return {"name": name, "capture": text}
+
+
+@app.get("/api/sessions/live/{name}/chat")
+async def get_live_chat(
+    name: str,
+    session_id: str | None = None,
+    working_directory: str | None = None,
+    after: int = Query(0, ge=0),
+):
+    """Get chat messages from the JSONL transcript for a live session."""
+    if not session_id:
+        return {"messages": [], "total": 0}
+    new_msgs, total = await asyncio.to_thread(
+        jsonl_reader.read_new_messages, session_id, working_directory or ""
+    )
+    # Return messages after the caller's cursor
+    return {"messages": jsonl_reader._cache[session_id].messages[after:], "total": total}
 
 
 @app.get("/api/sessions/live/{name}/info")
@@ -685,6 +705,7 @@ async def ws_corral(websocket: WebSocket):
                     "staleness_seconds": log_info["staleness_seconds"],
                     "branch": git["branch"] if git else None,
                     "display_name": ws_display_names.get(sid) if sid else None,
+                    "working_directory": agent.get("working_directory", ""),
                 })
                 await _track_status_summary_events(name, log_info["status"], log_info["summary"], session_id=sid)
                 await scan_log_for_pulse_events(store, name, agent["log_path"], session_id=sid)
