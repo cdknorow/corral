@@ -5,6 +5,7 @@ export const state = {
     corralWs: null,             // WebSocket for corral updates
     captureInterval: null,      // interval ID for auto-refreshing capture
     autoScroll: true,
+    isSelecting: false,         // true when user has text selected; pauses DOM updates
     liveSessions: [],           // cached live session list
     historySessionsList: [],    // cached history session list (from last paginated fetch)
     currentCommands: {},        // commands for current session's agent type

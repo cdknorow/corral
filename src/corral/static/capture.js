@@ -28,6 +28,8 @@ export async function refreshCapture() {
 
         // Only update if content changed to avoid scroll jank
         if (el._lastCapture !== text) {
+            // Defer DOM update while user is selecting text
+            if (state.isSelecting) return;
             el._lastCapture = text;
             renderCaptureText(el, text);
             if (state.autoScroll) {

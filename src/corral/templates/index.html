@@ -88,7 +88,10 @@
 
                 <div class="live-body">
                     <div class="live-left-column">
-                        <div id="pane-capture" class="output-scroll capture-text"></div>
+                        <div id="capture-wrapper" style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column">
+                            <div id="pane-capture" class="output-scroll capture-text"></div>
+                            <div id="selection-pause-badge" class="selection-pause-badge" style="display:none">Updates paused — text selected</div>
+                        </div>
                         <div class="command-pane-resize-handle" id="command-pane-resize-handle"></div>
                         <div class="command-pane" id="command-pane">
                             <div class="command-pane-toolbar" id="command-toolbar">

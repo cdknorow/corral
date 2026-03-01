@@ -197,6 +197,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Pause capture updates while user is selecting text
+    const pauseBadge = document.getElementById("selection-pause-badge");
+    document.addEventListener("selectionchange", () => {
+        const sel = window.getSelection();
+        state.isSelecting = sel && sel.toString().length > 0;
+        if (pauseBadge) pauseBadge.style.display = state.isSelecting ? "" : "none";
+    });
+
     // Resize handles
     initSidebarResize();
     initCommandPaneResize();
