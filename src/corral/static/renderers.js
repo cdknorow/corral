@@ -12,10 +12,36 @@ import {
 
 // ── Regex constants shared across renderers ──────────────────────────
 
-const TOOL_CALL_RE = /^[\s●]*⏺\s/;
-const PROGRESS_RE = /^\s*\S\s+\S.*[…\.]\s*\((\d+[ms]|\d+\w*\s+\d+\w*\s+·|thinking)/;
+// Match ⏺ followed by a capitalized word (tool name like Read, Write, Bash)
+// or common assistant prose starters. Excludes spinner/progress lines where
+// ⏺ is just one frame of the rotating spinner character.
+const TOOL_CALL_RE = /^[\s●]*⏺\s+[A-Z]/;
+// Matches progress/thinking lines. The spinner char rotates through many
+// Unicode characters (braille, geometric shapes, ⏺, ·, etc.), and sometimes
+// the spinner disappears entirely leaving just indented text with an ellipsis.
+// The Unicode ellipsis … (U+2026) is the reliable marker — Claude Code uses
+// it specifically for progress output, normal prose uses "..." (three dots).
+// Matches lines containing … that aren't tool results (⎿) or user prompts.
+const PROGRESS_RE = /^\s*.+…\s*(\(.*\))?\s*$/;
 const STATUS_BAR_RE = /^\s*(worktree:|⏵)/;
 const PULSE_RE = /\|\|PULSE:(STATUS|SUMMARY|CONFIDENCE)\s/;
+
+// All spinner characters Claude Code cycles through (from log_streamer.py).
+// Used to strip spinner prefixes for stateful progress line tracking.
+const SPINNER_CHARS_RE = /^[\s✶✷✸✹✺✻✼✽✾✿⏺⏵⏴⏹⏏⚡●○◉◎◌◐◑◒◓▪▫▸▹►▻\u2800-\u28FF·•]*/;
+
+// ── Stateful spinner tracking ────────────────────────────────────────
+// The spinner char (⏺, ✶, etc.) appears and disappears between frames.
+// When we see a line with a spinner, we store its text (stripped of the
+// spinner) and its classification. On the next render, if a line has the
+// same text but no spinner, we reuse the stored classification instead
+// of falling through to "text".
+let _knownSpinnerTexts = new Map(); // stripped text -> classification
+
+/** Strip leading spinner characters and whitespace from a line. */
+function stripSpinner(line) {
+    return line.replace(SPINNER_CHARS_RE, "");
+}
 
 // ── Shared line rendering ────────────────────────────────────────────
 
@@ -117,12 +143,22 @@ function classifyLine(line, i, lines) {
     if (isUserPromptLine(line)) return "user";
     if (STATUS_BAR_RE.test(line)) return "statusbar";
     if (PULSE_RE.test(line)) return "pulse";
+    // Progress/thinking lines must be checked before tool headers because
+    // the spinner cycles through characters including ⏺, which would
+    // otherwise match TOOL_CALL_RE and cause blocks to jump on each frame.
+    if (PROGRESS_RE.test(line)) return "status";
     if (TOOL_CALL_RE.test(line)) return "tool-header";
     if (TOOL_RESULT_RE.test(line)) return "tool-body";
     if (DIFF_ADD_RE.test(line) || DIFF_DEL_RE.test(line)) return "tool-body";
     if (DIFF_SUMMARY_RE.test(line)) return "tool-body";
     if (CODE_FENCE_RE.test(line)) return "tool-body";
-    if (PROGRESS_RE.test(line)) return "status";
+
+    // Stateful fallback: if the spinner char disappeared but the text
+    // matches a previously-seen spinner line, reuse its classification.
+    const stripped = stripSpinner(line);
+    if (stripped && _knownSpinnerTexts.has(stripped)) {
+        return _knownSpinnerTexts.get(stripped);
+    }
 
     return "text";
 }
@@ -147,8 +183,20 @@ function groupIntoBlocks(lines) {
         const cls = classifyLine(lines[i], i, lines);
 
         if (cls === "empty") {
+            // For text blocks, only break if the next non-empty line is a
+            // different block type. This keeps paragraphs of assistant prose
+            // (separated by blank lines) in a single block.
             if (current && current.type === "text") {
-                finishBlock();
+                let nextCls = null;
+                for (let j = i + 1; j < lines.length; j++) {
+                    if (lines[j].trim() !== "") {
+                        nextCls = classifyLine(lines[j], j, lines);
+                        break;
+                    }
+                }
+                if (nextCls && nextCls !== "text") {
+                    finishBlock();
+                }
             }
             continue;
         }
@@ -202,13 +250,44 @@ function groupIntoBlocks(lines) {
     return blocks;
 }
 
+/** Regex to detect a line that starts with a spinner character. */
+const HAS_SPINNER_RE = /^[\s]*[✶✷✸✹✺✻✼✽✾✿⏺⏵⏴⏹⏏⚡●○◉◎◌◐◑◒◓▪▫▸▹►▻\u2800-\u28FF·•]/;
+
+/**
+ * Scan lines and record the classification of any line with a spinner prefix.
+ * On the next render, if the spinner vanishes, the stateful fallback in
+ * classifyLine will reuse the stored classification instead of "text".
+ */
+function collectSpinnerTexts(lines) {
+    const fresh = new Map();
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!HAS_SPINNER_RE.test(line)) continue;
+        const stripped = stripSpinner(line);
+        if (!stripped) continue;
+        // Classify this line normally (it has a spinner so it will match
+        // PROGRESS_RE or TOOL_CALL_RE etc.) and store the result.
+        const cls = classifyLine(line, i, lines);
+        if (cls !== "text" && cls !== "empty") {
+            fresh.set(stripped, cls);
+        }
+    }
+    return fresh;
+}
+
 class BlockGroupRenderer extends RenderEngine {
     get name() { return "block-group"; }
 
     render(el, text) {
         el.innerHTML = "";
         const lines = text.split("\n");
+
+        // Classify using known spinner texts from the PREVIOUS render,
+        // then rebuild the map for the NEXT render. This ensures that if
+        // a line loses its spinner on this frame, it still gets the same
+        // classification via the stateful fallback.
         const blocks = groupIntoBlocks(lines);
+        _knownSpinnerTexts = collectSpinnerTexts(lines);
 
         for (const block of blocks) {
             const container = document.createElement("div");
