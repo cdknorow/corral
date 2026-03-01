@@ -329,9 +329,20 @@
         <div class="modal-content" style="width:440px">
             <h3>Settings</h3>
             <dl class="info-grid">
-                <dt>Render Engine</dt>
+                <dt>Default Render Engine</dt>
                 <dd>
                     <select id="settings-renderer-select" class="settings-select"></select>
+                </dd>
+                <dt>Default Agent Type</dt>
+                <dd>
+                    <select id="settings-agent-type" class="settings-select">
+                        <option value="claude">Claude</option>
+                        <option value="gemini">Gemini</option>
+                    </select>
+                </dd>
+                <dt>Default Working Directory</dt>
+                <dd>
+                    <input type="text" id="settings-working-dir" class="settings-input" data-corral-root="{{ corral_root }}" placeholder="{{ corral_root }}">
                 </dd>
             </dl>
             <div class="modal-actions">

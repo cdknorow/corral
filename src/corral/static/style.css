@@ -818,6 +818,11 @@ body {
     width: 100%;
 }
 
+.settings-input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .btn-enter {
     border-color: var(--accent-dim);
     border-bottom-color: var(--accent-dim);
