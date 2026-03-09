@@ -5,6 +5,8 @@ import os
 import sys
 import urllib.request
 
+from corral.hook_utils import resolve_session_id
+
 
 def _api(base: str, method: str, path: str, data=None):
     url = base + path
@@ -157,7 +159,7 @@ def main():
     if not agent_name:
         return
 
-    session_id = d.get("session_id")
+    session_id = resolve_session_id(d.get("session_id"))
     hook_type = d.get("hook_event_name") or d.get("type", "")
 
     # Determine event_type and build summary

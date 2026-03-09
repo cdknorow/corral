@@ -6,6 +6,8 @@ import re
 import sys
 import urllib.request
 
+from corral.hook_utils import resolve_session_id
+
 
 def _api(base: str, method: str, path: str, data=None):
     url = base + path
@@ -98,7 +100,7 @@ def main():
     if not agent_name:
         return
 
-    session_id = d.get("session_id")
+    session_id = resolve_session_id(d.get("session_id"))
 
     _debug_log(f"tool={tool} task_id={task_id} subject={subject} status={status} resp={resp_parsed} agent={agent_name}")
 
