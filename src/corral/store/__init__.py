@@ -14,6 +14,7 @@ from corral.store.connection import DatabaseManager, DB_PATH
 from corral.store.sessions import SessionStore
 from corral.store.git import GitStore
 from corral.store.tasks import TaskStore
+from corral.store.schedule import ScheduleStore
 
 
 class CorralStore(DatabaseManager):
@@ -29,6 +30,7 @@ class CorralStore(DatabaseManager):
         self._sessions = SessionStore(db_path)
         self._git = GitStore(db_path)
         self._tasks = TaskStore(db_path)
+        self._schedule = ScheduleStore(db_path)
 
     async def _get_conn(self):
         """Ensure all sub-stores share the same connection."""
@@ -40,6 +42,8 @@ class CorralStore(DatabaseManager):
         self._git._schema_ensured = True
         self._tasks._conn = self._conn
         self._tasks._schema_ensured = True
+        self._schedule._conn = self._conn
+        self._schedule._schema_ensured = True
         return conn
 
     async def close(self) -> None:
@@ -48,6 +52,7 @@ class CorralStore(DatabaseManager):
         self._sessions._conn = None
         self._git._conn = None
         self._tasks._conn = None
+        self._schedule._conn = None
 
     # ── Delegate: SessionStore methods ─────────────────────────────────────
 

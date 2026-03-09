@@ -10,6 +10,15 @@
                 </ul>
             </section>
             <section class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <h2>Scheduled</h2>
+                    <button class="btn btn-small btn-primary sidebar-new-btn" onclick="showJobModal()">+ Job</button>
+                </div>
+                <ul id="scheduled-jobs-list" class="session-list">
+                    <li class="empty-state">No scheduled jobs</li>
+                </ul>
+            </section>
+            <section class="sidebar-section">
                 <h2>History</h2>
                 <div class="history-filters">
                     <input id="history-search" type="search" placeholder="Search sessions...">

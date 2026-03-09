@@ -27,6 +27,7 @@ from corral.tools.jsonl_reader import JsonlSessionReader
 from corral.api import live_sessions as live_sessions_api
 from corral.api import history as history_api
 from corral.api import system as system_api
+from corral.api import schedule as schedule_api
 
 log = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
@@ -68,6 +69,12 @@ async def lifespan(app: FastAPI):
     summarizer_task = asyncio.create_task(summarizer.run_forever())
     git_task = asyncio.create_task(git_poller.run_forever(interval=120))
 
+    # Start job scheduler
+    from corral.background_tasks.scheduler import JobScheduler
+    scheduler = JobScheduler(schedule_store)
+    scheduler_task = asyncio.create_task(scheduler.run_forever())
+    app.state.scheduler = scheduler
+
     # Store indexer on app state so endpoints can trigger refresh
     app.state.indexer = indexer
 
@@ -76,6 +83,7 @@ async def lifespan(app: FastAPI):
     indexer_task.cancel()
     summarizer_task.cancel()
     git_task.cancel()
+    scheduler_task.cancel()
     await store.close()
 
 
@@ -83,17 +91,23 @@ app = FastAPI(title="Corral Dashboard", lifespan=lifespan)
 store = CorralStore()
 jsonl_reader = JsonlSessionReader()
 
+# Schedule store shares the same DB but is a separate instance for the scheduler
+from corral.store.schedule import ScheduleStore
+schedule_store = ScheduleStore()
+
 # Wire up module-level dependencies in router modules
 live_sessions_api.store = store
 live_sessions_api.jsonl_reader = jsonl_reader
 history_api.store = store
 history_api._app = app
 system_api.store = store
+schedule_api.store = schedule_store
 
 # Register routers
 app.include_router(live_sessions_api.router)
 app.include_router(history_api.router)
 app.include_router(system_api.router)
+app.include_router(schedule_api.router)
 
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
@@ -107,11 +121,18 @@ _last_known = live_sessions_api._last_known
 
 def _set_store(new_store):
     """Update the store on web_server and all router modules (used by tests)."""
-    global store
+    global store, schedule_store
     store = new_store
     live_sessions_api.store = new_store
     history_api.store = new_store
     system_api.store = new_store
+
+
+def _set_schedule_store(new_store):
+    """Update the schedule store (used by tests)."""
+    global schedule_store
+    schedule_store = new_store
+    schedule_api.store = new_store
 
 
 # ── Dashboard SPA ──────────────────────────────────────────────────────────

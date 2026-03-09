@@ -149,6 +149,51 @@ class DatabaseManager:
                 key   TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+
+            -- Job definitions
+            CREATE TABLE IF NOT EXISTS scheduled_jobs (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                name            TEXT NOT NULL,
+                description     TEXT DEFAULT '',
+                cron_expr       TEXT NOT NULL,
+                timezone        TEXT NOT NULL DEFAULT 'UTC',
+                agent_type      TEXT NOT NULL DEFAULT 'claude',
+                repo_path       TEXT NOT NULL,
+                base_branch     TEXT DEFAULT 'main',
+                prompt          TEXT NOT NULL,
+                enabled         INTEGER NOT NULL DEFAULT 1,
+                max_duration_s  INTEGER NOT NULL DEFAULT 3600,
+                cleanup_worktree INTEGER NOT NULL DEFAULT 1,
+                created_at      TEXT NOT NULL,
+                updated_at      TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_scheduled_jobs_enabled
+                ON scheduled_jobs(enabled, id);
+
+            -- Execution history
+            CREATE TABLE IF NOT EXISTS scheduled_runs (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id          INTEGER NOT NULL REFERENCES scheduled_jobs(id) ON DELETE CASCADE,
+                session_id      TEXT,
+                worktree_path   TEXT,
+                status          TEXT NOT NULL DEFAULT 'pending',
+                scheduled_at    TEXT NOT NULL,
+                started_at      TEXT,
+                finished_at     TEXT,
+                exit_reason     TEXT,
+                error_msg       TEXT,
+                created_at      TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_scheduled_runs_job
+                ON scheduled_runs(job_id, scheduled_at DESC);
+
+            CREATE INDEX IF NOT EXISTS idx_scheduled_runs_session
+                ON scheduled_runs(session_id);
+
+            CREATE INDEX IF NOT EXISTS idx_scheduled_runs_status
+                ON scheduled_runs(status, scheduled_at DESC);
         """)
 
         # Migrations: add columns that may not exist in older schemas

@@ -3034,3 +3034,105 @@ body {
     resize: none;
     outline: none;
 }
+
+/* ── Scheduler ────────────────────────────────────────────────────────── */
+
+.scheduler-view {
+    padding: 20px 24px;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.sched-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.sched-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.sched-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.sched-desc {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.sched-prompt {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.sched-runs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+.sched-runs-table th,
+.sched-runs-table td {
+    padding: 6px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.sched-runs-table th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.sched-status {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-ok { color: var(--success); }
+.status-err { color: var(--error); }
+.status-running { color: var(--accent); }
+
+.run-session-link {
+    color: var(--accent);
+    font-size: 11px;
+    margin-left: 6px;
+}
+
+.sched-runs-section,
+.sched-prompt-section {
+    margin-top: 16px;
+}
+
+.sched-runs-section h3,
+.sched-prompt-section h3 {
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.sched-dot {
+    font-size: 10px;
+    margin-right: 4px;
+}
+
+.sched-cron {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+}

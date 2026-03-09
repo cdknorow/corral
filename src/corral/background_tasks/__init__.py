@@ -8,5 +8,6 @@
 from corral.background_tasks.session_indexer import SessionIndexer, BatchSummarizer
 from corral.background_tasks.git_poller import GitPoller
 from corral.background_tasks.auto_summarizer import AutoSummarizer
+from corral.background_tasks.scheduler import JobScheduler
 
-__all__ = ["SessionIndexer", "BatchSummarizer", "GitPoller", "AutoSummarizer"]
+__all__ = ["SessionIndexer", "BatchSummarizer", "GitPoller", "AutoSummarizer", "JobScheduler"]

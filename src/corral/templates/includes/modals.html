@@ -134,6 +134,58 @@
         </div>
     </div>
 
+    <!-- Scheduled Job Modal -->
+    <div id="job-modal" class="modal" style="display:none">
+        <div class="modal-content modal-content-wide">
+            <h3>New Scheduled Job</h3>
+            <label>Job Name:
+                <input type="text" id="job-modal-name" placeholder="e.g. Nightly Tests">
+            </label>
+            <label>Description <span style="color:var(--text-muted);font-weight:normal">(optional)</span>:
+                <input type="text" id="job-modal-description" placeholder="e.g. Runs the full test suite">
+            </label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <label>Cron Expression:
+                    <input type="text" id="job-modal-cron" placeholder="0 2 * * *" value="0 2 * * *" oninput="validateCronPreview()">
+                </label>
+                <label>Timezone:
+                    <input type="text" id="job-modal-timezone" placeholder="UTC" value="UTC" oninput="validateCronPreview()">
+                </label>
+            </div>
+            <div id="cron-preview" style="font-size:12px;margin:-4px 0 8px;min-height:18px"></div>
+            <label>Repository Path:
+                <input type="text" id="job-modal-repo" placeholder="/path/to/repo" data-corral-root="{{ corral_root }}" value="{{ corral_root }}">
+            </label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <label>Base Branch:
+                    <input type="text" id="job-modal-branch" placeholder="main" value="main">
+                </label>
+                <label>Agent Type:
+                    <select id="job-modal-agent">
+                        <option value="claude">Claude</option>
+                        <option value="gemini">Gemini</option>
+                    </select>
+                </label>
+            </div>
+            <label>Prompt:
+                <textarea id="job-modal-prompt" rows="4" placeholder="Run the full test suite and report failures..." style="width:100%;resize:vertical"></textarea>
+            </label>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
+                <label>Max Duration (seconds):
+                    <input type="number" id="job-modal-timeout" value="3600" min="60">
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;padding-bottom:6px">
+                    <input type="checkbox" id="job-modal-cleanup" checked>
+                    Cleanup worktree
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="hideJobModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createScheduledJob()">Create Job</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Macro Modal -->
     <div id="macro-modal" class="modal" style="display:none">
         <div class="modal-content" style="width:400px">
