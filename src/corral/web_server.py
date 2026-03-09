@@ -120,7 +120,7 @@ def _set_store(new_store):
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Serve the corral dashboard SPA."""
-    return templates.TemplateResponse("index.html", {"request": request, "corral_root": os.getcwd()})
+    return templates.TemplateResponse(request=request, name="index.html", context={"corral_root": os.getcwd()})
 
 
 # ── Entry Point ──────────────────────────────────────────────────────────────
