@@ -4,11 +4,11 @@
 
 ## The Pitch
 
-Corral is designed to bring back some sanity to coding with AI agents with minimal disruption to your current workflow. The goal is to augment, not take over. The activity across all your agent is visible so you see which ones need attention.
+Corral brings sanity to coding with AI agents without disrupting your workflow. The goal is to augment, not take over. Activity across all your agents is visible so you can see which ones need attention at a glance.
 
-The system generates goals and status based on what you are doing in each session and displays them prominantly. It Provides text search across previous sessions, links to your git commits, and lets resume them from the UI. All of the things the AI agents are doing in the background is brought to light in the activity pannel so you can follow along and start to get a better understanding of just what these things are actually doing. 
+The system tracks goals and status for each session and displays them prominently. It provides full-text search across previous sessions, links to your git commits, and lets you resume them from the UI. Everything the AI agents are doing in the background is surfaced in the activity panel so you can follow along and build a better understanding of what these things are actually doing.
 
-Corral is an MIT licensed multi-agent orchestration application built using tmux and FastAPI and basic HTML5/JS for easy extensibilty and modification. We welcome feedback, commits and hope it brings you some stress releif to corral those little AIs.
+Corral is an MIT-licensed multi-agent orchestration application built with tmux, FastAPI, and vanilla HTML5/JS for easy extensibility and modification. We welcome feedback and contributions.
 
 
 ![main_loop](https://github.com/user-attachments/assets/6af60c92-1d72-45bd-9b46-7f1eab2ce5fe)
@@ -17,13 +17,16 @@ Corral is an MIT licensed multi-agent orchestration application built using tmux
 
 - **Multi-agent support** — Launch and manage both Claude and Gemini agents side-by-side across worktrees
 - **Web dashboard** — Real-time monitoring with pane capture, status tracking, and command input
-- **Session history** — Browse past sessions from both Claude and Gemini
-- **Full-text search** — Search across all session content 
-- **Auto-summarization** — Summarization of sessions are stored for text search later
-- **Session notes & activity** — Add markdown notes and see the activty that occured in each seassion live and historically
+- **Session history** — Browse past sessions with advanced filters (date range, agent type, tags, full-text search)
+- **Full-text search** — Search across all session content using SQLite FTS5 with porter stemming
+- **Auto-summarization** — Sessions are automatically summarized and indexed for search
+- **Scheduled jobs** — Create cron-scheduled tasks that launch agents in isolated worktrees, send prompts, and clean up automatically
+- **Webhook notifications** — Get notified via webhook when agents need input or complete work
+- **Session notes & activity** — Add markdown notes and track activity that occurred in each session, live and historically
 - **Remote control** — Send commands, navigate modes, and manage agents from the dashboard
-- **Attach/Kill/Restart/Resume** — Open a terminal attached to any agent's tmux session, or kill it directly from the UI, or relaunch as a neew session
-- **Git integration & PR Linking** Tracks, commits, and remote URL per agent & session
+- **Attach/Kill/Restart/Resume** — Open a terminal attached to any agent's tmux session, kill it, or relaunch as a new session
+- **Git integration & PR linking** — Tracks commits, branches, and remote URLs per agent and session
+- **Custom macros** — Add configurable toolbar buttons for frequently used commands
 
 ## Installation
 
@@ -72,6 +75,7 @@ Features:
 - **Search** — Type in the search bar to find sessions by content (uses SQLite FTS5 with porter stemming)
 - **Filter by tag** — Select a tag from the dropdown to narrow results
 - **Filter by source** — Show only Claude or Gemini sessions
+- **Filter by date** — Narrow results to a specific date range
 - **Pagination** — Browse through all sessions with prev/next controls
 - **URL bookmarking** — Session URLs use hash routing (`#session/<id>`) so you can bookmark or share links
 - **Notes & tags** — Add markdown notes and color-coded tags to any session, stored in `~/.corral/sessions.db`
@@ -100,6 +104,24 @@ The web dashboard provides quick-action buttons for each live session:
 You can also type arbitrary commands in the input bar and send them to the selected agent.
 
 
+
+### Scheduled Jobs
+
+Corral supports cron-scheduled jobs that automatically launch agents in isolated git worktrees. Create and manage them from the Scheduled section in the sidebar.
+
+Each scheduled job:
+- Creates a fresh git worktree from the specified branch
+- Launches an agent (Claude or Gemini) with optional CLI flags
+- Sends the configured prompt to the agent
+- Monitors the session with a configurable timeout
+- Cleans up the worktree on completion (optional)
+- Tags the session as "scheduled" for easy filtering in history
+
+Run history is tracked per job with links to view each session's full history.
+
+### Webhook Notifications
+
+Configure webhooks from the dashboard settings to receive HTTP notifications when agents need input or when other events occur. Useful for integrating with Slack, Discord, or custom monitoring.
 
 ### Claude Code Hooks (settings.json)
 
@@ -224,6 +246,7 @@ For information on project structure, API endpoints, and the database schema, pl
 - Python 3.8+
 - [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/) — Web server
 - [Jinja2](https://jinja.palletsprojects.com/) — HTML templating
+- [aiosqlite](https://github.com/omnilib/aiosqlite) — Async SQLite (WAL mode)
 - tmux — Session management
 - Claude CLI (optional) — Powers auto-summarization
 
