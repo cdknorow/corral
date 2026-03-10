@@ -779,6 +779,26 @@ body {
     color: var(--text-secondary);
 }
 
+/* xterm.js container */
+.xterm-container {
+    flex: 1;
+    min-height: 0;
+    padding: 4px;
+    background: var(--bg-primary);
+}
+
+.xterm-container .xterm {
+    height: 100%;
+}
+
+.xterm-container .xterm-viewport::-webkit-scrollbar {
+    width: 6px;
+}
+.xterm-container .xterm-viewport::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+}
+
 .selection-pause-badge {
     position: absolute;
     top: 8px;

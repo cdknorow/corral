@@ -192,6 +192,25 @@ async def capture_pane(
         return None
 
 
+async def capture_pane_raw(
+    agent_name: str, lines: int = 200, agent_type: str | None = None, session_id: str | None = None,
+) -> str | None:
+    """Capture pane content WITH ANSI escape sequences preserved."""
+    target = await find_pane_target(agent_name, agent_type, session_id=session_id)
+    if not target:
+        return None
+
+    try:
+        rc, stdout, _ = await run_cmd(
+            "tmux", "capture-pane", "-t", target, "-p", "-e", f"-S-{lines}"
+        )
+        if rc != 0:
+            return None
+        return stdout
+    except (OSError, FileNotFoundError):
+        return None
+
+
 async def kill_session(
     agent_name: str, agent_type: str | None = None, session_id: str | None = None,
 ) -> str | None:

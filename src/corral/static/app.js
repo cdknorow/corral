@@ -12,6 +12,7 @@ import { syncPaneWidth } from './capture.js';
 import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand, showResumeModal, hideResumeModal, resumeIntoSession, showSettingsModal, hideSettingsModal, applySettings, loadSettings, toggleFlag } from './modals.js';
 import { toggleBrowser, browserNavigateTo, browserNavigateUp } from './browser.js';
 import { initSidebarResize, initCommandPaneResize, initTaskBarResize } from './sidebar.js';
+import { fitTerminal } from './xterm_renderer.js';
 import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesEdit, switchHistoryTab } from './notes.js';
 import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown, hideTagDropdown, createTag, loadAllTags } from './tags.js';
 import { loadSessionCommits } from './commits.js';
@@ -444,6 +445,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("resize", () => {
         clearTimeout(resizeDebounce);
         resizeDebounce = setTimeout(syncPaneWidth, 300);
+        fitTerminal();
     });
     // Re-sync after sidebar/task-bar drag ends (the panels change available width)
     document.addEventListener("mouseup", () => {

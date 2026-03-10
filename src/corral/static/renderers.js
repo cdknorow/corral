@@ -324,6 +324,7 @@ class PlainRenderer extends RenderEngine {
 const ENGINES = {
     "block-group": new BlockGroupRenderer(),
     "plain": new PlainRenderer(),
+    "xterm": "xterm",  // Sentinel; actual rendering handled by xterm_renderer.js
 };
 
 /** Default renderer name per agent type. */
@@ -352,10 +353,18 @@ export function getEngineName(agentType, sessionId) {
     return AGENT_DEFAULTS[agentType] || AGENT_DEFAULTS.claude;
 }
 
+/** Get the renderer mode name (returns "xterm" for the xterm sentinel). */
+export function getRendererMode(agentType, sessionId) {
+    return getEngineName(agentType, sessionId);
+}
+
 /** Get the renderer instance for a given agent. */
 export function getRenderer(agentType, sessionId) {
     const name = getEngineName(agentType, sessionId);
-    return ENGINES[name] || ENGINES["block-group"];
+    const engine = ENGINES[name];
+    // If it's a sentinel string (like "xterm"), fall back to block-group
+    if (typeof engine === 'string' || !engine) return ENGINES["block-group"];
+    return engine;
 }
 
 /** Override the renderer for a specific agent session. */

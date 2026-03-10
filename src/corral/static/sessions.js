@@ -15,10 +15,13 @@ import { loadAgentEvents } from './agentic_state.js';
 import { loadHistoryEvents, loadHistoryTasks, loadHistoryAgentNotes } from './history_tabs.js';
 import { startLiveHistoryPoll, stopLiveHistoryPoll, resetLiveHistory } from './live_chat.js';
 import { syncPaneWidth, resetSyncedCols } from './capture.js';
+import { disposeTerminal, createTerminal, connectTerminalWs, disconnectTerminalWs } from './xterm_renderer.js';
+import { getRendererMode } from './renderers.js';
 
 export async function selectLiveSession(name, agentType, sessionId) {
     stopCaptureRefresh();
     stopLiveHistoryPoll();
+    disconnectTerminalWs();
 
     // Save current input text for the old session
     const input = document.getElementById("command-input");
@@ -83,10 +86,23 @@ export async function selectLiveSession(name, agentType, sessionId) {
     loadAgentNotes(name, sessionId);
     loadAgentEvents(name, sessionId);
 
-    // Reset live history and start capture polling
+    // Reset live history and start capture/terminal
     resetLiveHistory();
-    resetSyncedCols();
-    startCaptureRefresh();
+    const mode = getRendererMode(agentType, sessionId);
+    if (mode === "xterm" && typeof Terminal !== 'undefined') {
+        document.getElementById("pane-capture").style.display = "none";
+        const container = document.getElementById("xterm-container");
+        container.style.display = "flex";
+        container.innerHTML = "";
+        createTerminal(container);
+        connectTerminalWs(name, agentType, sessionId);
+    } else {
+        document.getElementById("xterm-container").style.display = "none";
+        document.getElementById("pane-capture").style.display = "";
+        disposeTerminal();
+        resetSyncedCols();
+        startCaptureRefresh();
+    }
 
     // Sync tmux pane width to match browser display after layout settles
     setTimeout(syncPaneWidth, 100);
@@ -100,6 +116,7 @@ export async function selectLiveSession(name, agentType, sessionId) {
 
 export async function selectHistorySession(sessionId) {
     stopCaptureRefresh();
+    disposeTerminal();
 
     // Save current input text for the old session
     const input = document.getElementById("command-input");

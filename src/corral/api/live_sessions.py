@@ -21,6 +21,7 @@ from corral.tools.tmux_manager import (
     send_to_tmux,
     send_raw_keys,
     capture_pane,
+    capture_pane_raw,
     kill_session,
     open_terminal_attached,
     resize_pane,
@@ -406,6 +407,33 @@ async def clear_agent_events(name: str, session_id: str | None = None):
 
 
 # ── WebSocket Endpoints ─────────────────────────────────────────────────────
+
+
+@router.websocket("/ws/terminal/{name}")
+async def ws_terminal(websocket: WebSocket, name: str):
+    """Stream raw terminal content (with ANSI escapes) for a single agent."""
+    await websocket.accept()
+
+    agent_type = websocket.query_params.get("agent_type")
+    session_id = websocket.query_params.get("session_id")
+    last_content = ""
+
+    try:
+        while True:
+            content = await capture_pane_raw(
+                name, agent_type=agent_type, session_id=session_id
+            )
+            if content is not None and content != last_content:
+                await websocket.send_json({
+                    "type": "terminal_update",
+                    "content": content,
+                })
+                last_content = content
+            await asyncio.sleep(0.5)
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
 
 
 @router.websocket("/ws/corral")

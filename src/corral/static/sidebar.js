@@ -1,5 +1,7 @@
 /* Sidebar drag-to-resize functionality */
 
+import { fitTerminal } from './xterm_renderer.js';
+
 export function initSidebarResize() {
     const handle = document.getElementById("sidebar-resize-handle");
     const sidebar = document.querySelector(".sidebar");
@@ -26,6 +28,7 @@ export function initSidebarResize() {
         handle.classList.remove("dragging");
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
+        fitTerminal();
     });
 }
 
@@ -62,6 +65,7 @@ export function initTaskBarResize() {
         handle.classList.remove("dragging");
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
+        fitTerminal();
     });
 }
 
@@ -97,5 +101,6 @@ export function initCommandPaneResize() {
         handle.classList.remove("dragging");
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
+        fitTerminal();
     });
 }
