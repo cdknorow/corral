@@ -279,6 +279,17 @@ class ClaudeAgent(BaseAgent):
 
         if hook_type == "Notification" or hook_data.get("message"):
             message = hook_data.get("message", "")
+            # "waiting for your input" is not a permission prompt — treat as
+            # a stop (done) so the dashboard shows "Done" instead of
+            # "Needs input".
+            if "waiting for your input" in message.lower():
+                return {
+                    "event_type": "stop",
+                    "tool_name": None,
+                    "summary": f"Agent stopped: waiting for input",
+                    "detail_json": None,
+                    "session_id": session_id,
+                }
             return {
                 "event_type": "notification",
                 "tool_name": None,
