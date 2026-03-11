@@ -5,5 +5,14 @@ theme:
 
 nav:
   - Home: index.md
+  - Multi-Agent Orchestration: multi-agent-orchestration.md
+  - Live Sessions: live-sessions.md
+  - Button Macros: button-macros.md
+  - Agent Protocol (PULSE): protocol.md
+  - Session History & Search: session-history-search.md
+  - Metrics & Observability: metrics-observability.md
+  - Scheduled Jobs: scheduled-jobs.md
+  - One-Time Jobs: one-time-jobs.md
+  - Webhook Notifications: webhooks.md
   - API:
     - Jobs: api/jobs.md
