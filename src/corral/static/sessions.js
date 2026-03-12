@@ -58,6 +58,10 @@ export async function selectLiveSession(name, agentType, sessionId) {
     badge.textContent = agentType || "claude";
     badge.className = `badge ${(agentType || "claude").toLowerCase()}`;
 
+    // Reset summary/status before loading new session detail
+    const summaryEl = document.getElementById("session-summary");
+    if (summaryEl) summaryEl.style.display = "none";
+
     // Load detail for status/summary
     const detail = await loadLiveSessionDetail(name, agentType, sessionId);
     if (detail) {

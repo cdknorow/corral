@@ -90,6 +90,7 @@ async def get_live_sessions():
     session_ids = [a["session_id"] for a in agents if a.get("session_id")]
     display_names = await store.get_display_names(session_ids)
     latest_events = await store.get_latest_event_types(session_ids)
+    latest_goals = await store.get_latest_goals(session_ids)
     results = []
     for agent in agents:
         log_info = get_log_status(agent["log_path"])
@@ -105,6 +106,10 @@ async def get_live_sessions():
         latest_ev = latest_events.get(sid) if sid else None
         waiting = latest_ev in ("stop", "notification")
         working = latest_ev == "tool_use" and (log_info["staleness_seconds"] or 999) < 120
+        # Use log summary, fall back to latest goal event from DB
+        summary = log_info["summary"]
+        if not summary and sid:
+            summary = latest_goals.get(sid)
         entry = {
             "name": name,
             "agent_type": agent["agent_type"],
@@ -112,7 +117,7 @@ async def get_live_sessions():
             "tmux_session": agent.get("tmux_session"),
             "log_path": agent["log_path"],
             "status": log_info["status"],
-            "summary": log_info["summary"],
+            "summary": summary,
             "staleness_seconds": log_info["staleness_seconds"],
             "commands": get_agent(agent["agent_type"]).available_commands,
             "branch": git["branch"] if git else None,
@@ -590,6 +595,7 @@ async def ws_corral(websocket: WebSocket):
             ws_session_ids = [a["session_id"] for a in agents if a.get("session_id")]
             ws_display_names = await store.get_display_names(ws_session_ids)
             ws_latest_events = await store.get_latest_event_types(ws_session_ids)
+            ws_latest_goals = await store.get_latest_goals(ws_session_ids)
             results = []
             for agent in agents:
                 log_info = get_log_status(agent["log_path"])
@@ -605,13 +611,16 @@ async def ws_corral(websocket: WebSocket):
                 latest_ev = ws_latest_events.get(sid) if sid else None
                 waiting = latest_ev in ("stop", "notification")
                 working = latest_ev == "tool_use" and (log_info["staleness_seconds"] or 999) < 120
+                ws_summary = log_info["summary"]
+                if not ws_summary and sid:
+                    ws_summary = ws_latest_goals.get(sid)
                 results.append({
                     "name": name,
                     "agent_type": agent["agent_type"],
                     "session_id": sid,
                     "tmux_session": agent.get("tmux_session"),
                     "status": log_info["status"],
-                    "summary": log_info["summary"],
+                    "summary": ws_summary,
                     "staleness_seconds": log_info["staleness_seconds"],
                     "branch": git["branch"] if git else None,
                     "display_name": ws_display_names.get(sid) if sid else None,

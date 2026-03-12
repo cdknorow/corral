@@ -78,6 +78,14 @@ export function openFileDiff(filepath) {
     );
 }
 
+export async function refreshChangedFiles() {
+    if (!state.currentSession || state.currentSession.type !== 'live') return;
+    const btn = document.querySelector('.refresh-files-btn');
+    if (btn) btn.classList.add('refreshing');
+    await loadChangedFiles(state.currentSession.name, state.currentSession.session_id);
+    if (btn) setTimeout(() => btn.classList.remove('refreshing'), 300);
+}
+
 export function renderChangedFiles() {
     const list = document.getElementById('changed-files-list');
     const titleEl = document.getElementById('changed-files-title');

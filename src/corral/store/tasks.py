@@ -255,6 +255,25 @@ class TaskStore(DatabaseManager):
                 result[sid] = r["event_type"]
         return result
 
+    async def get_latest_goals(self, session_ids: list[str]) -> dict[str, str]:
+        """Return the latest goal summary for each session_id."""
+        if not session_ids:
+            return {}
+        conn = await self._get_conn()
+        placeholders = ",".join("?" for _ in session_ids)
+        rows = await (await conn.execute(
+            f"SELECT session_id, summary FROM agent_events "
+            f"WHERE session_id IN ({placeholders}) AND event_type = 'goal' "
+            f"ORDER BY created_at DESC",
+            session_ids,
+        )).fetchall()
+        result: dict[str, str] = {}
+        for r in rows:
+            sid = r["session_id"]
+            if sid not in result:
+                result[sid] = r["summary"]
+        return result
+
     async def clear_agent_events(self, agent_name: str, session_id: str | None = None) -> None:
         conn = await self._get_conn()
         if session_id is not None:

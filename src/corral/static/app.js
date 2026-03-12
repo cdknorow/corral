@@ -11,13 +11,13 @@ import { selectLiveSession, selectHistorySession, editAndResubmit, renameAgent }
 import { syncPaneWidth } from './capture.js';
 import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand, showResumeModal, hideResumeModal, resumeIntoSession, showSettingsModal, hideSettingsModal, applySettings, loadSettings, toggleFlag } from './modals.js';
 import { toggleBrowser, browserNavigateTo, browserNavigateUp } from './browser.js';
-import { initSidebarResize, initCommandPaneResize, initTaskBarResize, initSidebarCollapse, switchJobsSubtab, initAgenticPanelCollapse } from './sidebar.js';
+import { initSidebarResize, initCommandPaneResize, initTaskBarResize, initSidebarCollapse, switchJobsSubtab, initAgenticPanelCollapse, initAgenticBlockResize, initAgenticBlockCollapse } from './sidebar.js';
 import { fitTerminal } from './xterm_renderer.js';
 import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesEdit, switchHistoryTab } from './notes.js';
 import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown, hideTagDropdown, createTag, loadAllTags } from './tags.js';
 import { loadSessionCommits } from './commits.js';
 import { loadAgentTasks, addAgentTask, toggleAgentTask, deleteAgentTask, editAgentTaskTitle } from './tasks.js';
-import { loadChangedFiles, openFileDiff } from './changed_files.js';
+import { loadChangedFiles, openFileDiff, refreshChangedFiles } from './changed_files.js';
 import { loadAgentNotes, initNotesMd } from './agent_notes.js';
 import { switchAgenticTab, loadAgentEvents, toggleEventFilter, toggleAllEventFilters, toggleFilterDropdown, showFilterPopup, hideFilterPopup } from './agentic_state.js';
 import { toggleHistoryEventFilter, toggleAllHistoryEventFilters } from './history_tabs.js';
@@ -82,6 +82,7 @@ window.createTag = createTag;
 window.loadHistoryPage = loadHistoryPage;
 window.loadChangedFiles = loadChangedFiles;
 window.openFileDiff = openFileDiff;
+window.refreshChangedFiles = refreshChangedFiles;
 window.loadAgentTasks = loadAgentTasks;
 window.addAgentTask = addAgentTask;
 window.toggleAgentTask = toggleAgentTask;
@@ -449,6 +450,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Sidebar collapsible sections
     initSidebarCollapse();
     initAgenticPanelCollapse();
+    initAgenticBlockResize();
+    initAgenticBlockCollapse();
 
     // Overflow menu close on outside click
     document.addEventListener('click', (e) => {

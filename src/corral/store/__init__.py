@@ -321,6 +321,10 @@ class CorralStore(DatabaseManager):
         await self._get_conn()
         return await self._tasks.get_latest_event_types(session_ids)
 
+    async def get_latest_goals(self, session_ids: list[str]) -> dict[str, str]:
+        await self._get_conn()
+        return await self._tasks.get_latest_goals(session_ids)
+
     async def clear_agent_events(self, agent_name: str, session_id: str | None = None) -> None:
         await self._get_conn()
         return await self._tasks.clear_agent_events(agent_name, session_id)

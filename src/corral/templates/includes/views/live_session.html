@@ -73,61 +73,77 @@
                         <button class="agentic-collapse-btn" id="agentic-collapse-btn" title="Toggle panel" aria-label="Toggle agentic state panel">
                             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M10 4l-4 4 4 4z"/></svg>
                         </button>
-                        <div class="agentic-state-tabs">
-                            <button class="agentic-tab active" onclick="switchAgenticTab('activity')" id="agentic-tab-activity" title="Activity" aria-label="Activity">
-                                <span class="material-icons">timeline</span>
-                            </button>
-                            <button class="agentic-tab" onclick="switchAgenticTab('files')" id="agentic-tab-files" title="Files" aria-label="Files">
-                                <span class="material-icons">description</span>
-                                <span class="agentic-tab-count" id="files-bar-count"></span>
-                            </button>
-                            <button class="agentic-tab" onclick="switchAgenticTab('tasks')" id="agentic-tab-tasks" title="Tasks" aria-label="Tasks">
-                                <span class="material-icons">checklist</span>
-                                <span class="agentic-tab-count" id="task-bar-count"></span>
-                            </button>
-                            <button class="agentic-tab" onclick="switchAgenticTab('notes')" id="agentic-tab-notes" title="Notes" aria-label="Notes">
-                                <span class="material-icons">edit_note</span>
-                                <span class="agentic-tab-count" id="note-bar-count"></span>
-                            </button>
-                            <button class="agentic-tab" onclick="switchAgenticTab('history')" id="agentic-tab-history" title="History" aria-label="History">
-                                <span class="material-icons">history</span>
-                            </button>
-                        </div>
-                        <!-- Activity tab -->
-                        <div id="agentic-panel-activity" class="agentic-panel active">
-                            <div class="event-filter-bar" id="event-filters"></div>
-                            <div class="agentic-events-body">
-                                <div id="agentic-state-events">
-                                    <div class="event-empty">No activity yet</div>
+                        <!-- Top block: Files, Chat, Notes -->
+                        <div class="agentic-block" id="agentic-block-top">
+                            <div class="agentic-state-tabs">
+                                <button class="agentic-tab active" onclick="switchAgenticTab('files', 'top')" id="agentic-tab-files" title="Files" aria-label="Files">
+                                    <span class="material-icons">description</span>
+                                    <span class="agentic-tab-count" id="files-bar-count"></span>
+                                </button>
+                                <button class="agentic-tab" onclick="switchAgenticTab('history', 'top')" id="agentic-tab-history" title="Chat" aria-label="Chat">
+                                    <span class="material-icons">history</span>
+                                </button>
+                                <button class="agentic-tab" onclick="switchAgenticTab('notes', 'top')" id="agentic-tab-notes" title="Notes" aria-label="Notes">
+                                    <span class="material-icons">edit_note</span>
+                                    <span class="agentic-tab-count" id="note-bar-count"></span>
+                                </button>
+                            </div>
+                            <!-- Files tab -->
+                            <div id="agentic-panel-files" class="agentic-panel active">
+                                <div class="changed-files-header" id="changed-files-header">
+                                    <span class="changed-files-title" id="changed-files-title">0 files changed</span>
+                                    <button class="refresh-files-btn" onclick="refreshChangedFiles()" title="Refresh git diff">&#x21bb;</button>
+                                </div>
+                                <div class="changed-files-list" id="changed-files-list">
+                                    <div class="file-empty">No changed files</div>
                                 </div>
                             </div>
-                            <div id="live-activity-chart" class="activity-chart activity-chart-bottom"></div>
-                        </div>
-                        <!-- Files tab -->
-                        <div id="agentic-panel-files" class="agentic-panel">
-                            <div class="changed-files-header" id="changed-files-header">
-                                <span class="changed-files-title" id="changed-files-title">0 files changed</span>
+                            <!-- History/Chat tab -->
+                            <div id="agentic-panel-history" class="agentic-panel">
+                                <div id="live-history-messages" class="chat-messages live-history-panel"></div>
                             </div>
-                            <div class="changed-files-list" id="changed-files-list">
-                                <div class="file-empty">No changed files</div>
-                            </div>
-                        </div>
-                        <!-- Tasks tab -->
-                        <div id="agentic-panel-tasks" class="agentic-panel">
-                            <div class="task-bar-list" id="task-bar-list">
-                                <div class="task-empty">No tasks yet</div>
+                            <!-- Notes tab -->
+                            <div id="agentic-panel-notes" class="agentic-panel">
+                                <div id="note-md-rendered" class="note-md-rendered notes-rendered">
+                                    <div class="note-md-placeholder">Click to add notes...</div>
+                                </div>
+                                <textarea id="note-md-editor" class="note-md-editor" placeholder="Write notes in markdown..." style="display:none"></textarea>
                             </div>
                         </div>
-                        <!-- Notes tab -->
-                        <div id="agentic-panel-notes" class="agentic-panel">
-                            <div id="note-md-rendered" class="note-md-rendered notes-rendered">
-                                <div class="note-md-placeholder">Click to add notes...</div>
+                        <div class="agentic-block-resize-handle" id="agentic-block-resize-handle"></div>
+                        <!-- Bottom block: Activity, Tasks, Stats -->
+                        <div class="agentic-block" id="agentic-block-bottom">
+                            <div class="agentic-state-tabs">
+                                <button class="agentic-tab active" onclick="switchAgenticTab('activity', 'bottom')" id="agentic-tab-activity" title="Activity" aria-label="Activity">
+                                    <span class="material-icons">timeline</span>
+                                </button>
+                                <button class="agentic-tab" onclick="switchAgenticTab('tasks', 'bottom')" id="agentic-tab-tasks" title="Tasks" aria-label="Tasks">
+                                    <span class="material-icons">checklist</span>
+                                    <span class="agentic-tab-count" id="task-bar-count"></span>
+                                </button>
+                                <button class="agentic-tab" onclick="switchAgenticTab('stats', 'bottom')" id="agentic-tab-stats" title="Stats" aria-label="Stats">
+                                    <span class="material-icons">bar_chart</span>
+                                </button>
                             </div>
-                            <textarea id="note-md-editor" class="note-md-editor" placeholder="Write notes in markdown..." style="display:none"></textarea>
-                        </div>
-                        <!-- History tab (read-only JSONL conversation log) -->
-                        <div id="agentic-panel-history" class="agentic-panel">
-                            <div id="live-history-messages" class="chat-messages live-history-panel"></div>
+                            <!-- Activity tab -->
+                            <div id="agentic-panel-activity" class="agentic-panel active">
+                                <div class="event-filter-bar" id="event-filters"></div>
+                                <div class="agentic-events-body">
+                                    <div id="agentic-state-events">
+                                        <div class="event-empty">No activity yet</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Stats tab -->
+                            <div id="agentic-panel-stats" class="agentic-panel">
+                                <div id="live-activity-chart" class="activity-chart"></div>
+                            </div>
+                            <!-- Tasks tab -->
+                            <div id="agentic-panel-tasks" class="agentic-panel">
+                                <div class="task-bar-list" id="task-bar-list">
+                                    <div class="task-empty">No tasks yet</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

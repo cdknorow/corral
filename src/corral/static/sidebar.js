@@ -195,6 +195,103 @@ export function switchJobsSubtab(tab) {
     if (scheduledContent) scheduledContent.style.display = tab === 'scheduled' ? '' : 'none';
 }
 
+/* Agentic block resize (top/bottom split) */
+
+export function initAgenticBlockResize() {
+    const handle = document.getElementById('agentic-block-resize-handle');
+    const topBlock = document.getElementById('agentic-block-top');
+    const bottomBlock = document.getElementById('agentic-block-bottom');
+    const container = document.getElementById('agentic-state');
+
+    if (!handle || !topBlock || !bottomBlock || !container) return;
+
+    let dragging = false;
+
+    handle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        // Don't allow resize if either block is collapsed
+        if (topBlock.classList.contains('collapsed') || bottomBlock.classList.contains('collapsed')) return;
+        dragging = true;
+        handle.classList.add('dragging');
+        document.body.style.cursor = 'row-resize';
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const rect = container.getBoundingClientRect();
+        // Account for header/tabs heights
+        const topTabs = topBlock.querySelector('.agentic-state-tabs');
+        const bottomTabs = bottomBlock.querySelector('.agentic-state-tabs');
+        const tabsHeight = (topTabs ? topTabs.offsetHeight : 0) + (bottomTabs ? bottomTabs.offsetHeight : 0) + handle.offsetHeight;
+        const collapseBtn = container.querySelector('.agentic-collapse-btn');
+        const available = rect.height - tabsHeight - (collapseBtn ? 0 : 0);
+        const mouseY = e.clientY - rect.top;
+        const topTabsH = topTabs ? topTabs.offsetHeight : 0;
+        const topPanelHeight = mouseY - topTabsH;
+        const minPanel = 40;
+        const clampedTop = Math.max(minPanel, Math.min(topPanelHeight, available - minPanel));
+        const ratio = clampedTop / available;
+        // Store ratio as flex-grow values
+        topBlock.style.flex = ratio.toString();
+        bottomBlock.style.flex = (1 - ratio).toString();
+        localStorage.setItem('corral-block-ratio', ratio.toFixed(3));
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        handle.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    });
+
+    // Restore saved ratio
+    const saved = localStorage.getItem('corral-block-ratio');
+    if (saved) {
+        const ratio = parseFloat(saved);
+        if (ratio > 0 && ratio < 1) {
+            topBlock.style.flex = ratio.toString();
+            bottomBlock.style.flex = (1 - ratio).toString();
+        }
+    }
+}
+
+/* Agentic block collapse (double-click tab bar) */
+
+export function initAgenticBlockCollapse() {
+    const blocks = document.querySelectorAll('.agentic-block');
+    const STORAGE = 'corral-block-collapsed';
+
+    function getSaved() {
+        try { return JSON.parse(localStorage.getItem(STORAGE) || '{}'); } catch { return {}; }
+    }
+
+    const saved = getSaved();
+
+    for (const block of blocks) {
+        const tabs = block.querySelector('.agentic-state-tabs');
+        if (!tabs) continue;
+
+        const id = block.id;
+
+        // Restore saved state
+        if (saved[id]) {
+            block.classList.add('collapsed');
+        }
+
+        tabs.addEventListener('dblclick', (e) => {
+            // Don't toggle if clicking a specific tab button
+            if (e.target.closest('.agentic-tab')) return;
+
+            const isCollapsed = block.classList.toggle('collapsed');
+            const state = getSaved();
+            state[id] = isCollapsed;
+            localStorage.setItem(STORAGE, JSON.stringify(state));
+        });
+    }
+}
+
 /* Agentic state panel collapse */
 
 export function initAgenticPanelCollapse() {

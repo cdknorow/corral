@@ -1128,6 +1128,18 @@ body {
     background: var(--border);
     flex-shrink: 0;
     transition: background 0.15s;
+    position: relative;
+    z-index: 5;
+}
+
+.command-pane-resize-handle::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    left: 0;
+    right: 0;
+    cursor: row-resize;
 }
 
 .command-pane-resize-handle:hover,
@@ -1138,7 +1150,7 @@ body {
 .command-pane {
     display: flex;
     flex-direction: column;
-    height: 200px;
+    height: 300px;
     min-height: 80px;
     max-height: 60vh;
     min-width: 0;
@@ -2701,14 +2713,53 @@ body {
 }
 
 .agentic-state {
-    width: 280px;
-    min-width: 180px;
-    max-width: 480px;
+    width: 390px;
+    min-width: 230px;
+    max-width: 620px;
     display: flex;
     flex-direction: column;
     background: var(--bg-secondary);
     flex-shrink: 0;
     overflow: hidden;
+}
+
+.agentic-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+#agentic-block-top {
+    flex: 2.3;
+}
+
+#agentic-block-bottom {
+    flex: 1;
+}
+
+.agentic-block.collapsed {
+    flex: none;
+}
+
+.agentic-block.collapsed .agentic-panel {
+    display: none !important;
+}
+
+/* Resize handle between top/bottom blocks */
+.agentic-block-resize-handle {
+    height: 4px;
+    cursor: row-resize;
+    background: var(--border);
+    flex-shrink: 0;
+    position: relative;
+    transition: background 0.15s;
+}
+
+.agentic-block-resize-handle:hover,
+.agentic-block-resize-handle.dragging {
+    background: var(--accent);
 }
 
 .agentic-state-tabs {
@@ -3432,6 +3483,27 @@ body {
     flex-shrink: 0;
 }
 
+.refresh-files-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s;
+}
+.refresh-files-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+.refresh-files-btn.refreshing {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .changed-files-title {
     font-size: 12px;
     font-weight: 600;
@@ -4086,6 +4158,7 @@ body {
     min-width: 36px !important;
 }
 
+.agentic-state.collapsed .agentic-block,
 .agentic-state.collapsed .agentic-panel,
 .agentic-state.collapsed .agentic-state-tabs {
     display: none;

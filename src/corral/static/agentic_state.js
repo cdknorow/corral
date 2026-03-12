@@ -396,21 +396,27 @@ export function hideFilterPopup() {
     }
 }
 
-export function switchAgenticTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.agentic-tab').forEach(btn => btn.classList.remove('active'));
+export function switchAgenticTab(tabName, blockId) {
+    // Scope tab/panel switching to the containing block
+    const block = blockId
+        ? document.getElementById(`agentic-block-${blockId}`)
+        : document.getElementById(`agentic-tab-${tabName}`)?.closest('.agentic-block');
+
+    if (block) {
+        block.querySelectorAll('.agentic-tab').forEach(btn => btn.classList.remove('active'));
+        block.querySelectorAll('.agentic-panel').forEach(panel => panel.classList.remove('active'));
+    }
+
     const activeBtn = document.getElementById(`agentic-tab-${tabName}`);
     if (activeBtn) activeBtn.classList.add('active');
 
-    // Update panels
-    document.querySelectorAll('.agentic-panel').forEach(panel => panel.classList.remove('active'));
     const activePanel = document.getElementById(`agentic-panel-${tabName}`);
     if (activePanel) activePanel.classList.add('active');
 
     // Start/stop history polling based on tab
     if (tabName === 'history') {
         startLiveHistoryPoll();
-    } else {
+    } else if (blockId === 'top') {
         stopLiveHistoryPoll();
     }
 

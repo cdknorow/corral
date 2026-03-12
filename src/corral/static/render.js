@@ -282,10 +282,12 @@ export function updateWaitingIndicator(waiting, working, waitingReason) {
 
 export function updateSessionSummary(summary) {
     const el = document.getElementById("session-summary");
+    if (!el) return;
     if (summary) {
         el.querySelector(".summary-text").textContent = summary;
         el.style.display = "";
-    } else {
-        el.style.display = "none";
     }
+    // Don't hide — a null summary from a WebSocket tick shouldn't
+    // clear a previously-known goal. The log parser may simply not
+    // have found the PULSE:SUMMARY line in the current chunk.
 }
