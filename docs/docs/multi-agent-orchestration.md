@@ -1,6 +1,6 @@
 # Multi-Agent Orchestration
 
-Multi-Agent Orchestration is Corral's core capability: run multiple AI coding agents in parallel, each in its own git worktree, managed via tmux, and monitored through a single dashboard.
+Multi-Agent Orchestration is Coral's core capability: run multiple AI coding agents in parallel, each in its own git worktree, managed via tmux, and monitored through a single dashboard.
 
 Every agent runs in a dedicated tmux session named `{agent_type}-{uuid}`. Output is piped to a log file via `tmux pipe-pane`, and the dashboard discovers agents by parsing tmux session names. You can launch up to `MAX_AGENTS=5` agents through the CLI launcher, or add more at any time through the dashboard.
 
@@ -12,7 +12,7 @@ Both **Claude** and **Gemini** agents are supported, and you can run them side b
 
 ## Why multi-agent?
 
-| Benefit | How Corral delivers it |
+| Benefit | How Coral delivers it |
 |---------|----------------------|
 | **Parallel development throughput** | Each agent works in an isolated git worktree, so changes never conflict during development |
 | **Task specialization** | Assign different tasks to different agents — one on backend, another on frontend |
@@ -40,10 +40,10 @@ Each worktree is a full working copy on the same branch (or different branches).
 
 ```bash
 # Launch Claude agents for all worktrees in a directory
-launch-corral /path/to/parent-dir
+launch-coral /path/to/parent-dir
 
 # Launch Gemini agents instead
-launch-corral /path/to/parent-dir gemini
+launch-coral /path/to/parent-dir gemini
 ```
 
 What happens behind the scenes:
@@ -51,7 +51,7 @@ What happens behind the scenes:
 1. Iterates subdirectories up to `MAX_AGENTS=5`
 2. Generates a UUID for each agent session
 3. Creates a tmux session named `{agent_type}-{uuid}`
-4. Sets up `pipe-pane` logging to `/tmp/{agent_type}_corral_{folder}.log`
+4. Sets up `pipe-pane` logging to `/tmp/{agent_type}_coral_{folder}.log`
 5. Launches the agent with `--session-id` and injects `PROTOCOL.md`
 6. Opens a native terminal window per agent
 7. Starts the web server on port `8420`
@@ -75,7 +75,7 @@ curl -X POST http://localhost:8420/api/sessions/launch \
 
 The dashboard keeps you connected to every agent in real time:
 
-- **WebSocket `/ws/corral`** — Polls the full session list every 3 seconds
+- **WebSocket `/ws/coral`** — Polls the full session list every 3 seconds
 - **WebSocket `/ws/terminal/{name}`** — Streams terminal content for the selected session
 - **Status dots** — Green (active), yellow (stale), amber (waiting for input)
 - **PULSE protocol** — Agents emit structured `||PULSE:STATUS||` and `||PULSE:SUMMARY||` markers that the dashboard parses into readable status and goal fields
@@ -123,7 +123,7 @@ Once agents are running, you can control them from the dashboard:
 You can add support for other agent types by subclassing `BaseAgent` and calling `register_agent()`:
 
 ```python
-from corral.agents.base import BaseAgent, register_agent
+from coral.agents.base import BaseAgent, register_agent
 
 class MyAgent(BaseAgent):
     agent_type = "myagent"
@@ -149,7 +149,7 @@ Git worktrees give each agent a fully isolated working directory:
 
 ### Git polling
 
-Corral polls git state every **120 seconds** for each session, collecting:
+Coral polls git state every **120 seconds** for each session, collecting:
 
 - Current branch name
 - Latest commit hash and message

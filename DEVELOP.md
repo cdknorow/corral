@@ -1,14 +1,14 @@
 # Developer Documentation
 
-Welcome to the development guide for Corral! This document covers the project structure, API endpoints, and database schema to help you understand how the system works and how to contribute.
+Welcome to the development guide for Coral! This document covers the project structure, API endpoints, and database schema to help you understand how the system works and how to contribute.
 
 ## Project Structure
 
 ```
-src/corral/
+src/coral/
 ├── launch_agents.sh      # Shell script to discover worktrees, launch tmux sessions,
 │                         #   and start the web server
-├── launch.py             # Launcher entry point (launch-corral CLI)
+├── launch.py             # Launcher entry point (launch-coral CLI)
 ├── web_server.py         # FastAPI server (REST + WebSocket endpoints)
 ├── PROTOCOL.md           # Agent status/summary reporting protocol
 ├── agents/               # Agent implementations
@@ -36,8 +36,8 @@ src/corral/
 │   ├── auto_summarizer.py  # AI-powered session summarization via Claude CLI
 │   └── git_poller.py     # Background git branch/commit polling for live agents
 ├── hooks/                # Claude Code integration hooks
-│   ├── task_state.py     # Task state sync hook (corral-hook-task-sync)
-│   ├── agentic_state.py  # Agentic state hook (corral-hook-agentic-state)
+│   ├── task_state.py     # Task state sync hook (coral-hook-task-sync)
+│   ├── agentic_state.py  # Agentic state hook (coral-hook-agentic-state)
 │   └── utils.py          # Hook utility functions
 ├── templates/
 │   ├── index.html        # Dashboard HTML
@@ -63,7 +63,7 @@ src/corral/
     ├── modals.js         # Launch and info modal dialogs
     ├── browser.js        # Directory browser for launch dialog
     ├── sidebar.js        # Sidebar and command pane resizing
-    ├── websocket.js      # Corral WebSocket subscription
+    ├── websocket.js      # Coral WebSocket subscription
     ├── syntax.js         # Syntax highlighting for code blocks
     └── utils.js          # Escape functions, toast notifications
 ```
@@ -77,7 +77,7 @@ The dashboard is powered by a FastAPI backend:
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/` | Dashboard |
-| `GET` | `/api/sessions/live` | List active corral agents with status and git branch |
+| `GET` | `/api/sessions/live` | List active coral agents with status and git branch |
 | `GET` | `/api/sessions/live/{name}` | Detailed info for a live session (`?agent_type=`) |
 | `GET` | `/api/sessions/live/{name}/capture` | Capture tmux pane content |
 | `GET` | `/api/sessions/live/{name}/chat` | Get live chat messages |
@@ -136,7 +136,7 @@ The dashboard is powered by a FastAPI backend:
 
 | Type | Path | Description |
 |---|---|---|
-| `WS` | `/ws/corral` | Real-time corral status updates (polls every 3s) |
+| `WS` | `/ws/coral` | Real-time coral status updates (polls every 3s) |
 
 ## Testing the Dashboard
 
@@ -146,7 +146,7 @@ Install the package in editable mode and start the web server:
 
 ```bash
 pip install -e .
-corral
+coral
 ```
 
 The dashboard runs at `http://localhost:8420/` by default.
@@ -157,14 +157,14 @@ The web server serves static files and templates from the installed package in s
 
 ```bash
 # Option A: Send commands to the tmux session non-interactively
-tmux send-keys -t corral-web-server C-c
+tmux send-keys -t coral-web-server C-c
 sleep 1
-tmux send-keys -t corral-web-server 'cd <current-worktree> && python -m pip install . && cd ../ && corral' Enter
+tmux send-keys -t coral-web-server 'cd <current-worktree> && python -m pip install . && cd ../ && coral' Enter
 
 # Option B: Attach to tmux and run manually
-tmux attach -t corral-web-server
+tmux attach -t coral-web-server
 # Ctrl+C to stop, then:
-cd <current-worktree> && python -m pip install . && cd ../ && corral
+cd <current-worktree> && python -m pip install . && cd ../ && coral
 ```
 
 ### Browser Testing with Claude in Chrome
@@ -180,14 +180,14 @@ You can use the Claude in Chrome MCP extension to visually inspect and interact 
 
 ### Common Gotchas
 
-- **Static files returning 404**: New file types in `src/corral/static/` must have their glob pattern added to `pyproject.toml` under `[tool.setuptools.package-data]` (e.g. `static/*.png`, `static/*.ico`).
+- **Static files returning 404**: New file types in `src/coral/static/` must have their glob pattern added to `pyproject.toml` under `[tool.setuptools.package-data]` (e.g. `static/*.png`, `static/*.ico`).
 - **Changes not taking effect**: Source edits alone won't appear until you reinstall with `pip install .` since files are copied to site-packages.
 - **Favicon not updating**: Browsers cache favicons aggressively. Hard refresh or open the favicon URL directly to verify.
-- **Finding the installed package**: `python -c "import corral; import os; print(os.path.dirname(corral.__file__))"`
+- **Finding the installed package**: `python -c "import coral; import os; print(os.path.dirname(coral.__file__))"`
 
 ## Database
 
-All persistent state is stored in a SQLite database at `~/.corral/sessions.db` (using WAL mode for concurrent access):
+All persistent state is stored in a SQLite database at `~/.coral/sessions.db` (using WAL mode for concurrent access):
 
 | Table | Purpose |
 |---|---|

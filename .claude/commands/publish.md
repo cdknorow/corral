@@ -1,4 +1,4 @@
-Publish a new release of Corral to PyPI. The user provides the version number as $ARGUMENTS (e.g. "1.0.0").
+Publish a new release of Coral to PyPI. The user provides the version number as $ARGUMENTS (e.g. "1.0.0").
 
 Follow these steps in order:
 
@@ -22,7 +22,7 @@ git log $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-paren
 
 Format the tag message as:
 ```
-Corral v<version>
+Coral v<version>
 
 <one-line summary of this release>
 
@@ -50,7 +50,7 @@ Verify the correct version appears in `dist/`.
 
 Upload using twine (ask the user for confirmation before this step):
 ```
-.venv/bin/python -m twine upload dist/agent_corral-<version>*
+.venv/bin/python -m twine upload dist/agent_coral-<version>*
 ```
 
 ## 7. Summary
@@ -58,4 +58,4 @@ Upload using twine (ask the user for confirmation before this step):
 Report back with:
 - The git tag created
 - The PyPI package files uploaded
-- A link to the PyPI project page: https://pypi.org/project/agent-corral/
+- A link to the PyPI project page: https://pypi.org/project/agent-coral/

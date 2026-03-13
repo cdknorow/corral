@@ -4,13 +4,13 @@
 
 ## The Pitch
 
-Corral brings sanity to coding with AI agents without disrupting your workflow. The goal is to augment, not take over. Activity across all your agents is visible so you can see which ones need attention at a glance.
+Coral brings sanity to coding with AI agents without disrupting your workflow. The goal is to augment, not take over. Activity across all your agents is visible so you can see which ones need attention at a glance.
 
-Stop losing track of what your AI coding agents are doing. As you scale your workflow, the chaos of scattered terminals, lost context, and untracked changes slows you down. Corral is the mission control center you need to effortlessly orchestrate your entire AI workforce. Maintain total visibility over every agent's progress, organize your history, and automate routine tasks so you can focus on building. Stop fighting your tools and start multiplying your productivity—with all your data completely secure and private on your own machine.
+Stop losing track of what your AI coding agents are doing. As you scale your workflow, the chaos of scattered terminals, lost context, and untracked changes slows you down. Coral is the mission control center you need to effortlessly orchestrate your entire AI workforce. Maintain total visibility over every agent's progress, organize your history, and automate routine tasks so you can focus on building. Stop fighting your tools and start multiplying your productivity—with all your data completely secure and private on your own machine.
 
-Corral is an MIT-licensed multi-agent orchestration application built with tmux, FastAPI, and vanilla HTML5/JS for easy extensibility and modification. We welcome feedback and contributions.
+Coral is an MIT-licensed multi-agent orchestration application built with tmux, FastAPI, and vanilla HTML5/JS for easy extensibility and modification. We welcome feedback and contributions.
 
-**[Read the full documentation →](https://cdknorow.github.io/corral/)**
+**[Read the full documentation →](https://cdknorow.github.io/coral/)**
 
 
 ![main_loop](https://github.com/user-attachments/assets/6af60c92-1d72-45bd-9b46-7f1eab2ce5fe)
@@ -35,25 +35,25 @@ Corral is an MIT-licensed multi-agent orchestration application built with tmux,
 Install from PyPI:
 
 ```bash
-pip install agent-corral
+pip install agent-coral
 ```
 
 Or install directly from GitHub:
 
 ```bash
-pip install git+https://github.com/cdknorow/corral.git
+pip install git+https://github.com/cdknorow/coral.git
 ```
 
 ## Launch agents and web dashboard
 
-You can launch the web server directly using `corral` or `corral-dashboard`:
+You can launch the web server directly using `coral` or `coral-dashboard`:
 
 ```bash
 # Start the web dashboard directly (default: http://localhost:8420)
-corral
+coral
 
 # Custom host/port
-corral --host 127.0.0.1 --port 9000
+coral --host 127.0.0.1 --port 9000
 
 ```
 
@@ -80,7 +80,7 @@ Features:
 - **Filter by date** — Narrow results to a specific date range
 - **Pagination** — Browse through all sessions with prev/next controls
 - **URL bookmarking** — Session URLs use hash routing (`#session/<id>`) so you can bookmark or share links
-- **Notes & tags** — Add markdown notes and color-coded tags to any session, stored in `~/.corral/sessions.db`
+- **Notes & tags** — Add markdown notes and color-coded tags to any session, stored in `~/.coral/sessions.db`
 
 
 ### Managing sessions from the dashboard
@@ -109,7 +109,7 @@ You can also type arbitrary commands in the input bar and send them to the selec
 
 ### Scheduled Jobs
 
-Corral supports cron-scheduled jobs that automatically launch agents in isolated git worktrees. Create and manage them from the Scheduled section in the sidebar.
+Coral supports cron-scheduled jobs that automatically launch agents in isolated git worktrees. Create and manage them from the Scheduled section in the sidebar.
 
 Each scheduled job:
 - Creates a fresh git worktree from the specified branch
@@ -127,7 +127,7 @@ Configure webhooks from the dashboard settings to receive HTTP notifications whe
 
 ### Claude Code Hooks (settings.json)
 
-To fully integrate Claude Code's agentic state and task management into the Corral dashboard, configure the provided `corral-hook` scripts in your Claude Code `settings.json` (usually located at `~/.claude.json` or `~/.claude/settings.json`).
+To fully integrate Claude Code's agentic state and task management into the Coral dashboard, configure the provided `coral-hook` scripts in your Claude Code `settings.json` (usually located at `~/.claude.json` or `~/.claude/settings.json`).
 
 If you are already using other configuration options like a custom `statusLine` or other hooks, simply merge these hook definitions into your existing JSON:
 
@@ -139,7 +139,7 @@ If you are already using other configuration options like a custom `statusLine` 
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-task-sync"
+            "command": "coral-hook-task-sync"
           }
         ]
       },
@@ -148,7 +148,7 @@ If you are already using other configuration options like a custom `statusLine` 
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-agentic-state"
+            "command": "coral-hook-agentic-state"
           }
         ]
       }
@@ -159,7 +159,7 @@ If you are already using other configuration options like a custom `statusLine` 
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-agentic-state"
+            "command": "coral-hook-agentic-state"
           }
         ]
       }
@@ -170,7 +170,7 @@ If you are already using other configuration options like a custom `statusLine` 
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-agentic-state"
+            "command": "coral-hook-agentic-state"
           }
         ]
       }
@@ -184,16 +184,16 @@ Or use launcher which discovers worktree subdirectories, creates a agent for eac
 
 ```bash
 # Launch Claude agents and web dashboard for worktrees in the current directory
-launch-corral
+launch-coral
 
 # Launch Gemini agents from a specific path
-launch-corral <path-to-root> gemini
+launch-coral <path-to-root> gemini
 
 ```
 
 ### Remote server development (SSH port forwarding)
 
-If you're running Corral on a remote server, forward the dashboard port over SSH to access it in your local browser:
+If you're running Coral on a remote server, forward the dashboard port over SSH to access it in your local browser:
 
 ```bash
 # Forward remote port 8420 to localhost:8420
@@ -236,7 +236,7 @@ Agents emit structured markers using the `||PULSE:<EVENT_TYPE> <payload>||` form
 ||PULSE:CONFIDENCE <1-5> <short reason>||
 ```
 
-The protocol is automatically injected via `PROTOCOL.md` when launching agents. See [`src/corral/PROTOCOL.md`](src/corral/PROTOCOL.md) for the full specification.
+The protocol is automatically injected via `PROTOCOL.md` when launching agents. See [`src/coral/PROTOCOL.md`](src/coral/PROTOCOL.md) for the full specification.
 
 
 ## Advanced Information

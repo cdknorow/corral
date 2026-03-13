@@ -61,7 +61,7 @@ curl -X POST http://localhost:8420/api/tasks/run \
     "max_duration_s": 1800,
     "auto_accept": true,
     "max_auto_accepts": 5,
-    "webhook_url": "https://hooks.example.com/corral"
+    "webhook_url": "https://hooks.example.com/coral"
   }'
 ```
 
@@ -126,7 +126,7 @@ A safety cap — `max_auto_accepts` — limits how many prompts can be auto-acce
 
 ## Webhook callbacks
 
-If you provide a `webhook_url`, Corral sends a `POST` request to that URL on each status transition (e.g., `pending` &rarr; `running`, `running` &rarr; `completed`). The payload includes the `run_id`, new status, and relevant metadata.
+If you provide a `webhook_url`, Coral sends a `POST` request to that URL on each status transition (e.g., `pending` &rarr; `running`, `running` &rarr; `completed`). The payload includes the `run_id`, new status, and relevant metadata.
 
 This is useful for integrating with CI/CD pipelines, Slack bots, or any external system that needs to react when a job finishes.
 
@@ -151,17 +151,17 @@ Set `create_worktree` to `false` if you want the agent to work directly in the e
 
 ## Concurrency limits
 
-Corral limits how many jobs can run simultaneously to prevent resource exhaustion.
+Coral limits how many jobs can run simultaneously to prevent resource exhaustion.
 
 | Setting | Method | Default | Description |
 |---------|--------|---------|-------------|
-| Max concurrent jobs | `CORRAL_MAX_CONCURRENT_JOBS` env var | `5` | Maximum number of jobs running at the same time |
+| Max concurrent jobs | `CORAL_MAX_CONCURRENT_JOBS` env var | `5` | Maximum number of jobs running at the same time |
 
 When the limit is reached, new job submissions return **HTTP 429 Too Many Requests**. The client should retry after a delay or wait for a running job to complete.
 
 ```bash
 # Increase the concurrency limit
-CORRAL_MAX_CONCURRENT_JOBS=10 corral
+CORAL_MAX_CONCURRENT_JOBS=10 coral
 ```
 
 ---
@@ -180,7 +180,7 @@ Use the History filter controls to narrow results to task runs only.
 
 - **CI/CD integration** — Trigger code fixes or test runs from your CI pipeline via the REST API
 - **Batch processing** — Submit multiple jobs in parallel to process different parts of a codebase
-- **Automation scripts** — Build shell scripts or cron jobs that submit tasks to Corral programmatically
+- **Automation scripts** — Build shell scripts or cron jobs that submit tasks to Coral programmatically
 - **Code review follow-ups** — Automatically apply review feedback by posting the review comments as a job prompt
 
 ---

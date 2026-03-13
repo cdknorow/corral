@@ -1,6 +1,6 @@
 # Scheduled Jobs
 
-Scheduled Jobs let you define recurring agent tasks that run automatically on a cron schedule. Each job specifies a cron expression, timezone, repository path, agent type, and prompt. When the scheduler fires, Corral launches the agent in an isolated git worktree, monitors it with a watchdog, and records the result — no manual intervention required.
+Scheduled Jobs let you define recurring agent tasks that run automatically on a cron schedule. Each job specifies a cron expression, timezone, repository path, agent type, and prompt. When the scheduler fires, Coral launches the agent in an isolated git worktree, monitors it with a watchdog, and records the result — no manual intervention required.
 
 Every run is tracked with a status (pending, running, completed, killed, or failed) and linked to a full session for review.
 
@@ -15,7 +15,7 @@ Every run is tracked with a status (pending, running, completed, killed, or fail
 - **Recurring maintenance** — Schedule dependency updates, lint passes, or formatting fixes on a cadence.
 - **Automated code review** — Have an agent review open PRs on a schedule.
 - **Branch-isolated execution** — Each run gets its own worktree branched from a base branch, so scheduled work never conflicts with manual development.
-- **Hands-off operation** — Define the job once, and Corral handles launching, monitoring, timeout enforcement, and cleanup.
+- **Hands-off operation** — Define the job once, and Coral handles launching, monitoring, timeout enforcement, and cleanup.
 
 ---
 
@@ -160,10 +160,10 @@ Scheduled jobs appear in the sidebar with visual indicators for quick scanning:
 
 | Setting | Method | Default | Description |
 |---------|--------|---------|-------------|
-| Max concurrent jobs | `CORRAL_MAX_CONCURRENT_JOBS` env var | `5` | Maximum number of scheduled jobs that can run simultaneously |
+| Max concurrent jobs | `CORAL_MAX_CONCURRENT_JOBS` env var | `5` | Maximum number of scheduled jobs that can run simultaneously |
 | Scheduler poll interval | — | `30s` | How often the scheduler checks for jobs to fire |
 | Watchdog poll interval | — | `30s` | How often the watchdog checks running jobs for timeout |
-| Worktree path pattern | — | `{repo}/.corral-jobs/{job_id}/{run_id}` | Where job worktrees are created |
+| Worktree path pattern | — | `{repo}/.coral-jobs/{job_id}/{run_id}` | Where job worktrees are created |
 
 ### Per-job settings
 

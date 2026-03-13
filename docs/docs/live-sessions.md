@@ -1,6 +1,6 @@
 # Live Sessions
 
-Live Sessions is the core real-time monitoring and control interface for Corral. It lets you observe and interact with AI coding agents (Claude and Gemini) as they work in parallel git worktrees — all from a single browser tab.
+Live Sessions is the core real-time monitoring and control interface for Coral. It lets you observe and interact with AI coding agents (Claude and Gemini) as they work in parallel git worktrees — all from a single browser tab.
 
 Each live session represents one agent running in a tmux session. The dashboard provides a browser-based view of the agent's terminal output, activity timeline, tasks, notes, and conversation history, all updating in real time.
 
@@ -12,10 +12,10 @@ Each live session represents one agent running in a tmux session. The dashboard 
 
 ```bash
 # Dashboard only
-corral
+coral
 
 # Dashboard + agents for all worktrees in current directory
-launch-corral
+launch-coral
 ```
 
 Open `http://localhost:8420` in your browser. The sidebar shows **Live Sessions** at the top with any running agents grouped by worktree name.
@@ -33,7 +33,7 @@ Open `http://localhost:8420` in your browser. The sidebar shows **Live Sessions*
 The new session appears in the sidebar. Click it to select.
 
 !!! tip
-    You can also launch agents from the command line with `launch-corral <path-to-worktrees>`, which discovers subdirectories and creates one agent per worktree automatically.
+    You can also launch agents from the command line with `launch-coral <path-to-worktrees>`, which discovers subdirectories and creates one agent per worktree automatically.
 
 ---
 
@@ -130,7 +130,7 @@ Create and manage task checklists for each session. Tasks are drag-reorderable a
 - Drag to reorder
 
 !!! tip
-    Configure the `corral-hook-task-sync` hook in your Claude Code settings to keep tasks in sync between the agent and the dashboard. See the [home page](index.md#claude-code-hooks) for hook configuration.
+    Configure the `coral-hook-task-sync` hook in your Claude Code settings to keep tasks in sync between the agent and the dashboard. See the [home page](index.md#claude-code-hooks) for hook configuration.
 
 ### Notes
 
@@ -165,13 +165,13 @@ You can pick up where a previous session left off:
 1. Find the completed session in the **History** section of the sidebar.
 2. Click the **Resume** button in the historical session's header.
 3. The Resume modal shows a list of currently live agents. Select which agent should continue the session.
-4. Corral restarts the selected agent with `--resume`, loading the full conversation context from the previous session.
+4. Coral restarts the selected agent with `--resume`, loading the full conversation context from the previous session.
 
 !!! warning
     Resume is supported for **Claude agents only**. Gemini does not support session resume.
 
 !!! info
-    If Corral restarts, resumed sessions are automatically re-resumed via `resume_persistent_sessions()`. The resume linkage is stored in the database.
+    If Coral restarts, resumed sessions are automatically re-resumed via `resume_persistent_sessions()`. The resume linkage is stored in the database.
 
 ---
 
@@ -198,9 +198,9 @@ Click **Info** to view full session metadata:
 - Each session maps to one tmux session running one agent in one working directory
 - Sessions are identified by UUIDs (tmux session name: `{agent_type}-{uuid}`)
 - The dashboard auto-discovers sessions by querying tmux for panes matching the UUID naming convention
-- WebSocket `/ws/corral` provides corral-wide session list updates every 3 seconds
+- WebSocket `/ws/coral` provides coral-wide session list updates every 3 seconds
 - WebSocket `/ws/terminal/{name}` streams raw terminal content at 0.5-second intervals
-- Sessions persist across Corral restarts — the `live_sessions` database table tracks registered sessions and relaunches them on startup
+- Sessions persist across Coral restarts — the `live_sessions` database table tracks registered sessions and relaunches them on startup
 
 ---
 
@@ -208,13 +208,13 @@ Click **Info** to view full session metadata:
 
 | Setting | Method | Default | Description |
 |---------|--------|---------|-------------|
-| Dashboard port | `CORRAL_PORT` env var or `--port` | `8420` | Web dashboard port |
+| Dashboard port | `CORAL_PORT` env var or `--port` | `8420` | Web dashboard port |
 | Dashboard host | `--host` flag | `0.0.0.0` | Bind address |
 | Default renderer | Settings modal | `xterm` (Claude), `blocks` (Gemini) | Terminal rendering mode per agent type |
 | Default agent type | Settings modal | `claude` | Default for new sessions |
-| Default working directory | Settings modal | Corral root | Pre-filled path in launch modal |
+| Default working directory | Settings modal | Coral root | Pre-filled path in launch modal |
 | Fit pane width | Settings modal | off | Auto-resize tmux pane to match browser width |
 | Custom macros | Toolbar **+** button | `/compact`, `/clear`, `Reset` | Configurable command buttons |
 | Log directory | `TMPDIR` env var | `/tmp` | Agent log file location |
 
-**Database location:** `~/.corral/sessions.db` (SQLite, WAL mode)
+**Database location:** `~/.coral/sessions.db` (SQLite, WAL mode)

@@ -4,10 +4,10 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from corral.web_server import app
-from corral.store import CorralStore as SessionStore
-from corral.agents.claude import ClaudeAgent
-from corral.hooks.utils import truncate
+from coral.web_server import app
+from coral.store import CoralStore as SessionStore
+from coral.agents.claude import ClaudeAgent
+from coral.hooks.utils import truncate
 
 # Use static methods from ClaudeAgent for summary/detail generation
 _make_summary = ClaudeAgent.make_tool_summary
@@ -31,7 +31,7 @@ async def tmp_store(tmp_path):
 @pytest_asyncio.fixture
 async def client(tmp_store, monkeypatch):
     """AsyncClient wired to the real FastAPI app with a temp database."""
-    import corral.web_server as ws
+    import coral.web_server as ws
     ws._set_store(tmp_store)
     monkeypatch.setattr(ws, "store", tmp_store)
     transport = ASGITransport(app=app)
@@ -136,7 +136,7 @@ async def test_events_per_agent_isolation(tmp_store):
 @pytest.mark.asyncio
 async def test_track_status_creates_event(tmp_store, monkeypatch):
     """_track_status_summary_events inserts a status event on change."""
-    import corral.web_server as ws
+    import coral.web_server as ws
     ws._set_store(tmp_store)
     ws._last_known.clear()
 
@@ -150,7 +150,7 @@ async def test_track_status_creates_event(tmp_store, monkeypatch):
 @pytest.mark.asyncio
 async def test_track_summary_creates_event(tmp_store, monkeypatch):
     """_track_status_summary_events inserts a goal event on change."""
-    import corral.web_server as ws
+    import coral.web_server as ws
     ws._set_store(tmp_store)
     ws._last_known.clear()
 
@@ -164,7 +164,7 @@ async def test_track_summary_creates_event(tmp_store, monkeypatch):
 @pytest.mark.asyncio
 async def test_track_no_duplicate_on_same_status(tmp_store, monkeypatch):
     """Repeated calls with the same status/summary do not create duplicates."""
-    import corral.web_server as ws
+    import coral.web_server as ws
     ws._set_store(tmp_store)
     ws._last_known.clear()
 
@@ -179,7 +179,7 @@ async def test_track_no_duplicate_on_same_status(tmp_store, monkeypatch):
 @pytest.mark.asyncio
 async def test_track_new_status_creates_new_event(tmp_store, monkeypatch):
     """Changing status inserts a new event while same summary does not."""
-    import corral.web_server as ws
+    import coral.web_server as ws
     ws._set_store(tmp_store)
     ws._last_known.clear()
 
@@ -196,7 +196,7 @@ async def test_track_new_status_creates_new_event(tmp_store, monkeypatch):
 @pytest.mark.asyncio
 async def test_track_with_session_id(tmp_store, monkeypatch):
     """Events are tagged with the agent's current session_id."""
-    import corral.web_server as ws
+    import coral.web_server as ws
     ws._set_store(tmp_store)
     ws._last_known.clear()
 

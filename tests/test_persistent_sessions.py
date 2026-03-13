@@ -5,7 +5,7 @@ import pytest
 import pytest_asyncio
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from corral.store import CorralStore as SessionStore
+from coral.store import CoralStore as SessionStore
 
 
 @pytest_asyncio.fixture
@@ -137,9 +137,9 @@ async def test_resume_skips_already_running(store, tmp_path):
 
     mock_agents = [{"session_id": "sid-1", "agent_type": "claude", "agent_name": "wt1", "working_directory": str(tmp_path)}]
 
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=mock_agents)), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock()) as mock_launch:
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=mock_agents)), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock()) as mock_launch:
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     mock_launch.assert_not_called()
@@ -157,14 +157,14 @@ async def test_resume_relaunches_missing_session(store, tmp_path):
     launch_result = {
         "session_name": "claude-new-sid",
         "session_id": "new-sid",
-        "log_file": "/tmp/claude_corral_new-sid.log",
+        "log_file": "/tmp/claude_coral_new-sid.log",
         "working_dir": work_dir,
         "agent_type": "claude",
     }
 
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock(return_value=launch_result)) as mock_launch:
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock(return_value=launch_result)) as mock_launch:
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     mock_launch.assert_called_once_with(work_dir, "claude", display_name="My Agent", resume_session_id="old-sid", flags=None)
@@ -182,14 +182,14 @@ async def test_resume_uses_resume_from_id(store, tmp_path):
     launch_result = {
         "session_name": "claude-fresh-sid",
         "session_id": "fresh-sid",
-        "log_file": "/tmp/claude_corral_fresh-sid.log",
+        "log_file": "/tmp/claude_coral_fresh-sid.log",
         "working_dir": work_dir,
         "agent_type": "claude",
     }
 
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock(return_value=launch_result)) as mock_launch:
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock(return_value=launch_result)) as mock_launch:
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     # Should use the original-sid (resume_from_id), not new-sid (session_id)
@@ -206,9 +206,9 @@ async def test_resume_removes_stale_missing_dir(store, tmp_path):
     missing_dir = str(tmp_path / "gone")  # does not exist
     await store.register_live_session("sid-1", "claude", "wt1", missing_dir)
 
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock()) as mock_launch:
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock()) as mock_launch:
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     mock_launch.assert_not_called()
@@ -222,9 +222,9 @@ async def test_resume_handles_launch_failure(store, tmp_path):
     work_dir = str(tmp_path)
     await store.register_live_session("sid-1", "claude", "wt1", work_dir)
 
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock(return_value={"error": "tmux not found"})):
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock(return_value={"error": "tmux not found"})):
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     sessions = await store.get_all_live_sessions()
@@ -250,14 +250,14 @@ async def test_resume_multiple_sessions(store, tmp_path):
         return {
             "session_name": f"{agent_type}-new-{call_count}",
             "session_id": f"new-{call_count}",
-            "log_file": f"/tmp/{agent_type}_corral_new-{call_count}.log",
+            "log_file": f"/tmp/{agent_type}_coral_new-{call_count}.log",
             "working_dir": working_dir,
             "agent_type": agent_type,
         }
 
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock(side_effect=mock_launch)):
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock(side_effect=mock_launch)):
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     assert call_count == 2
@@ -266,11 +266,11 @@ async def test_resume_multiple_sessions(store, tmp_path):
 @pytest.mark.asyncio
 async def test_resume_no_registered_sessions(store):
     """With no registered sessions, resume should be a no-op."""
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock()) as mock_discover:
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock()) as mock_discover:
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
-    # discover_corral_agents should not even be called when table is empty
+    # discover_coral_agents should not even be called when table is empty
     mock_discover.assert_not_called()
 
 
@@ -327,9 +327,9 @@ async def test_replace_without_display_name_sets_null(store):
 
 @pytest.mark.asyncio
 async def test_resume_preserves_display_name_across_multiple_restarts(store, tmp_path):
-    """display_name should survive multiple Corral restart cycles.
+    """display_name should survive multiple Coral restart cycles.
 
-    Simulates: initial launch → Corral restart → Corral restart again.
+    Simulates: initial launch → Coral restart → Coral restart again.
     Each cycle the old session is unregistered and a new one registered
     by launch_claude_session. The display_name must carry through.
     """
@@ -353,7 +353,7 @@ async def test_resume_preserves_display_name_across_multiple_restarts(store, tmp
         return {
             "session_name": f"{agent_type}-{new_sid}",
             "session_id": new_sid,
-            "log_file": f"/tmp/{agent_type}_corral_{new_sid}.log",
+            "log_file": f"/tmp/{agent_type}_coral_{new_sid}.log",
             "working_dir": working_dir,
             "agent_type": agent_type,
         }
@@ -361,10 +361,10 @@ async def test_resume_preserves_display_name_across_multiple_restarts(store, tmp
     # Cycle 0: Initial launch (simulated by direct registration)
     await store.register_live_session("sid-original", "claude", "wt1", work_dir, "My Custom Name")
 
-    # Cycle 1: First Corral restart
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock(side_effect=mock_launch)):
-        from corral.tools.session_manager import resume_persistent_sessions
+    # Cycle 1: First Coral restart
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock(side_effect=mock_launch)):
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     assert call_log[0]["display_name"] == "My Custom Name"
@@ -378,9 +378,9 @@ async def test_resume_preserves_display_name_across_multiple_restarts(store, tmp
     assert s["display_name"] == "My Custom Name"
     assert s["resume_from_id"] == "sid-original"
 
-    # Cycle 2: Second Corral restart — should still use original session ID
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock(side_effect=mock_launch)):
+    # Cycle 2: Second Coral restart — should still use original session ID
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock(side_effect=mock_launch)):
         await resume_persistent_sessions(store)
 
     assert call_log[1]["display_name"] == "My Custom Name"
@@ -411,14 +411,14 @@ async def test_resume_preserves_agent_name_across_restarts(store, tmp_path):
         return {
             "session_name": f"{agent_type}-sid-2",
             "session_id": "sid-2",
-            "log_file": f"/tmp/{agent_type}_corral_sid-2.log",
+            "log_file": f"/tmp/{agent_type}_coral_sid-2.log",
             "working_dir": working_dir,
             "agent_type": agent_type,
         }
 
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock(side_effect=mock_launch)):
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock(side_effect=mock_launch)):
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     sessions = await store.get_all_live_sessions()
@@ -435,14 +435,14 @@ async def test_resume_without_display_name_passes_none(store, tmp_path):
     launch_result = {
         "session_name": "claude-sid-2",
         "session_id": "sid-2",
-        "log_file": "/tmp/claude_corral_sid-2.log",
+        "log_file": "/tmp/claude_coral_sid-2.log",
         "working_dir": work_dir,
         "agent_type": "claude",
     }
 
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock(return_value=launch_result)) as mock_launch:
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock(return_value=launch_result)) as mock_launch:
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     mock_launch.assert_called_once_with(
@@ -464,9 +464,9 @@ async def test_update_live_session_display_name(store):
 
 @pytest.mark.asyncio
 async def test_display_name_set_via_ui_persists_on_resume(store, tmp_path):
-    """display_name set via the dashboard UI should survive Corral restarts.
+    """display_name set via the dashboard UI should survive Coral restarts.
 
-    Simulates: launch (no name) → user sets name via UI → Corral restart.
+    Simulates: launch (no name) → user sets name via UI → Coral restart.
     The display_name in live_sessions must be updated by the UI endpoint
     so it's available when resume_persistent_sessions reads it back.
     """
@@ -479,7 +479,7 @@ async def test_display_name_set_via_ui_persists_on_resume(store, tmp_path):
     await store.set_display_name("sid-1", "Dashboard Name")
     await store.update_live_session_display_name("sid-1", "Dashboard Name")
 
-    # Corral restart: read back from live_sessions
+    # Coral restart: read back from live_sessions
     sessions = await store.get_all_live_sessions()
     assert sessions[0]["display_name"] == "Dashboard Name"
 
@@ -487,14 +487,14 @@ async def test_display_name_set_via_ui_persists_on_resume(store, tmp_path):
     launch_result = {
         "session_name": "claude-sid-2",
         "session_id": "sid-2",
-        "log_file": "/tmp/claude_corral_sid-2.log",
+        "log_file": "/tmp/claude_coral_sid-2.log",
         "working_dir": work_dir,
         "agent_type": "claude",
     }
 
-    with patch("corral.tools.session_manager.discover_corral_agents", AsyncMock(return_value=[])), \
-         patch("corral.tools.session_manager.launch_claude_session", AsyncMock(return_value=launch_result)) as mock_launch:
-        from corral.tools.session_manager import resume_persistent_sessions
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock(return_value=launch_result)) as mock_launch:
+        from coral.tools.session_manager import resume_persistent_sessions
         await resume_persistent_sessions(store)
 
     mock_launch.assert_called_once_with(

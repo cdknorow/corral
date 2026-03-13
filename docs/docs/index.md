@@ -1,10 +1,10 @@
-# Corral
+# Coral
 
 **Multi-agent orchestration for AI coding agents.**
 
-Corral brings sanity to coding with AI agents without disrupting your workflow. Activity across all your agents is visible so you can see which ones need attention at a glance.
+Coral brings sanity to coding with AI agents without disrupting your workflow. Activity across all your agents is visible so you can see which ones need attention at a glance.
 
-Corral is an MIT-licensed multi-agent orchestration application built with tmux, FastAPI, and vanilla HTML5/JS for easy extensibility and modification.
+Coral is an MIT-licensed multi-agent orchestration application built with tmux, FastAPI, and vanilla HTML5/JS for easy extensibility and modification.
 
 ---
 
@@ -29,13 +29,13 @@ Corral is an MIT-licensed multi-agent orchestration application built with tmux,
 Install from PyPI:
 
 ```bash
-pip install agent-corral
+pip install agent-coral
 ```
 
 Or install directly from GitHub:
 
 ```bash
-pip install git+https://github.com/cdknorow/corral.git
+pip install git+https://github.com/cdknorow/coral.git
 ```
 
 ---
@@ -46,20 +46,20 @@ Start the web dashboard:
 
 ```bash
 # Default: http://localhost:8420
-corral
+coral
 
 # Custom host/port
-corral --host 127.0.0.1 --port 9000
+coral --host 127.0.0.1 --port 9000
 ```
 
 Or use the launcher to discover worktree subdirectories, create an agent for each one, and start the dashboard:
 
 ```bash
 # Launch Claude agents and web dashboard for worktrees in the current directory
-launch-corral
+launch-coral
 
 # Launch Gemini agents from a specific path
-launch-corral <path-to-root> gemini
+launch-coral <path-to-root> gemini
 ```
 
 ---
@@ -85,7 +85,7 @@ You can also type arbitrary commands in the input bar and send them to the selec
 
 ## Background Services
 
-On startup, Corral launches three background services:
+On startup, Coral launches three background services:
 
 1. **Session indexer** (every 2 min) — Indexes all Claude sessions from `~/.claude/projects/**/*.jsonl` and Gemini sessions from `~/.gemini/tmp/*/chats/session-*.json`, builds a full-text search index (FTS5), and queues new sessions for auto-summarization
 2. **Batch summarizer** — Continuously processes the summarization queue using Claude CLI
@@ -95,7 +95,7 @@ On startup, Corral launches three background services:
 
 ## Scheduled Jobs
 
-Corral supports cron-scheduled jobs that automatically launch agents in isolated git worktrees. Create and manage them from the Scheduled section in the sidebar.
+Coral supports cron-scheduled jobs that automatically launch agents in isolated git worktrees. Create and manage them from the Scheduled section in the sidebar.
 
 Each scheduled job:
 
@@ -112,7 +112,7 @@ See the [Jobs API](api/jobs.md) for programmatic access.
 
 ## Claude Code Hooks
 
-To fully integrate Claude Code's agentic state and task management into the Corral dashboard, configure the provided hook scripts in your Claude Code `settings.json` (usually at `~/.claude.json` or `~/.claude/settings.json`):
+To fully integrate Claude Code's agentic state and task management into the Coral dashboard, configure the provided hook scripts in your Claude Code `settings.json` (usually at `~/.claude.json` or `~/.claude/settings.json`):
 
 ```json
 "hooks": {
@@ -122,7 +122,7 @@ To fully integrate Claude Code's agentic state and task management into the Corr
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-task-sync"
+            "command": "coral-hook-task-sync"
           }
         ]
       },
@@ -131,7 +131,7 @@ To fully integrate Claude Code's agentic state and task management into the Corr
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-agentic-state"
+            "command": "coral-hook-agentic-state"
           }
         ]
       }
@@ -142,7 +142,7 @@ To fully integrate Claude Code's agentic state and task management into the Corr
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-agentic-state"
+            "command": "coral-hook-agentic-state"
           }
         ]
       }
@@ -153,7 +153,7 @@ To fully integrate Claude Code's agentic state and task management into the Corr
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-agentic-state"
+            "command": "coral-hook-agentic-state"
           }
         ]
       }
@@ -179,7 +179,7 @@ The protocol is automatically injected via `PROTOCOL.md` when launching agents.
 
 ## Remote Server (SSH)
 
-If running Corral on a remote server, forward the dashboard port over SSH:
+If running Coral on a remote server, forward the dashboard port over SSH:
 
 ```bash
 ssh -L 8420:localhost:8420 user@remote-host
@@ -209,7 +209,7 @@ Host my-dev-server
 
 ## Contributing
 
-We welcome contributions! Whether it's adding support for new AI coding agents or improving the web dashboard, please feel free to open an issue or submit a pull request on [GitHub](https://github.com/cdknorow/corral).
+We welcome contributions! Whether it's adding support for new AI coding agents or improving the web dashboard, please feel free to open an issue or submit a pull request on [GitHub](https://github.com/cdknorow/coral).
 
 ## License
 

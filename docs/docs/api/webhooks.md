@@ -166,10 +166,10 @@ Returns the delivery record with the result of the test:
 {
   "id": 15,
   "webhook_id": 1,
-  "agent_name": "corral-test",
+  "agent_name": "coral-test",
   "session_id": null,
   "event_type": "needs_input",
-  "event_summary": "Test notification from Corral dashboard",
+  "event_summary": "Test notification from Coral dashboard",
   "status": "delivered",
   "http_status": 200,
   "error_msg": null,

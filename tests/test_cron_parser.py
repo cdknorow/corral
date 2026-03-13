@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timezone
 
-from corral.tools.cron_parser import parse_field, validate_cron, next_fire_time
+from coral.tools.cron_parser import parse_field, validate_cron, next_fire_time
 
 def test_parse_field():
     assert parse_field("*", 0, 59) == set(range(60))

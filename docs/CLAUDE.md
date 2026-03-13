@@ -18,7 +18,7 @@ mkdocs build
 mkdocs gh-deploy
 ```
 
-The site is published at https://cdknorow.github.io/corral/.
+The site is published at https://cdknorow.github.io/coral/.
 
 ## Current pages
 

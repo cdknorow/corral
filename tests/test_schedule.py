@@ -5,8 +5,8 @@ import pytest_asyncio
 from datetime import datetime, timezone
 from httpx import AsyncClient, ASGITransport
 
-from corral.store.schedule import ScheduleStore
-from corral.store.connection import DatabaseManager
+from coral.store.schedule import ScheduleStore
+from coral.store.connection import DatabaseManager
 
 
 @pytest_asyncio.fixture
@@ -136,11 +136,11 @@ async def test_active_run_detection(schedule_store):
 
 @pytest_asyncio.fixture
 async def api_client(tmp_path):
-    from corral.web_server import app, _set_store, _set_schedule_store
-    from corral.store import CorralStore
+    from coral.web_server import app, _set_store, _set_schedule_store
+    from coral.store import CoralStore
 
     db_path = tmp_path / "api_test.db"
-    store = CorralStore(db_path)
+    store = CoralStore(db_path)
     sched_store = ScheduleStore(db_path)
     _set_store(store)
     _set_schedule_store(sched_store)

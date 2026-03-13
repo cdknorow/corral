@@ -2,7 +2,7 @@
 
 Submit one-shot agent tasks, monitor their progress, and cancel running jobs — all via REST.
 
-Each job launches an agent in an isolated git worktree, sends it a prompt, and monitors it until completion. Jobs appear in the **Jobs** sidebar in the Corral dashboard, separate from persistent live sessions.
+Each job launches an agent in an isolated git worktree, sends it a prompt, and monitors it until completion. Jobs appear in the **Jobs** sidebar in the Coral dashboard, separate from persistent live sessions.
 
 ---
 
@@ -42,7 +42,7 @@ curl -X POST http://localhost:8420/api/tasks/run \
     "display_name": "Signup validation",
     "auto_accept": true,
     "max_auto_accepts": 20,
-    "webhook_url": "https://example.com/hooks/corral"
+    "webhook_url": "https://example.com/hooks/coral"
   }'
 ```
 
@@ -204,7 +204,7 @@ Set `create_worktree: false` to run the agent directly in `repo_path` — useful
 When `auto_accept: true`, two mechanisms handle permission prompts:
 
 1. **`--dangerously-skip-permissions`** is added to the agent's CLI flags, which skips most prompts at the agent level.
-2. **Notification-based fallback** — if the agent's hook fires a `notification` event (indicating a prompt the flag didn't cover), Corral sends `y` + Enter to the tmux session after a 0.5s delay.
+2. **Notification-based fallback** — if the agent's hook fires a `notification` event (indicating a prompt the flag didn't cover), Coral sends `y` + Enter to the tmux session after a 0.5s delay.
 
 ### Safety limit
 
@@ -217,7 +217,7 @@ The `max_auto_accepts` parameter (default: `10`) caps how many times the fallbac
 
 ## Webhooks
 
-If `webhook_url` is set, Corral sends HTTP POST callbacks at each status transition.
+If `webhook_url` is set, Coral sends HTTP POST callbacks at each status transition.
 
 ### Payload
 
@@ -230,7 +230,7 @@ If `webhook_url` is set, Corral sends HTTP POST callbacks at each status transit
   "started_at": "2025-03-11T10:00:05+00:00",
   "finished_at": "2025-03-11T10:30:00+00:00",
   "duration_s": 1795,
-  "source": "corral"
+  "source": "coral"
 }
 ```
 
@@ -244,11 +244,11 @@ If `webhook_url` is set, Corral sends HTTP POST callbacks at each status transit
 
 ## Concurrency limits
 
-Corral limits concurrent running jobs to prevent resource exhaustion.
+Coral limits concurrent running jobs to prevent resource exhaustion.
 
 | Setting | Default | Description |
 |---|---|---|
-| `CORRAL_MAX_CONCURRENT_JOBS` | `5` | Environment variable, set before starting the server. |
+| `CORAL_MAX_CONCURRENT_JOBS` | `5` | Environment variable, set before starting the server. |
 
 When the limit is reached, `POST /api/tasks/run` returns HTTP 429. The cron scheduler also skips firing jobs while at capacity.
 

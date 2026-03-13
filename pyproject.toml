@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agent-corral"
+name = "agent-coral"
 version = "1.0.1"
 description = "A multi-agent orchestration system for managing AI coding agents (Claude and Gemini) in parallel git worktrees with a real-time web dashboard."
 readme = "README.md"
@@ -47,9 +47,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/cdknorow/Corral"
-Repository = "https://github.com/cdknorow/Corral"
-Issues = "https://github.com/cdknorow/Corral/issues"
+Homepage = "https://github.com/cdknorow/coral"
+Repository = "https://github.com/cdknorow/coral"
+Issues = "https://github.com/cdknorow/coral/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -61,14 +61,14 @@ dev = [
 ]
 
 [project.scripts]
-corral = "corral.web_server:main"
-corral-dashboard = "corral.web_server:main"
-launch-corral = "corral.launch:main"
-corral-hook-task-sync = "corral.hooks.task_state:main"
-corral-hook-agentic-state = "corral.hooks.agentic_state:main"
+coral = "coral.web_server:main"
+coral-dashboard = "coral.web_server:main"
+launch-coral = "coral.launch:main"
+coral-hook-task-sync = "coral.hooks.task_state:main"
+coral-hook-agentic-state = "coral.hooks.agentic_state:main"
 
 [tool.setuptools.package-data]
-corral = ["PROTOCOL.md", "launch_agents.sh", "templates/*.html", "templates/includes/*.html", "templates/includes/views/*.html", "static/*.css", "static/css/*.css", "static/*.js", "static/*.png", "static/*.ico", "bundled_themes/*.json"]
+coral = ["PROTOCOL.md", "launch_agents.sh", "templates/*.html", "templates/includes/*.html", "templates/includes/views/*.html", "static/*.css", "static/css/*.css", "static/*.js", "static/*.png", "static/*.ico", "bundled_themes/*.json"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

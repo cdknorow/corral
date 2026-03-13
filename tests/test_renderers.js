@@ -243,7 +243,7 @@ assertEqual(classifyLine("⏺ Read 1 file (ctrl+o to expand)", 0, ["⏺ Read 1 f
 assertEqual(classifyLine("⏺ Bash(git status)", 0, ["⏺ Bash(git status)"]), "tool-header",
     "⏺ Bash is tool-header");
 
-assertEqual(classifyLine("⏺ Update(src/corral/static/style.css)", 0, ["⏺ Update(src/corral/static/style.css)"]), "tool-header",
+assertEqual(classifyLine("⏺ Update(src/coral/static/style.css)", 0, ["⏺ Update(src/coral/static/style.css)"]), "tool-header",
     "⏺ Update is tool-header");
 
 assertEqual(classifyLine("⏺ Claude in Chrome[tabs_context]", 0, ["⏺ Claude in Chrome[tabs_context]"]), "tool-header",
@@ -626,7 +626,7 @@ console.log("\n=== Text block continuity tests ===");
 
     const text = [
         "   Bash command",
-        "     git add src/corral/static/renderers.js tests/test_renderers.js",
+        "     git add src/coral/static/renderers.js tests/test_renderers.js",
         "     Stage modified and new files",
         "   This command requires approval",
         "   Do you want to proceed?",

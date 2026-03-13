@@ -5,8 +5,8 @@ import pytest_asyncio
 from unittest.mock import AsyncMock, patch
 from httpx import ASGITransport, AsyncClient
 
-from corral.web_server import app
-from corral.store import CorralStore as SessionStore
+from coral.web_server import app
+from coral.store import CoralStore as SessionStore
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ async def tmp_store(tmp_path):
 
 @pytest_asyncio.fixture
 async def client(tmp_store, monkeypatch):
-    import corral.web_server as ws
+    import coral.web_server as ws
     ws._set_store(tmp_store)
     monkeypatch.setattr(ws, "store", tmp_store)
     transport = ASGITransport(app=app)
@@ -51,8 +51,8 @@ def mock_pane_and_git():
     """Patch _find_pane to return a fake workdir and run_cmd to return sample files."""
     find_pane = AsyncMock(return_value={"current_path": "/fake/workdir"})
     run_cmd = AsyncMock(return_value=(0, SAMPLE_FILES, ""))
-    with patch("corral.api.live_sessions._find_pane", find_pane), \
-         patch("corral.tools.utils.run_cmd", run_cmd):
+    with patch("coral.api.live_sessions._find_pane", find_pane), \
+         patch("coral.tools.utils.run_cmd", run_cmd):
         yield find_pane, run_cmd
 
 
@@ -124,7 +124,7 @@ async def test_search_no_matches_returns_empty(client, mock_pane_and_git):
 @pytest.mark.asyncio
 async def test_search_no_workdir_returns_empty(client):
     """If working directory can't be resolved, returns empty."""
-    with patch("corral.api.live_sessions._find_pane", AsyncMock(return_value=None)):
+    with patch("coral.api.live_sessions._find_pane", AsyncMock(return_value=None)):
         resp = await client.get("/api/sessions/live/agent-1/search-files?q=test")
     assert resp.status_code == 200
     assert resp.json()["files"] == []
@@ -133,8 +133,8 @@ async def test_search_no_workdir_returns_empty(client):
 @pytest.mark.asyncio
 async def test_search_git_failure_returns_empty(client):
     """If git ls-files fails, returns empty."""
-    with patch("corral.api.live_sessions._find_pane", AsyncMock(return_value={"current_path": "/fake"})), \
-         patch("corral.tools.utils.run_cmd", AsyncMock(return_value=(1, None, "fatal: not a git repo"))):
+    with patch("coral.api.live_sessions._find_pane", AsyncMock(return_value={"current_path": "/fake"})), \
+         patch("coral.tools.utils.run_cmd", AsyncMock(return_value=(1, None, "fatal: not a git repo"))):
         resp = await client.get("/api/sessions/live/agent-1/search-files?q=test")
     assert resp.status_code == 200
     assert resp.json()["files"] == []
@@ -143,8 +143,8 @@ async def test_search_git_failure_returns_empty(client):
 @pytest.mark.asyncio
 async def test_search_empty_repo_returns_empty(client):
     """Empty git output returns empty list."""
-    with patch("corral.api.live_sessions._find_pane", AsyncMock(return_value={"current_path": "/fake"})), \
-         patch("corral.tools.utils.run_cmd", AsyncMock(return_value=(0, "", ""))):
+    with patch("coral.api.live_sessions._find_pane", AsyncMock(return_value={"current_path": "/fake"})), \
+         patch("coral.tools.utils.run_cmd", AsyncMock(return_value=(0, "", ""))):
         resp = await client.get("/api/sessions/live/agent-1/search-files?q=anything")
     assert resp.status_code == 200
     assert resp.json()["files"] == []
@@ -165,8 +165,8 @@ async def test_search_path_query_matches_directory(client, mock_pane_and_git):
 async def test_search_max_50_results(client):
     """Results are capped at 50."""
     many_files = "\n".join([f"src/file_{i:03d}.py" for i in range(100)])
-    with patch("corral.api.live_sessions._find_pane", AsyncMock(return_value={"current_path": "/fake"})), \
-         patch("corral.tools.utils.run_cmd", AsyncMock(return_value=(0, many_files, ""))):
+    with patch("coral.api.live_sessions._find_pane", AsyncMock(return_value={"current_path": "/fake"})), \
+         patch("coral.tools.utils.run_cmd", AsyncMock(return_value=(0, many_files, ""))):
         resp = await client.get("/api/sessions/live/agent-1/search-files?q=file")
     assert resp.status_code == 200
     assert len(resp.json()["files"]) == 50

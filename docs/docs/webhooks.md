@@ -2,7 +2,7 @@
 
 Webhook Notifications let you receive HTTP POST alerts when an agent needs attention. Instead of watching the dashboard, you can route notifications to Slack, Discord, or any HTTP endpoint — so you know the moment an agent is stuck waiting for input.
 
-Corral supports three platforms out of the box: **Slack**, **Discord**, and **Generic HTTP POST**. Webhooks are configured entirely through the dashboard UI, with built-in retry logic and a circuit breaker to keep things reliable without overwhelming a failing endpoint.
+Coral supports three platforms out of the box: **Slack**, **Discord**, and **Generic HTTP POST**. Webhooks are configured entirely through the dashboard UI, with built-in retry logic and a circuit breaker to keep things reliable without overwhelming a failing endpoint.
 
 ![Webhook Notifications modal showing configured webhooks](images/webhook-notifications-modal.png)
 
@@ -10,7 +10,7 @@ Corral supports three platforms out of the box: **Slack**, **Discord**, and **Ge
 
 ## How it works
 
-Corral monitors every live agent session. When an agent has been waiting for input for **5 or more minutes**, a `needs_input` event fires and is dispatched to all matching webhooks. The notification fires **once per waiting period** — it will not repeat until the agent becomes active again and then re-enters a waiting state.
+Coral monitors every live agent session. When an agent has been waiting for input for **5 or more minutes**, a `needs_input` event fires and is dispatched to all matching webhooks. The notification fires **once per waiting period** — it will not repeat until the agent becomes active again and then re-enters a waiting state.
 
 Each delivery attempt follows this reliability model:
 
@@ -46,18 +46,18 @@ Each delivery attempt follows this reliability model:
 2. Under **Incoming Webhooks**, toggle the feature on.
 3. Click **Add New Webhook to Workspace** and select the channel you want notifications in.
 4. Copy the webhook URL — it looks like `https://hooks.slack.com/services/...`.
-5. In Corral, create a new webhook with **Platform** set to **Slack** and paste the URL.
+5. In Coral, create a new webhook with **Platform** set to **Slack** and paste the URL.
 6. Click **Test** to verify the connection.
 
 !!! tip
-    Each Slack webhook URL is tied to a specific channel. Create multiple Corral webhooks if you want to notify different channels.
+    Each Slack webhook URL is tied to a specific channel. Create multiple Coral webhooks if you want to notify different channels.
 
 ### Discord
 
 1. Open the Discord channel you want to receive notifications in.
 2. Go to **Channel Settings > Integrations > Webhooks**.
 3. Click **New Webhook**, give it a name, and click **Copy Webhook URL** — it looks like `https://discord.com/api/webhooks/...`.
-4. In Corral, create a new webhook with **Platform** set to **Discord** and paste the URL.
+4. In Coral, create a new webhook with **Platform** set to **Discord** and paste the URL.
 5. Click **Test** to verify the connection.
 
 ### Generic HTTP POST
@@ -113,7 +113,7 @@ Click **Delete** to permanently remove a webhook and its delivery history.
 
 ### Auto-disable on repeated failures
 
-If a webhook accumulates **10 consecutive delivery failures**, Corral automatically disables it and shows an **Auto-Disabled** badge. This prevents a broken endpoint from consuming retry resources indefinitely.
+If a webhook accumulates **10 consecutive delivery failures**, Coral automatically disables it and shows an **Auto-Disabled** badge. This prevents a broken endpoint from consuming retry resources indefinitely.
 
 To recover, fix the underlying issue (expired URL, server down, etc.), then manually re-enable the webhook and click **Test** to confirm.
 
@@ -124,7 +124,7 @@ To recover, fix the underlying issue (expired URL, server down, etc.), then manu
 
 ## Events
 
-Corral currently supports one webhook event type:
+Coral currently supports one webhook event type:
 
 | Event | Trigger | Behavior |
 |-------|---------|----------|
@@ -154,7 +154,7 @@ Each platform receives a differently formatted payload optimized for its renderi
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": ":raising_hand: *Corral — NEEDS_INPUT*\n*Agent:* `agent-name`\n*Message:* Agent needs input — waiting for 12 minutes"
+        "text": ":raising_hand: *Coral — NEEDS_INPUT*\n*Agent:* `agent-name`\n*Message:* Agent needs input — waiting for 12 minutes"
       }
     }
   ]
@@ -167,7 +167,7 @@ Each platform receives a differently formatted payload optimized for its renderi
 {
   "embeds": [
     {
-      "title": "Corral — NEEDS_INPUT",
+      "title": "Coral — NEEDS_INPUT",
       "description": "Agent needs input — waiting for 12 minutes",
       "color": 13801762,
       "fields": [
@@ -178,7 +178,7 @@ Each platform receives a differently formatted payload optimized for its renderi
         }
       ],
       "footer": {
-        "text": "Corral"
+        "text": "Coral"
       }
     }
   ]
@@ -194,7 +194,7 @@ Each platform receives a differently formatted payload optimized for its renderi
   "event_type": "needs_input",
   "summary": "Agent needs input — waiting for 12 minutes",
   "timestamp": "2025-03-11T10:05:00+00:00",
-  "source": "corral"
+  "source": "coral"
 }
 ```
 

@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
 
-from corral.web_server import app
+from coral.web_server import app
 
 @pytest.mark.asyncio
 async def test_index_renders_templates():
@@ -16,6 +16,6 @@ async def test_index_renders_templates():
         assert response.status_code == 200
         
         # Verify some text that is included from the base layout or includes
-        assert "Corral" in response.text
+        assert "Coral" in response.text
         assert "Live Sessions" in response.text
         assert "Session History" in response.text

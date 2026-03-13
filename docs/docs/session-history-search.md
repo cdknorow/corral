@@ -1,6 +1,6 @@
 # Session History & Search
 
-Corral automatically indexes every Claude and Gemini coding session into a searchable database. Whether you ran a quick one-off prompt or a multi-hour refactoring marathon, every session is preserved and searchable from the dashboard.
+Coral automatically indexes every Claude and Gemini coding session into a searchable database. Whether you ran a quick one-off prompt or a multi-hour refactoring marathon, every session is preserved and searchable from the dashboard.
 
 Sessions are discovered from Claude history files (`~/.claude/projects/*/*.jsonl`) and Gemini session files, then indexed into SQLite with FTS5 full-text search. A background `SessionIndexer` scans for new or updated session files every 120 seconds, so recent sessions appear without any manual action. Each newly discovered session is also enqueued for AI-powered summarization — `BatchSummarizer` generates a markdown summary using `claude --print --model haiku`, giving you a readable overview of what happened in each session.
 
@@ -157,7 +157,7 @@ You can continue any historical Claude session on a live agent:
 1. Open the session in the history view.
 2. Click the **Resume** button in the session header.
 3. In the Resume modal, select which currently live agent should continue the session.
-4. Corral restarts the selected agent with `--resume`, loading the full conversation context from the previous session.
+4. Coral restarts the selected agent with `--resume`, loading the full conversation context from the previous session.
 
 The resumed session picks up with full context, so the agent remembers everything from the original conversation.
 
@@ -209,7 +209,7 @@ FTS5 operator tokens (`AND`, `OR`, `NOT`) entered as bare words in the search bo
 
 ## How indexing works
 
-The indexing pipeline runs automatically in the background as part of the Corral web server.
+The indexing pipeline runs automatically in the background as part of the Coral web server.
 
 1. **SessionIndexer** scans all agent history file paths every 120 seconds. It tracks each file's `file_mtime` and skips files that have not changed since the last scan.
 2. New or updated sessions are upserted into the `session_index` table, and their full message text is inserted into the `session_fts` FTS5 virtual table.
@@ -226,4 +226,4 @@ curl -X POST http://localhost:8420/api/indexer/refresh
 
 ### Database location
 
-All session data is stored in `~/.corral/sessions.db` (SQLite, WAL mode). The database includes the session index, FTS5 search index, tags, notes, summaries, and the summarizer queue.
+All session data is stored in `~/.coral/sessions.db` (SQLite, WAL mode). The database includes the session index, FTS5 search index, tags, notes, summaries, and the summarizer queue.

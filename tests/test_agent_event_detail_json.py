@@ -9,8 +9,8 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from corral.web_server import app
-from corral.store import CorralStore as SessionStore
+from coral.web_server import app
+from coral.store import CoralStore as SessionStore
 
 
 @pytest_asyncio.fixture
@@ -24,7 +24,7 @@ async def tmp_store(tmp_path):
 
 @pytest_asyncio.fixture
 async def client(tmp_store, monkeypatch):
-    import corral.web_server as ws
+    import coral.web_server as ws
     ws._set_store(tmp_store)
     monkeypatch.setattr(ws, "store", tmp_store)
     transport = ASGITransport(app=app)

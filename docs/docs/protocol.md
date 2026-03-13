@@ -1,6 +1,6 @@
 # Agent Protocol (PULSE)
 
-The PULSE protocol is a lightweight, text-based protocol that agents emit to stdout. Corral's dashboard parses these tags in real time to surface what each agent is doing, what it's trying to accomplish, and when it's uncertain.
+The PULSE protocol is a lightweight, text-based protocol that agents emit to stdout. Coral's dashboard parses these tags in real time to surface what each agent is doing, what it's trying to accomplish, and when it's uncertain.
 
 The protocol is pull-based: agents write tagged lines to stdout, tmux `pipe-pane` captures them to a log file, and the dashboard tails the logs. It works for any agent type — Claude, Gemini, or custom processes. Three pieces of context are tracked:
 
@@ -103,7 +103,7 @@ Flags uncertainty (or non-obvious confidence) for the operator.
 The PULSE protocol flows through a pipeline from agent output to the browser:
 
 1. **Agent emits a PULSE tag** to stdout (e.g., `||PULSE:STATUS Reading tests||`).
-2. **tmux `pipe-pane`** captures all terminal output to `/tmp/<type>_corral_<name>.log`.
+2. **tmux `pipe-pane`** captures all terminal output to `/tmp/<type>_coral_<name>.log`.
 3. **Log streamer** reads the log file backwards, strips ANSI escape codes, rejoins lines that were split by terminal wrapping, and extracts the latest STATUS and SUMMARY values via regex.
 4. **Pulse detector** incrementally scans the log for CONFIDENCE events and records them as activity entries.
 5. **Live sessions API** calls both the log streamer and pulse detector on every poll cycle (every 3 seconds via WebSocket).
@@ -133,31 +133,31 @@ All three event types appear in the Activity tab and are filterable using the **
 
 ## Custom agents
 
-Any process that writes `||PULSE:STATUS ...||` to stdout will work with Corral. The dashboard does not care what language or framework the agent uses — it only parses the log file.
+Any process that writes `||PULSE:STATUS ...||` to stdout will work with Coral. The dashboard does not care what language or framework the agent uses — it only parses the log file.
 
 **How the protocol reaches each agent type:**
 
 | Agent | Method |
 |-------|--------|
-| **Claude** | Auto-injected via `--append-system-prompt` when Corral launches the agent |
+| **Claude** | Auto-injected via `--append-system-prompt` when Coral launches the agent |
 | **Gemini** | Injected via the `GEMINI_SYSTEM_MD` environment variable |
 | **Custom** | Paste the protocol text into your agent's system prompt, or have your wrapper script emit PULSE tags directly |
 
 !!! tip
-    If you're wrapping an external tool (Aider, Cursor, OpenDevin, etc.), you only need a thin shell script that emits PULSE tags at key points. The agent itself doesn't need to know about Corral.
+    If you're wrapping an external tool (Aider, Cursor, OpenDevin, etc.), you only need a thin shell script that emits PULSE tags at key points. The agent itself doesn't need to know about Coral.
 
 ---
 
 ## Claude Code hooks integration
 
-Corral has two complementary channels for tracking agent activity:
+Coral has two complementary channels for tracking agent activity:
 
 | Channel | Transport | Scope | Data |
 |---------|-----------|-------|------|
 | **PULSE protocol** | Log-based (stdout to file) | All agent types | Status, goal, confidence |
-| **Claude Code hooks** | API-based (HTTP to Corral server) | Claude only | Tool use, task sync, agentic state |
+| **Claude Code hooks** | API-based (HTTP to Coral server) | Claude only | Tool use, task sync, agentic state |
 
-The hooks provide richer, structured data — individual tool calls (Read, Edit, Bash, etc.), task creation/updates, and stop/notification events. They are auto-installed by Corral into each worktree when a Claude agent is launched.
+The hooks provide richer, structured data — individual tool calls (Read, Edit, Bash, etc.), task creation/updates, and stop/notification events. They are auto-installed by Coral into each worktree when a Claude agent is launched.
 
 To configure hooks manually, add the following to your Claude Code settings (`~/.claude.json` or `~/.claude/settings.json`):
 
@@ -169,7 +169,7 @@ To configure hooks manually, add the following to your Claude Code settings (`~/
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-task-sync"
+            "command": "coral-hook-task-sync"
           }
         ]
       },
@@ -178,7 +178,7 @@ To configure hooks manually, add the following to your Claude Code settings (`~/
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-agentic-state"
+            "command": "coral-hook-agentic-state"
           }
         ]
       }
@@ -189,7 +189,7 @@ To configure hooks manually, add the following to your Claude Code settings (`~/
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-agentic-state"
+            "command": "coral-hook-agentic-state"
           }
         ]
       }
@@ -200,7 +200,7 @@ To configure hooks manually, add the following to your Claude Code settings (`~/
         "hooks": [
           {
             "type": "command",
-            "command": "corral-hook-agentic-state"
+            "command": "coral-hook-agentic-state"
           }
         ]
       }
@@ -215,7 +215,7 @@ See [Live Sessions](live-sessions.md) for how hook-reported events appear in the
 ## Troubleshooting
 
 !!! note "Split lines"
-    Long PULSE tags can be split across multiple lines by terminal wrapping (e.g., a 200-character status line in an 80-column terminal). Corral handles this automatically via `_rejoin_pulse_lines()`, which reassembles fragments before parsing. However, extremely long payloads that span more than 5 continuation lines are dropped to avoid false matches. Keep STATUS under 60 characters and SUMMARY under 120 characters to stay well within limits.
+    Long PULSE tags can be split across multiple lines by terminal wrapping (e.g., a 200-character status line in an 80-column terminal). Coral handles this automatically via `_rejoin_pulse_lines()`, which reassembles fragments before parsing. However, extremely long payloads that span more than 5 continuation lines are dropped to avoid false matches. Keep STATUS under 60 characters and SUMMARY under 120 characters to stay well within limits.
 
 **Common issues:**
 

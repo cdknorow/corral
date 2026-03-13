@@ -1,14 +1,14 @@
 # Metrics & Observability
 
-Corral provides built-in observability for your AI coding agents without requiring any external monitoring tools. From a single browser tab, you can track real-time agent state, review activity timelines, inspect session history metrics, and monitor git state — all updated automatically.
+Coral provides built-in observability for your AI coding agents without requiring any external monitoring tools. From a single browser tab, you can track real-time agent state, review activity timelines, inspect session history metrics, and monitor git state — all updated automatically.
 
 The focus is on **activity observability**: what agents are doing, how long they've been doing it, and what they've produced. Cost and token tracking are not currently included.
 
 ---
 
-## What Corral tracks
+## What Coral tracks
 
-Corral continuously monitors four categories of information for every agent:
+Coral continuously monitors four categories of information for every agent:
 
 - **Real-time agent state** — Active, Working, Waiting, or Idle, derived from staleness and event type
 - **Activity event timeline** — Tool uses, status changes, confidence signals, and stop/notify events
@@ -101,7 +101,7 @@ These metrics are available for every live session and update continuously:
 
 ## Historical metrics
 
-After a session ends, Corral preserves a rich set of metrics in the [session history](session-history-search.md):
+After a session ends, Coral preserves a rich set of metrics in the [session history](session-history-search.md):
 
 | Metric | Source | Where it appears |
 |--------|--------|------------------|
@@ -118,7 +118,7 @@ After a session ends, Corral preserves a rich set of metrics in the [session his
 
 ## Background services
 
-Corral runs several background services to collect and process observability data:
+Coral runs several background services to collect and process observability data:
 
 | Service | Interval | Purpose |
 |---------|----------|---------|
@@ -127,13 +127,13 @@ Corral runs several background services to collect and process observability dat
 | **Git Poller** | 120s | Polls branch, commit, and remote URL per live agent |
 | **Idle Detector** | 60s | Fires [webhooks](webhooks.md) when agents wait longer than 5 minutes |
 
-These services run automatically when the Corral web server starts. No configuration is required.
+These services run automatically when the Coral web server starts. No configuration is required.
 
 ---
 
 ## Searching and filtering
 
-Corral includes full-text search powered by SQLite FTS5 with porter stemming. You can search across all historical sessions by keyword, and results are ranked by relevance.
+Coral includes full-text search powered by SQLite FTS5 with porter stemming. You can search across all historical sessions by keyword, and results are ranked by relevance.
 
 ### Advanced filters
 

@@ -1,12 +1,12 @@
 # CLAUDE.md - Project Guide
 
 ## Project Overview
-**Corral** is a multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux. It features a web dashboard, real-time logging, complete session history with FTS5 search, git state polling, task management, scheduled jobs, webhook notifications, agent notes, and event tracking.
+**Coral** is a multi-agent orchestration system for managing AI coding agents (Claude and Gemini) running in parallel git worktrees using tmux. It features a web dashboard, real-time logging, complete session history with FTS5 search, git state polling, task management, scheduled jobs, webhook notifications, agent notes, and event tracking.
 
 ## Project Structure Highlights
-- `src/corral/`: Main package directory
+- `src/coral/`: Main package directory
   - `launch_agents.sh`: Bash script to discover worktrees, launch tmux sessions, and start the web server.
-  - `launch.py`: Launcher entry point for the `launch-corral` CLI command.
+  - `launch.py`: Launcher entry point for the `launch-coral` CLI command.
   - `web_server.py`: FastAPI web dashboard (REST + WebSocket endpoints).
   - `PROTOCOL.md`: Protocol for agents to follow (status/summary reporting).
   - `agents/`: Agent implementations (`base.py`, `claude.py`, `gemini.py`).
@@ -18,7 +18,7 @@
   - `templates/`: Jinja2 HTML templates (`index.html`, `diff.html`, `includes/`).
   - `static/`: JavaScript, CSS, images, and favicon assets.
 - `tests/`: Test suite (Python and JavaScript tests).
-- `docs/`: MkDocs documentation site (Material theme), published at https://cdknorow.github.io/corral/.
+- `docs/`: MkDocs documentation site (Material theme), published at https://cdknorow.github.io/coral/.
 - `DEVELOP.md`: Detailed developer guide containing full project structure, API endpoints, and database schema.
 - `pyproject.toml`: Project configuration and dependencies.
 
@@ -38,31 +38,31 @@ python3 -m venv .venv
 .venv/bin/python -m pytest tests/ -v
 ```
 
-### Launching the Corral
+### Launching the Coral
 ```bash
 # Launch Claude agents and web dashboard for worktrees in the current directory
-./src/corral/launch_agents.sh .
+./src/coral/launch_agents.sh .
 
 # Launch Gemini agents from a specific path
-./src/corral/launch_agents.sh <path-to-root> gemini
+./src/coral/launch_agents.sh <path-to-root> gemini
 
 # Override the web dashboard port (default: 8420)
-CORRAL_PORT=9000 ./src/corral/launch_agents.sh .
+CORAL_PORT=9000 ./src/coral/launch_agents.sh .
 ```
 
 ### Running the Web Dashboard (standalone)
 ```bash
 # Start the web dashboard (default: http://localhost:8420)
-corral
+coral
 
 # Custom host/port
-corral --host 127.0.0.1 --port 9000
+coral --host 127.0.0.1 --port 9000
 ```
 
 ### Managing Agents
 - **Attach to tmux (Claude):** `tmux attach -t claude-agent-1`
 - **Attach to tmux (Gemini):** `tmux attach -t gemini-agent-1`
-- **Attach to web server:** `tmux attach -t corral-web-server`
+- **Attach to web server:** `tmux attach -t coral-web-server`
 - **Switch window:** `Ctrl+b n` (next) / `Ctrl+b p` (previous)
 - **Detach tmux:** `Ctrl+b d`
 
@@ -76,12 +76,12 @@ All agent events use the `||PULSE:<EVENT_TYPE> <payload>||` format. The dashboar
 ## Development Guidelines
 - **Build System:** Setuptools with `pyproject.toml`.
 - **Dependencies:** `fastapi`, `uvicorn`, `jinja2`, `aiosqlite`, `httpx`, `python-multipart` (Python 3.8+).
-- **Database:** SQLite (`~/.corral/sessions.db`) using WAL mode.
-- **Logs:** Agents stream output to `/tmp/<agent_type>_corral_<folder_name>.log` via `tmux pipe-pane`.
-- **Entry Points:** `corral` / `corral-dashboard` (web server), `launch-corral` (agent launcher), `corral-hook-task-sync` (task sync hook), `corral-hook-agentic-state` (agentic state hook).
+- **Database:** SQLite (`~/.coral/sessions.db`) using WAL mode.
+- **Logs:** Agents stream output to `/tmp/<agent_type>_coral_<folder_name>.log` via `tmux pipe-pane`.
+- **Entry Points:** `coral` / `coral-dashboard` (web server), `launch-coral` (agent launcher), `coral-hook-task-sync` (task sync hook), `coral-hook-agentic-state` (agentic state hook).
 
 ## Documentation
 - Documentation uses MkDocs with Material theme, configured in `docs/mkdocs.yml`.
 - Local preview: `cd docs && mkdocs serve`
 - Deploy to GitHub Pages: `cd docs && mkdocs gh-deploy`
-- Published at https://cdknorow.github.io/corral/
+- Published at https://cdknorow.github.io/coral/

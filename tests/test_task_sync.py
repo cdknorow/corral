@@ -11,9 +11,9 @@ from httpx import ASGITransport, AsyncClient
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from corral.agents.claude import ClaudeAgent
-from corral.web_server import app, store as _default_store
-from corral.store import CorralStore as SessionStore
+from coral.agents.claude import ClaudeAgent
+from coral.web_server import app, store as _default_store
+from coral.store import CoralStore as SessionStore
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ async def tmp_store(tmp_path):
 @pytest_asyncio.fixture
 async def client(tmp_store, monkeypatch):
     """AsyncClient wired to the real FastAPI app with a temp database."""
-    import corral.web_server as ws
+    import coral.web_server as ws
     ws._set_store(tmp_store)
     monkeypatch.setattr(ws, "store", tmp_store)
     transport = ASGITransport(app=app)
@@ -134,7 +134,7 @@ async def test_full_hook_create_then_complete(client, tmp_store):
     """Simulate the full hook flow: TaskCreate JSON → API → TaskUpdate JSON → API.
 
     This mirrors what happens when Claude Code's PostToolUse hook fires
-    corral-hook-task-sync for a TaskCreate followed by a TaskUpdate(completed).
+    coral-hook-task-sync for a TaskCreate followed by a TaskUpdate(completed).
     """
     agent_name = "my_agent"
 
