@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## 2.3.1 — 2026-03-15
+
+### Fixed
+- Unified icon set across all surfaces — monochrome coral silhouette used for system tray, favicon, top bar, welcome screen, and diff viewer
+
 ## 2.3.0 — 2026-03-15
 
 ### Added
