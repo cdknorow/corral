@@ -86,15 +86,9 @@
 }
 
 /* Ensure the xterm-viewport scrollbar is clickable by keeping it above the screen layer */
-.xterm-container .xterm-viewport {
-    z-index: 1;
-    scrollbar-width: thin;
+.xterm-container .xterm .xterm-viewport {
+    scrollbar-width: auto;
     scrollbar-color: var(--border-light) transparent;
-}
-
-/* Inset the screen canvas so it doesn't cover the scrollbar track */
-.xterm-container .xterm-screen {
-    margin-right: 12px;
 }
 
 .xterm-container.xterm-focused {
