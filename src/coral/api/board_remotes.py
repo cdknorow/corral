@@ -9,7 +9,10 @@ so the dashboard can display remote board data without direct connections.
 
 from __future__ import annotations
 
+import ipaddress
 import logging
+import socket
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -40,6 +43,12 @@ async def add_remote_subscription(req: RemoteSubRequest):
     """Register a remote board subscription for local tmux notification."""
     if store is None:
         raise HTTPException(503, "Remote board store not initialized")
+
+    # Validate remote server URL is not targeting internal networks
+    resolved_ip = _resolve_and_validate_url(req.remote_server)
+    if resolved_ip is None:
+        raise HTTPException(400, "Remote server URL is invalid or resolves to a private/reserved IP address")
+
     sub = await store.add(
         session_id=req.session_id,
         remote_server=req.remote_server,
@@ -71,38 +80,53 @@ async def list_remote_subscriptions():
 # display remote board data without direct browser-to-remote connections.
 
 
-def _is_safe_remote_server(url: str) -> bool:
-    """Validate that a remote server URL is safe (not targeting private/internal networks)."""
-    import ipaddress
-    import socket
-    from urllib.parse import urlparse
+def _is_ip_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Check if an IP address is private, reserved, or otherwise unsafe for SSRF."""
+    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+        return True
+    # CGNAT range (100.64.0.0/10) — not covered by is_private in all Python versions
+    if isinstance(ip, ipaddress.IPv4Address):
+        if ip in ipaddress.IPv4Network("100.64.0.0/10"):
+            return True
+    return False
 
+
+def _resolve_and_validate_url(url: str) -> str | None:
+    """Resolve a URL's hostname and validate it's not targeting internal networks.
+
+    Returns the first safe resolved IP as a string, or None if unsafe/unresolvable.
+    """
     try:
         parsed = urlparse(url)
     except Exception:
-        return False
+        return None
 
     if parsed.scheme not in ("http", "https"):
-        return False
+        return None
     if not parsed.hostname:
-        return False
+        return None
 
-    # Resolve the hostname to check the actual IP
     try:
         addr_infos = socket.getaddrinfo(parsed.hostname, parsed.port or 80, proto=socket.IPPROTO_TCP)
     except socket.gaierror:
-        return False
+        return None
 
     for family, _, _, _, sockaddr in addr_infos:
         ip = ipaddress.ip_address(sockaddr[0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-            return False
+        if _is_ip_blocked(ip):
+            return None
 
-    return True
+    # Return the first resolved IP for pinned connection
+    if addr_infos:
+        return addr_infos[0][4][0]
+    return None
 
 
-async def _validate_remote_server(remote_server: str) -> None:
-    """Validate that the remote_server is a registered subscription target."""
+async def _validate_remote_server(remote_server: str) -> str:
+    """Validate that the remote_server is a registered subscription target.
+
+    Returns the resolved IP address to use for the actual request (prevents DNS rebinding).
+    """
     if store is None:
         raise HTTPException(503, "Remote board store not initialized")
 
@@ -112,21 +136,29 @@ async def _validate_remote_server(remote_server: str) -> None:
     if remote_server.rstrip("/") not in registered_servers:
         raise HTTPException(403, "Remote server is not registered. Add a subscription first.")
 
-    # Block private/internal IPs to prevent SSRF
-    if not _is_safe_remote_server(remote_server):
+    # Resolve and validate IP — returns pinned IP to prevent DNS rebinding
+    resolved_ip = _resolve_and_validate_url(remote_server)
+    if resolved_ip is None:
         raise HTTPException(403, "Remote server resolves to a private or reserved IP address")
+
+    return resolved_ip
 
 
 async def _proxy_get(remote_server: str, path: str, timeout: float = 5.0) -> dict | list:
     """Forward a GET request to a remote Coral server's board API."""
     import httpx
 
-    await _validate_remote_server(remote_server)
+    resolved_ip = await _validate_remote_server(remote_server)
 
-    url = f"{remote_server.rstrip('/')}/api/board{path}"
+    # Build URL using the resolved IP to prevent DNS rebinding TOCTOU attacks
+    parsed = urlparse(remote_server.rstrip("/"))
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    pinned_url = f"{parsed.scheme}://{resolved_ip}:{port}/api/board{path}"
+
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.get(url)
+            # Set Host header to original hostname for correct routing
+            resp = await client.get(pinned_url, headers={"Host": parsed.hostname})
             resp.raise_for_status()
             return resp.json()
     except httpx.TimeoutException:
