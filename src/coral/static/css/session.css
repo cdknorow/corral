@@ -190,7 +190,6 @@
 }
 
 .sidebar-kebab-btn {
-    display: none;
     background: none;
     border: none;
     color: var(--text-muted);
@@ -201,6 +200,8 @@
     line-height: 1;
     font-weight: bold;
     letter-spacing: 1px;
+    opacity: 0;
+    transition: opacity 0.1s;
 }
 
 .sidebar-kebab-btn:hover {
@@ -209,7 +210,7 @@
 }
 
 .session-list li:hover .sidebar-kebab-btn {
-    display: inline-block;
+    opacity: 1;
 }
 
 .sidebar-kebab-menu {
@@ -278,8 +279,9 @@
     padding: 2px 4px;
     border-radius: 3px;
     line-height: 1;
-    display: none;
     flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.1s;
 }
 
 .group-board-link:hover {
@@ -288,7 +290,7 @@
 }
 
 .session-group-header:hover .group-board-link {
-    display: inline-block;
+    opacity: 1;
 }
 
 /* ── Grouped Sessions ──────────────────────────────────────── */
@@ -319,13 +321,13 @@
 }
 
 .group-kebab .sidebar-kebab-btn {
-    display: none;
     font-size: 13px;
     padding: 1px 3px;
+    opacity: 0;
 }
 
 .session-group-header:hover .group-kebab .sidebar-kebab-btn {
-    display: inline-block;
+    opacity: 1;
 }
 
 .session-group-item.group-collapsed {
@@ -353,6 +355,7 @@
 .session-group-item {
     padding-left: 22px !important;
     cursor: grab;
+    min-height: 42px;
 }
 
 .session-group-item.dragging {
