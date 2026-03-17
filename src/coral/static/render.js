@@ -282,6 +282,14 @@ export function renderLiveSessions(sessions) {
         groups[key].push(s);
     }
 
+    // Helper to generate a deterministic accent color from a string
+    function _boardAccentColor(name) {
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+        const hue = ((hash % 360) + 360) % 360;
+        return `hsl(${hue}, 60%, 55%)`;
+    }
+
     let html = "";
     for (const [groupName, groupSessions] of Object.entries(groups)) {
         const sorted = _sortByOrder(groupSessions);
@@ -289,9 +297,6 @@ export function renderLiveSessions(sessions) {
         const countBadge = isMulti ? ` <span class="session-group-count">${sorted.length}</span>` : "";
         const collapsed = _isGroupCollapsed(groupName);
         const chevron = collapsed ? '&#x25B8;' : '&#x25BE;';
-        // Show board link if all agents in this group share a board
-        const sharedBoard = sorted.every(s => s.board_project && s.board_project === sorted[0].board_project) ? sorted[0].board_project : null;
-        const boardLink = sharedBoard ? `<button class="group-board-link" onclick="event.stopPropagation(); selectBoardProject('${escapeHtml(sharedBoard)}')" title="View board: ${escapeHtml(sharedBoard)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12v8H5l-3 3V3z"/></svg></button>` : '';
         const groupKebab = `<div class="sidebar-kebab-wrapper group-kebab">
             <button class="sidebar-kebab-btn group-kebab-btn" onclick="event.stopPropagation(); toggleSidebarKebab(this)" title="Group actions">&#x22EE;</button>
             <div class="sidebar-kebab-menu" style="display:none">
@@ -302,10 +307,53 @@ export function renderLiveSessions(sessions) {
             </div>
         </div>`;
         html += `<li class="session-group-header" data-group-name="${escapeHtml(groupName)}" onclick="toggleGroupCollapse('${escapeHtml(groupName)}')">
-            <span class="group-chevron">${chevron}</span>${escapeHtml(groupName)}${countBadge}<span class="session-name-spacer"></span>${boardLink}${groupKebab}</li>`;
+            <span class="group-chevron">${chevron}</span>${escapeHtml(groupName)}${countBadge}<span class="session-name-spacer"></span>${groupKebab}</li>`;
 
-        for (const s of sorted) {
-            html += _renderSessionItem(s, groupName, false, collapsed);
+        if (collapsed) {
+            // Skip rendering items when collapsed
+        } else {
+            // Sub-group by board within this folder
+            const boardSubs = {};
+            const unboardedItems = [];
+            for (const s of sorted) {
+                if (s.board_project) {
+                    if (!boardSubs[s.board_project]) boardSubs[s.board_project] = [];
+                    boardSubs[s.board_project].push(s);
+                } else {
+                    unboardedItems.push(s);
+                }
+            }
+
+            // Render board sub-groups as cards within the folder
+            for (const [boardName, boardSessions] of Object.entries(boardSubs)) {
+                const accentColor = _boardAccentColor(boardName);
+                const boardCollapsed = _isGroupCollapsed(boardName);
+                const bChevron = boardCollapsed ? '&#x25B8;' : '&#x25BE;';
+                const boardLink = `<button class="group-board-link" onclick="event.stopPropagation(); selectBoardProject('${escapeHtml(boardName)}')" title="View board: ${escapeHtml(boardName)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12v8H5l-3 3V3z"/></svg></button>`;
+                const bKebab = `<div class="sidebar-kebab-wrapper group-kebab">
+                    <button class="sidebar-kebab-btn group-kebab-btn" onclick="event.stopPropagation(); toggleSidebarKebab(this)" title="Group actions">&#x22EE;</button>
+                    <div class="sidebar-kebab-menu" style="display:none">
+                        <button class="overflow-menu-item overflow-menu-danger" onclick="event.stopPropagation(); closeSidebarKebabs(); killGroup('${escapeHtml(groupName)}')">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+                            Kill All
+                        </button>
+                    </div>
+                </div>`;
+                html += `<li class="session-board-card" style="border-left-color: ${accentColor}">
+                    <div class="session-group-header board-card-header" onclick="toggleGroupCollapse('${escapeHtml(boardName)}')">
+                        <span class="group-chevron">${bChevron}</span>${escapeHtml(boardName)} <span class="session-group-count">${boardSessions.length}</span><span class="session-name-spacer"></span>${boardLink}${bKebab}
+                    </div>
+                    <ul class="board-card-agents${boardCollapsed ? ' board-card-collapsed' : ''}">`;
+                for (const s of boardSessions) {
+                    html += _renderSessionItem(s, groupName, true);
+                }
+                html += `</ul></li>`;
+            }
+
+            // Render unboarded items as flat list
+            for (const s of unboardedItems) {
+                html += _renderSessionItem(s, groupName, false);
+            }
         }
     }
 
