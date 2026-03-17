@@ -250,6 +250,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../agent-teams-message-board/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Teams & Message Board
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../live-sessions/" class="md-nav__link">
         
   
@@ -258,6 +285,33 @@
     
   
     Live Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../git-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Integration
   
 
     
@@ -672,6 +726,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../themes-customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes & Customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -681,10 +762,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -702,8 +783,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1093,7 +1174,7 @@
     &quot;max_duration_s&quot;: 1800,
     &quot;auto_accept&quot;: true,
     &quot;max_auto_accepts&quot;: 5,
-    &quot;webhook_url&quot;: &quot;https://hooks.example.com/corral&quot;
+    &quot;webhook_url&quot;: &quot;https://hooks.example.com/coral&quot;
   }'
 </code></pre>
 <p>!!! tip
@@ -1131,7 +1212,7 @@
     Use auto-accept with caution. The agent will approve its own file writes and shell commands without review. Set <code>max_auto_accepts</code> to a reasonable limit and ensure the job runs in an isolated worktree (the default) to contain any unintended changes.</p>
 <hr />
 <h2 id="webhook-callbacks">Webhook callbacks</h2>
-<p>If you provide a <code>webhook_url</code>, Corral sends a <code>POST</code> request to that URL on each status transition (e.g., <code>pending</code> &rarr; <code>running</code>, <code>running</code> &rarr; <code>completed</code>). The payload includes the <code>run_id</code>, new status, and relevant metadata.</p>
+<p>If you provide a <code>webhook_url</code>, Coral sends a <code>POST</code> request to that URL on each status transition (e.g., <code>pending</code> &rarr; <code>running</code>, <code>running</code> &rarr; <code>completed</code>). The payload includes the <code>run_id</code>, new status, and relevant metadata.</p>
 <p>This is useful for integrating with CI/CD pipelines, Slack bots, or any external system that needs to react when a job finishes.</p>
 <p>For payload format, retry behavior, and configuration details, see the <a href="../webhooks/">Webhooks documentation</a>.</p>
 <hr />
@@ -1147,7 +1228,7 @@
     If a job fails or is killed, the worktree is still cleaned up (when <code>cleanup_worktree</code> is enabled) to prevent stale worktrees from accumulating on disk.</p>
 <hr />
 <h2 id="concurrency-limits">Concurrency limits</h2>
-<p>Corral limits how many jobs can run simultaneously to prevent resource exhaustion.</p>
+<p>Coral limits how many jobs can run simultaneously to prevent resource exhaustion.</p>
 <table>
 <thead>
 <tr>
@@ -1160,7 +1241,7 @@
 <tbody>
 <tr>
 <td>Max concurrent jobs</td>
-<td><code>CORRAL_MAX_CONCURRENT_JOBS</code> env var</td>
+<td><code>CORAL_MAX_CONCURRENT_JOBS</code> env var</td>
 <td><code>5</code></td>
 <td>Maximum number of jobs running at the same time</td>
 </tr>
@@ -1168,7 +1249,7 @@
 </table>
 <p>When the limit is reached, new job submissions return <strong>HTTP 429 Too Many Requests</strong>. The client should retry after a delay or wait for a running job to complete.</p>
 <pre><code class="language-bash"># Increase the concurrency limit
-CORRAL_MAX_CONCURRENT_JOBS=10 corral
+CORAL_MAX_CONCURRENT_JOBS=10 coral
 </code></pre>
 <hr />
 <h2 id="completed-jobs-in-history">Completed jobs in history</h2>
@@ -1180,7 +1261,7 @@ CORRAL_MAX_CONCURRENT_JOBS=10 corral
 <ul>
 <li><strong>CI/CD integration</strong> — Trigger code fixes or test runs from your CI pipeline via the REST API</li>
 <li><strong>Batch processing</strong> — Submit multiple jobs in parallel to process different parts of a codebase</li>
-<li><strong>Automation scripts</strong> — Build shell scripts or cron jobs that submit tasks to Corral programmatically</li>
+<li><strong>Automation scripts</strong> — Build shell scripts or cron jobs that submit tasks to Coral programmatically</li>
 <li><strong>Code review follow-ups</strong> — Automatically apply review feedback by posting the review comments as a job prompt</li>
 </ul>
 <hr />

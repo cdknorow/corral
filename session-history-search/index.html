@@ -250,6 +250,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../agent-teams-message-board/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Teams & Message Board
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../live-sessions/" class="md-nav__link">
         
   
@@ -258,6 +285,33 @@
     
   
     Live Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../git-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Integration
   
 
     
@@ -884,6 +938,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../themes-customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes & Customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -893,10 +974,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -914,8 +995,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1404,7 +1485,7 @@
 
 
 <h1 id="session-history-search">Session History &amp; Search</h1>
-<p>Corral automatically indexes every Claude and Gemini coding session into a searchable database. Whether you ran a quick one-off prompt or a multi-hour refactoring marathon, every session is preserved and searchable from the dashboard.</p>
+<p>Coral automatically indexes every Claude and Gemini coding session into a searchable database. Whether you ran a quick one-off prompt or a multi-hour refactoring marathon, every session is preserved and searchable from the dashboard.</p>
 <p>Sessions are discovered from Claude history files (<code>~/.claude/projects/*/*.jsonl</code>) and Gemini session files, then indexed into SQLite with FTS5 full-text search. A background <code>SessionIndexer</code> scans for new or updated session files every 120 seconds, so recent sessions appear without any manual action. Each newly discovered session is also enqueued for AI-powered summarization — <code>BatchSummarizer</code> generates a markdown summary using <code>claude --print --model haiku</code>, giving you a readable overview of what happened in each session.</p>
 <p>The result is a browsable, searchable archive of every coding conversation across all your projects and agents.</p>
 <hr />
@@ -1547,7 +1628,7 @@
 <li>Open the session in the history view.</li>
 <li>Click the <strong>Resume</strong> button in the session header.</li>
 <li>In the Resume modal, select which currently live agent should continue the session.</li>
-<li>Corral restarts the selected agent with <code>--resume</code>, loading the full conversation context from the previous session.</li>
+<li>Coral restarts the selected agent with <code>--resume</code>, loading the full conversation context from the previous session.</li>
 </ol>
 <p>The resumed session picks up with full context, so the agent remembers everything from the original conversation.</p>
 <p>!!! warning
@@ -1624,7 +1705,7 @@
 <p>FTS5 operator tokens (<code>AND</code>, <code>OR</code>, <code>NOT</code>) entered as bare words in the search box are stripped automatically to prevent query injection. This means you can safely search for the word "not" without it being interpreted as a boolean operator.</p>
 <hr />
 <h2 id="how-indexing-works">How indexing works</h2>
-<p>The indexing pipeline runs automatically in the background as part of the Corral web server.</p>
+<p>The indexing pipeline runs automatically in the background as part of the Coral web server.</p>
 <ol>
 <li><strong>SessionIndexer</strong> scans all agent history file paths every 120 seconds. It tracks each file's <code>file_mtime</code> and skips files that have not changed since the last scan.</li>
 <li>New or updated sessions are upserted into the <code>session_index</code> table, and their full message text is inserted into the <code>session_fts</code> FTS5 virtual table.</li>
@@ -1636,7 +1717,7 @@
 <pre><code class="language-bash">curl -X POST http://localhost:8420/api/indexer/refresh
 </code></pre>
 <h3 id="database-location">Database location</h3>
-<p>All session data is stored in <code>~/.corral/sessions.db</code> (SQLite, WAL mode). The database includes the session index, FTS5 search index, tags, notes, summaries, and the summarizer queue.</p>
+<p>All session data is stored in <code>~/.coral/sessions.db</code> (SQLite, WAL mode). The database includes the session index, FTS5 search index, tags, notes, summaries, and the summarizer queue.</p>
 
 
 

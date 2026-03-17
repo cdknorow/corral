@@ -250,6 +250,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../agent-teams-message-board/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Teams & Message Board
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../live-sessions/" class="md-nav__link">
         
   
@@ -258,6 +285,33 @@
     
   
     Live Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../git-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Integration
   
 
     
@@ -728,6 +782,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../themes-customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes & Customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -737,10 +818,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -758,8 +839,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1092,7 +1173,7 @@
 
 
 <h1 id="scheduled-jobs">Scheduled Jobs</h1>
-<p>Scheduled Jobs let you define recurring agent tasks that run automatically on a cron schedule. Each job specifies a cron expression, timezone, repository path, agent type, and prompt. When the scheduler fires, Corral launches the agent in an isolated git worktree, monitors it with a watchdog, and records the result — no manual intervention required.</p>
+<p>Scheduled Jobs let you define recurring agent tasks that run automatically on a cron schedule. Each job specifies a cron expression, timezone, repository path, agent type, and prompt. When the scheduler fires, Coral launches the agent in an isolated git worktree, monitors it with a watchdog, and records the result — no manual intervention required.</p>
 <p>Every run is tracked with a status (pending, running, completed, killed, or failed) and linked to a full session for review.</p>
 <p>!!! tip
     Looking for one-shot tasks instead of recurring schedules? See the <a href="../api/jobs/">Jobs API</a> for launching single runs programmatically.</p>
@@ -1103,7 +1184,7 @@
 <li><strong>Recurring maintenance</strong> — Schedule dependency updates, lint passes, or formatting fixes on a cadence.</li>
 <li><strong>Automated code review</strong> — Have an agent review open PRs on a schedule.</li>
 <li><strong>Branch-isolated execution</strong> — Each run gets its own worktree branched from a base branch, so scheduled work never conflicts with manual development.</li>
-<li><strong>Hands-off operation</strong> — Define the job once, and Corral handles launching, monitoring, timeout enforcement, and cleanup.</li>
+<li><strong>Hands-off operation</strong> — Define the job once, and Coral handles launching, monitoring, timeout enforcement, and cleanup.</li>
 </ul>
 <hr />
 <h2 id="creating-a-scheduled-job">Creating a scheduled job</h2>
@@ -1360,7 +1441,7 @@
 <tbody>
 <tr>
 <td>Max concurrent jobs</td>
-<td><code>CORRAL_MAX_CONCURRENT_JOBS</code> env var</td>
+<td><code>CORAL_MAX_CONCURRENT_JOBS</code> env var</td>
 <td><code>5</code></td>
 <td>Maximum number of scheduled jobs that can run simultaneously</td>
 </tr>
@@ -1379,7 +1460,7 @@
 <tr>
 <td>Worktree path pattern</td>
 <td>—</td>
-<td><code>{repo}/.corral-jobs/{job_id}/{run_id}</code></td>
+<td><code>{repo}/.coral-jobs/{job_id}/{run_id}</code></td>
 <td>Where job worktrees are created</td>
 </tr>
 </tbody>

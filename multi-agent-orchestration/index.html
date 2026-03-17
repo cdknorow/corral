@@ -12,7 +12,7 @@
         <link rel="prev" href="..">
       
       
-        <link rel="next" href="../live-sessions/">
+        <link rel="next" href="../agent-teams-message-board/">
       
       
         
@@ -541,6 +541,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../agent-teams-message-board/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Teams & Message Board
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../live-sessions/" class="md-nav__link">
         
   
@@ -549,6 +576,33 @@
     
   
     Live Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../git-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Integration
   
 
     
@@ -756,6 +810,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../themes-customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes & Customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -765,10 +846,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -786,8 +867,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1148,7 +1229,7 @@
 
 
 <h1 id="multi-agent-orchestration">Multi-Agent Orchestration</h1>
-<p>Multi-Agent Orchestration is Corral's core capability: run multiple AI coding agents in parallel, each in its own git worktree, managed via tmux, and monitored through a single dashboard.</p>
+<p>Multi-Agent Orchestration is Coral's core capability: run multiple AI coding agents in parallel, each in its own git worktree, managed via tmux, and monitored through a single dashboard.</p>
 <p>Every agent runs in a dedicated tmux session named <code>{agent_type}-{uuid}</code>. Output is piped to a log file via <code>tmux pipe-pane</code>, and the dashboard discovers agents by parsing tmux session names. You can launch up to <code>MAX_AGENTS=5</code> agents through the CLI launcher, or add more at any time through the dashboard.</p>
 <p>Both <strong>Claude</strong> and <strong>Gemini</strong> agents are supported, and you can run them side by side.</p>
 <p><img alt="Dashboard with multiple agents in the sidebar showing different status dots and agent type badges" src="../images/sidebar-multi-agent.png" /></p>
@@ -1158,7 +1239,7 @@
 <thead>
 <tr>
 <th>Benefit</th>
-<th>How Corral delivers it</th>
+<th>How Coral delivers it</th>
 </tr>
 </thead>
 <tbody>
@@ -1195,17 +1276,17 @@ git worktree add ../worktree_3 main
 <p>Each worktree is a full working copy on the same branch (or different branches). Agents can make changes independently without stepping on each other.</p>
 <h3 id="step-2-launch-via-cli">Step 2: Launch via CLI</h3>
 <pre><code class="language-bash"># Launch Claude agents for all worktrees in a directory
-launch-corral /path/to/parent-dir
+launch-coral /path/to/parent-dir
 
 # Launch Gemini agents instead
-launch-corral /path/to/parent-dir gemini
+launch-coral /path/to/parent-dir gemini
 </code></pre>
 <p>What happens behind the scenes:</p>
 <ol>
 <li>Iterates subdirectories up to <code>MAX_AGENTS=5</code></li>
 <li>Generates a UUID for each agent session</li>
 <li>Creates a tmux session named <code>{agent_type}-{uuid}</code></li>
-<li>Sets up <code>pipe-pane</code> logging to <code>/tmp/{agent_type}_corral_{folder}.log</code></li>
+<li>Sets up <code>pipe-pane</code> logging to <code>/tmp/{agent_type}_coral_{folder}.log</code></li>
 <li>Launches the agent with <code>--session-id</code> and injects <code>PROTOCOL.md</code></li>
 <li>Opens a native terminal window per agent</li>
 <li>Starts the web server on port <code>8420</code></li>
@@ -1222,7 +1303,7 @@ launch-corral /path/to/parent-dir gemini
 <h3 id="step-4-monitor-agents">Step 4: Monitor agents</h3>
 <p>The dashboard keeps you connected to every agent in real time:</p>
 <ul>
-<li><strong>WebSocket <code>/ws/corral</code></strong> — Polls the full session list every 3 seconds</li>
+<li><strong>WebSocket <code>/ws/coral</code></strong> — Polls the full session list every 3 seconds</li>
 <li><strong>WebSocket <code>/ws/terminal/{name}</code></strong> — Streams terminal content for the selected session</li>
 <li><strong>Status dots</strong> — Green (active), yellow (stale), amber (waiting for input)</li>
 <li><strong>PULSE protocol</strong> — Agents emit structured <code>||PULSE:STATUS||</code> and <code>||PULSE:SUMMARY||</code> markers that the dashboard parses into readable status and goal fields</li>
@@ -1262,10 +1343,6 @@ launch-corral /path/to/parent-dir gemini
 <td><code>~/.claude/projects/**/*.jsonl</code></td>
 </tr>
 <tr>
-<td><strong>Hook integration</strong></td>
-<td>Full support — <code>PostToolUse</code>, <code>Stop</code>, <code>Notification</code> hooks</td>
-</tr>
-<tr>
 <td><strong>Tool event tracking</strong></td>
 <td>Rich activity timeline (Read, Write, Edit, Bash, Grep, Glob, Web, Subagents)</td>
 </tr>
@@ -1293,10 +1370,6 @@ launch-corral /path/to/parent-dir gemini
 <td><code>~/.gemini/tmp/*/chats/session-*.json</code></td>
 </tr>
 <tr>
-<td><strong>Hook integration</strong></td>
-<td>Not supported</td>
-</tr>
-<tr>
 <td><strong>Tool event tracking</strong></td>
 <td>Basic (parsed from terminal output)</td>
 </tr>
@@ -1304,7 +1377,7 @@ launch-corral /path/to/parent-dir gemini
 </table>
 <h3 id="custom-agents">Custom agents</h3>
 <p>You can add support for other agent types by subclassing <code>BaseAgent</code> and calling <code>register_agent()</code>:</p>
-<pre><code class="language-python">from corral.agents.base import BaseAgent, register_agent
+<pre><code class="language-python">from coral.agents.base import BaseAgent, register_agent
 
 class MyAgent(BaseAgent):
     agent_type = &quot;myagent&quot;
@@ -1324,7 +1397,7 @@ register_agent(MyAgent)
 <li><strong>Safe merging</strong> — Changes stay isolated until explicitly merged</li>
 </ul>
 <h3 id="git-polling">Git polling</h3>
-<p>Corral polls git state every <strong>120 seconds</strong> for each session, collecting:</p>
+<p>Coral polls git state every <strong>120 seconds</strong> for each session, collecting:</p>
 <ul>
 <li>Current branch name</li>
 <li>Latest commit hash and message</li>

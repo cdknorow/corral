@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../../webhooks/">
+        <link rel="prev" href="../../themes-customization/">
       
       
         <link rel="next" href="../webhooks/">
@@ -250,6 +250,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../agent-teams-message-board/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Teams & Message Board
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../live-sessions/" class="md-nav__link">
         
   
@@ -258,6 +285,33 @@
     
   
     Live Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../git-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Integration
   
 
     
@@ -463,6 +517,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../../themes-customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes & Customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -476,10 +557,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" checked>
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -497,8 +578,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1153,7 +1234,7 @@
 
 <h1 id="jobs-api">Jobs API</h1>
 <p>Submit one-shot agent tasks, monitor their progress, and cancel running jobs — all via REST.</p>
-<p>Each job launches an agent in an isolated git worktree, sends it a prompt, and monitors it until completion. Jobs appear in the <strong>Jobs</strong> sidebar in the Corral dashboard, separate from persistent live sessions.</p>
+<p>Each job launches an agent in an isolated git worktree, sends it a prompt, and monitors it until completion. Jobs appear in the <strong>Jobs</strong> sidebar in the Coral dashboard, separate from persistent live sessions.</p>
 <hr />
 <h2 id="submit-a-task">Submit a task</h2>
 <pre><code>POST /api/tasks/run
@@ -1253,7 +1334,7 @@
     &quot;display_name&quot;: &quot;Signup validation&quot;,
     &quot;auto_accept&quot;: true,
     &quot;max_auto_accepts&quot;: 20,
-    &quot;webhook_url&quot;: &quot;https://example.com/hooks/corral&quot;
+    &quot;webhook_url&quot;: &quot;https://example.com/hooks/coral&quot;
   }'
 </code></pre>
 <h3 id="response">Response</h3>
@@ -1424,7 +1505,7 @@
 <p>When <code>auto_accept: true</code>, two mechanisms handle permission prompts:</p>
 <ol>
 <li><strong><code>--dangerously-skip-permissions</code></strong> is added to the agent's CLI flags, which skips most prompts at the agent level.</li>
-<li><strong>Notification-based fallback</strong> — if the agent's hook fires a <code>notification</code> event (indicating a prompt the flag didn't cover), Corral sends <code>y</code> + Enter to the tmux session after a 0.5s delay.</li>
+<li><strong>Notification-based fallback</strong> — if the agent fires a <code>notification</code> event (indicating a prompt the flag didn't cover), Coral sends <code>y</code> + Enter to the tmux session after a 0.5s delay.</li>
 </ol>
 <h3 id="safety-limit">Safety limit</h3>
 <p>The <code>max_auto_accepts</code> parameter (default: <code>10</code>) caps how many times the fallback mechanism fires. Once the limit is reached, auto-accept is permanently disabled for that run and a warning is logged. This prevents runaway acceptance if something goes wrong.</p>
@@ -1432,7 +1513,7 @@
     Auto-accept is inherently risky. The agent may accept destructive operations. Use <code>max_auto_accepts</code> to bound exposure, and prefer reviewing agent output in the dashboard for sensitive tasks.</p>
 <hr />
 <h2 id="webhooks">Webhooks</h2>
-<p>If <code>webhook_url</code> is set, Corral sends HTTP POST callbacks at each status transition.</p>
+<p>If <code>webhook_url</code> is set, Coral sends HTTP POST callbacks at each status transition.</p>
 <h3 id="payload">Payload</h3>
 <pre><code class="language-json">{
   &quot;run_id&quot;: 42,
@@ -1442,7 +1523,7 @@
   &quot;started_at&quot;: &quot;2025-03-11T10:00:05+00:00&quot;,
   &quot;finished_at&quot;: &quot;2025-03-11T10:30:00+00:00&quot;,
   &quot;duration_s&quot;: 1795,
-  &quot;source&quot;: &quot;corral&quot;
+  &quot;source&quot;: &quot;coral&quot;
 }
 </code></pre>
 <ul>
@@ -1454,7 +1535,7 @@
 </ul>
 <hr />
 <h2 id="concurrency-limits">Concurrency limits</h2>
-<p>Corral limits concurrent running jobs to prevent resource exhaustion.</p>
+<p>Coral limits concurrent running jobs to prevent resource exhaustion.</p>
 <table>
 <thead>
 <tr>
@@ -1465,7 +1546,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>CORRAL_MAX_CONCURRENT_JOBS</code></td>
+<td><code>CORAL_MAX_CONCURRENT_JOBS</code></td>
 <td><code>5</code></td>
 <td>Environment variable, set before starting the server.</td>
 </tr>

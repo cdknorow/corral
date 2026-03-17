@@ -12,7 +12,7 @@
         <link rel="prev" href="../one-time-jobs/">
       
       
-        <link rel="next" href="../api/jobs/">
+        <link rel="next" href="../themes-customization/">
       
       
         
@@ -250,6 +250,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../agent-teams-message-board/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Teams & Message Board
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../live-sessions/" class="md-nav__link">
         
   
@@ -258,6 +285,33 @@
     
   
     Live Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../git-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Integration
   
 
     
@@ -761,6 +815,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../themes-customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes & Customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -770,10 +851,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -791,8 +872,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1159,11 +1240,11 @@
 
 <h1 id="webhook-notifications">Webhook Notifications</h1>
 <p>Webhook Notifications let you receive HTTP POST alerts when an agent needs attention. Instead of watching the dashboard, you can route notifications to Slack, Discord, or any HTTP endpoint — so you know the moment an agent is stuck waiting for input.</p>
-<p>Corral supports three platforms out of the box: <strong>Slack</strong>, <strong>Discord</strong>, and <strong>Generic HTTP POST</strong>. Webhooks are configured entirely through the dashboard UI, with built-in retry logic and a circuit breaker to keep things reliable without overwhelming a failing endpoint.</p>
+<p>Coral supports three platforms out of the box: <strong>Slack</strong>, <strong>Discord</strong>, and <strong>Generic HTTP POST</strong>. Webhooks are configured entirely through the dashboard UI, with built-in retry logic and a circuit breaker to keep things reliable without overwhelming a failing endpoint.</p>
 <p><img alt="Webhook Notifications modal showing configured webhooks" src="../images/webhook-notifications-modal.png" /></p>
 <hr />
 <h2 id="how-it-works">How it works</h2>
-<p>Corral monitors every live agent session. When an agent has been waiting for input for <strong>5 or more minutes</strong>, a <code>needs_input</code> event fires and is dispatched to all matching webhooks. The notification fires <strong>once per waiting period</strong> — it will not repeat until the agent becomes active again and then re-enters a waiting state.</p>
+<p>Coral monitors every live agent session. When an agent has been waiting for input for <strong>5 or more minutes</strong>, a <code>needs_input</code> event fires and is dispatched to all matching webhooks. The notification fires <strong>once per waiting period</strong> — it will not repeat until the agent becomes active again and then re-enters a waiting state.</p>
 <p>Each delivery attempt follows this reliability model:</p>
 <ul>
 <li><strong>Retry schedule</strong> — Up to 3 attempts with exponential backoff: 30 seconds, 2 minutes, 10 minutes.</li>
@@ -1218,17 +1299,17 @@
 <li>Under <strong>Incoming Webhooks</strong>, toggle the feature on.</li>
 <li>Click <strong>Add New Webhook to Workspace</strong> and select the channel you want notifications in.</li>
 <li>Copy the webhook URL — it looks like <code>https://hooks.slack.com/services/...</code>.</li>
-<li>In Corral, create a new webhook with <strong>Platform</strong> set to <strong>Slack</strong> and paste the URL.</li>
+<li>In Coral, create a new webhook with <strong>Platform</strong> set to <strong>Slack</strong> and paste the URL.</li>
 <li>Click <strong>Test</strong> to verify the connection.</li>
 </ol>
 <p>!!! tip
-    Each Slack webhook URL is tied to a specific channel. Create multiple Corral webhooks if you want to notify different channels.</p>
+    Each Slack webhook URL is tied to a specific channel. Create multiple Coral webhooks if you want to notify different channels.</p>
 <h3 id="discord">Discord</h3>
 <ol>
 <li>Open the Discord channel you want to receive notifications in.</li>
 <li>Go to <strong>Channel Settings &gt; Integrations &gt; Webhooks</strong>.</li>
 <li>Click <strong>New Webhook</strong>, give it a name, and click <strong>Copy Webhook URL</strong> — it looks like <code>https://discord.com/api/webhooks/...</code>.</li>
-<li>In Corral, create a new webhook with <strong>Platform</strong> set to <strong>Discord</strong> and paste the URL.</li>
+<li>In Coral, create a new webhook with <strong>Platform</strong> set to <strong>Discord</strong> and paste the URL.</li>
 <li>Click <strong>Test</strong> to verify the connection.</li>
 </ol>
 <h3 id="generic-http-post">Generic HTTP POST</h3>
@@ -1284,13 +1365,13 @@
 <h3 id="deleting">Deleting</h3>
 <p>Click <strong>Delete</strong> to permanently remove a webhook and its delivery history.</p>
 <h3 id="auto-disable-on-repeated-failures">Auto-disable on repeated failures</h3>
-<p>If a webhook accumulates <strong>10 consecutive delivery failures</strong>, Corral automatically disables it and shows an <strong>Auto-Disabled</strong> badge. This prevents a broken endpoint from consuming retry resources indefinitely.</p>
+<p>If a webhook accumulates <strong>10 consecutive delivery failures</strong>, Coral automatically disables it and shows an <strong>Auto-Disabled</strong> badge. This prevents a broken endpoint from consuming retry resources indefinitely.</p>
 <p>To recover, fix the underlying issue (expired URL, server down, etc.), then manually re-enable the webhook and click <strong>Test</strong> to confirm.</p>
 <p>!!! warning
     Auto-disabled webhooks will not fire again until you explicitly re-enable them. Check the webhook list periodically if you rely on notifications.</p>
 <hr />
 <h2 id="events">Events</h2>
-<p>Corral currently supports one webhook event type:</p>
+<p>Coral currently supports one webhook event type:</p>
 <table>
 <thead>
 <tr>
@@ -1307,6 +1388,7 @@
 </tr>
 </tbody>
 </table>
+<p>Webhooks can also be configured with a <strong>low confidence filter</strong> (<code>low_confidence_only</code>) to restrict notifications to only low-confidence PULSE events, useful for catching moments when an agent is uncertain and may need human review.</p>
 <p>Each event carries this schema:</p>
 <table>
 <thead>
@@ -1344,7 +1426,7 @@
       &quot;type&quot;: &quot;section&quot;,
       &quot;text&quot;: {
         &quot;type&quot;: &quot;mrkdwn&quot;,
-        &quot;text&quot;: &quot;:raising_hand: *Corral — NEEDS_INPUT*\n*Agent:* `agent-name`\n*Message:* Agent needs input — waiting for 12 minutes&quot;
+        &quot;text&quot;: &quot;:raising_hand: *Coral — NEEDS_INPUT*\n*Agent:* `agent-name`\n*Message:* Agent needs input — waiting for 12 minutes&quot;
       }
     }
   ]
@@ -1354,7 +1436,7 @@
 <pre><code class="language-json">{
   &quot;embeds&quot;: [
     {
-      &quot;title&quot;: &quot;Corral — NEEDS_INPUT&quot;,
+      &quot;title&quot;: &quot;Coral — NEEDS_INPUT&quot;,
       &quot;description&quot;: &quot;Agent needs input — waiting for 12 minutes&quot;,
       &quot;color&quot;: 13801762,
       &quot;fields&quot;: [
@@ -1365,7 +1447,7 @@
         }
       ],
       &quot;footer&quot;: {
-        &quot;text&quot;: &quot;Corral&quot;
+        &quot;text&quot;: &quot;Coral&quot;
       }
     }
   ]
@@ -1378,7 +1460,7 @@
   &quot;event_type&quot;: &quot;needs_input&quot;,
   &quot;summary&quot;: &quot;Agent needs input — waiting for 12 minutes&quot;,
   &quot;timestamp&quot;: &quot;2025-03-11T10:05:00+00:00&quot;,
-  &quot;source&quot;: &quot;corral&quot;
+  &quot;source&quot;: &quot;coral&quot;
 }
 </code></pre>
 <hr />
@@ -1417,7 +1499,7 @@
 </tr>
 <tr>
 <td>Idle threshold</td>
-<td>5 minutes</td>
+<td>5 minutes (configurable per-webhook via <code>idle_threshold_seconds</code>)</td>
 </tr>
 <tr>
 <td>Notification behavior</td>

@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../multi-agent-orchestration/">
+        <link rel="prev" href="../agent-teams-message-board/">
       
       
-        <link rel="next" href="../button-macros/">
+        <link rel="next" href="../git-integration/">
       
       
         
@@ -247,6 +247,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-teams-message-board/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Teams & Message Board
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -340,6 +367,45 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Launch a new session">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ai-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-team" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Team
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terminal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -568,6 +634,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../git-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../button-macros/" class="md-nav__link">
         
   
@@ -756,6 +849,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../themes-customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes & Customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -765,10 +885,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -786,8 +906,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -917,6 +1037,45 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Launch a new session">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ai-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-team" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Team
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terminal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -1148,33 +1307,40 @@
 
 
 <h1 id="live-sessions">Live Sessions</h1>
-<p>Live Sessions is the core real-time monitoring and control interface for Corral. It lets you observe and interact with AI coding agents (Claude and Gemini) as they work in parallel git worktrees — all from a single browser tab.</p>
+<p>Live Sessions is the core real-time monitoring and control interface for Coral. It lets you observe and interact with AI coding agents (Claude and Gemini) as they work in parallel git worktrees — all from a single browser tab.</p>
 <p>Each live session represents one agent running in a tmux session. The dashboard provides a browser-based view of the agent's terminal output, activity timeline, tasks, notes, and conversation history, all updating in real time.</p>
 <hr />
 <h2 id="getting-started">Getting started</h2>
 <h3 id="start-the-dashboard">Start the dashboard</h3>
 <pre><code class="language-bash"># Dashboard only
-corral
+coral
 
 # Dashboard + agents for all worktrees in current directory
-launch-corral
+launch-coral
 </code></pre>
 <p>Open <code>http://localhost:8420</code> in your browser. The sidebar shows <strong>Live Sessions</strong> at the top with any running agents grouped by worktree name.</p>
 <h3 id="launch-a-new-session">Launch a new session</h3>
+<p>Click the <strong>+ New</strong> button in the Live Sessions sidebar header. The launch modal offers three types:</p>
+<h4 id="ai-agent">AI Agent</h4>
+<p>Launch a single agent with an optional initial prompt and message board subscription.</p>
 <ol>
-<li>Click the <strong>+ New</strong> button in the Live Sessions sidebar header.</li>
-<li>Fill in the <strong>Launch New Session</strong> modal:<ul>
+<li>Fill in the fields:<ul>
 <li><strong>Agent Name</strong> (optional) — A display name like "Auth Feature"</li>
 <li><strong>Working Directory</strong> — The git repo path (click <strong>Browse</strong> to navigate)</li>
 <li><strong>Agent Type</strong> — Claude or Gemini</li>
 <li><strong>Flags</strong> (optional) — CLI flags like <code>--verbose</code>. Use the shortcut buttons for <code>--chrome</code> and <code>--dangerously-skip-permissions</code>.</li>
+<li><strong>Prompt</strong> (optional) — An initial instruction to send to the agent on launch</li>
 </ul>
 </li>
 <li>Click <strong>Launch</strong>.</li>
 </ol>
+<h4 id="agent-team">Agent Team</h4>
+<p>Launch multiple agents on a shared message board with per-agent roles and behavior prompts. See <a href="../agent-teams-message-board/">Agent Teams &amp; Message Board</a> for the full guide.</p>
+<h4 id="terminal">Terminal</h4>
+<p>Launch a plain shell session in a tmux pane — useful for running manual commands alongside your agents.</p>
 <p>The new session appears in the sidebar. Click it to select.</p>
 <p>!!! tip
-    You can also launch agents from the command line with <code>launch-corral &lt;path-to-worktrees&gt;</code>, which discovers subdirectories and creates one agent per worktree automatically.</p>
+    You can also launch agents from the command line with <code>launch-coral &lt;path-to-worktrees&gt;</code>, which discovers subdirectories and creates one agent per worktree automatically.</p>
 <hr />
 <h2 id="session-view">Session view</h2>
 <p>When you select a live session, the main panel shows three areas: the <strong>session header</strong>, the <strong>terminal area</strong>, and the <strong>command pane</strong>.</p>
@@ -1284,14 +1450,12 @@ launch-corral
 </ul>
 <p>Use the <strong>Filter</strong> dropdown to toggle event categories on or off. An <strong>activity chart</strong> at the bottom shows the event distribution over time.</p>
 <h3 id="tasks">Tasks</h3>
-<p>Create and manage task checklists for each session. Tasks are drag-reorderable and synchronized with Claude Code via hooks.</p>
+<p>Create and manage task checklists for each session. Tasks are drag-reorderable and persist across Coral restarts.</p>
 <ul>
 <li>Click to add a new task</li>
 <li>Check the box to mark complete</li>
 <li>Drag to reorder</li>
 </ul>
-<p>!!! tip
-    Configure the <code>corral-hook-task-sync</code> hook in your Claude Code settings to keep tasks in sync between the agent and the dashboard. See the <a href="../#claude-code-hooks">home page</a> for hook configuration.</p>
 <h3 id="notes">Notes</h3>
 <p>Write markdown notes about each session. Click the notes area to edit, and the content renders as formatted markdown when you click away.</p>
 <h3 id="history">History</h3>
@@ -1314,12 +1478,12 @@ launch-corral
 <li>Find the completed session in the <strong>History</strong> section of the sidebar.</li>
 <li>Click the <strong>Resume</strong> button in the historical session's header.</li>
 <li>The Resume modal shows a list of currently live agents. Select which agent should continue the session.</li>
-<li>Corral restarts the selected agent with <code>--resume</code>, loading the full conversation context from the previous session.</li>
+<li>Coral restarts the selected agent with <code>--resume</code>, loading the full conversation context from the previous session.</li>
 </ol>
 <p>!!! warning
     Resume is supported for <strong>Claude agents only</strong>. Gemini does not support session resume.</p>
 <p>!!! info
-    If Corral restarts, resumed sessions are automatically re-resumed via <code>resume_persistent_sessions()</code>. The resume linkage is stored in the database.</p>
+    If Coral restarts, resumed sessions are automatically re-resumed via <code>resume_persistent_sessions()</code>. The resume linkage is stored in the database.</p>
 <hr />
 <h2 id="session-info-modal">Session info modal</h2>
 <p>Click <strong>Info</strong> to view full session metadata:</p>
@@ -1367,6 +1531,14 @@ launch-corral
 <td>Latest Commit</td>
 <td>Most recent commit hash and message</td>
 </tr>
+<tr>
+<td>Prompt</td>
+<td>The initial prompt sent to the agent (if any)</td>
+</tr>
+<tr>
+<td>Message Board</td>
+<td>Clickable link to the agent's message board (if subscribed)</td>
+</tr>
 </tbody>
 </table>
 <hr />
@@ -1375,9 +1547,10 @@ launch-corral
 <li>Each session maps to one tmux session running one agent in one working directory</li>
 <li>Sessions are identified by UUIDs (tmux session name: <code>{agent_type}-{uuid}</code>)</li>
 <li>The dashboard auto-discovers sessions by querying tmux for panes matching the UUID naming convention</li>
-<li>WebSocket <code>/ws/corral</code> provides corral-wide session list updates every 3 seconds</li>
+<li>WebSocket <code>/ws/coral</code> provides coral-wide session list updates every 3 seconds</li>
 <li>WebSocket <code>/ws/terminal/{name}</code> streams raw terminal content at 0.5-second intervals</li>
-<li>Sessions persist across Corral restarts — the <code>live_sessions</code> database table tracks registered sessions and relaunches them on startup</li>
+<li>Sessions persist across Coral restarts — the <code>live_sessions</code> database table tracks registered sessions and relaunches them on startup</li>
+<li>Session prompts and board subscriptions are persisted, so agents are re-sent their prompt and re-subscribed to their board on restart</li>
 </ul>
 <hr />
 <h2 id="configuration">Configuration</h2>
@@ -1393,7 +1566,7 @@ launch-corral
 <tbody>
 <tr>
 <td>Dashboard port</td>
-<td><code>CORRAL_PORT</code> env var or <code>--port</code></td>
+<td><code>CORAL_PORT</code> env var or <code>--port</code></td>
 <td><code>8420</code></td>
 <td>Web dashboard port</td>
 </tr>
@@ -1418,7 +1591,7 @@ launch-corral
 <tr>
 <td>Default working directory</td>
 <td>Settings modal</td>
-<td>Corral root</td>
+<td>Coral root</td>
 <td>Pre-filled path in launch modal</td>
 </tr>
 <tr>
@@ -1441,7 +1614,7 @@ launch-corral
 </tr>
 </tbody>
 </table>
-<p><strong>Database location:</strong> <code>~/.corral/sessions.db</code> (SQLite, WAL mode)</p>
+<p><strong>Database location:</strong> <code>~/.coral/sessions.db</code> (SQLite, WAL mode)</p>
 
 
 

@@ -250,6 +250,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../agent-teams-message-board/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Teams & Message Board
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../live-sessions/" class="md-nav__link">
         
   
@@ -258,6 +285,33 @@
     
   
     Live Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../git-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Integration
   
 
     
@@ -447,17 +501,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#claude-code-hooks-integration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Claude Code hooks integration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -617,6 +660,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../themes-customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes & Customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -626,10 +696,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -647,8 +717,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -831,17 +901,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#claude-code-hooks-integration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Claude Code hooks integration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -870,7 +929,7 @@
 
 
 <h1 id="agent-protocol-pulse">Agent Protocol (PULSE)</h1>
-<p>The PULSE protocol is a lightweight, text-based protocol that agents emit to stdout. Corral's dashboard parses these tags in real time to surface what each agent is doing, what it's trying to accomplish, and when it's uncertain.</p>
+<p>The PULSE protocol is a lightweight, text-based protocol that agents emit to stdout. Coral's dashboard parses these tags in real time to surface what each agent is doing, what it's trying to accomplish, and when it's uncertain.</p>
 <p>The protocol is pull-based: agents write tagged lines to stdout, tmux <code>pipe-pane</code> captures them to a log file, and the dashboard tails the logs. It works for any agent type — Claude, Gemini, or custom processes. Three pieces of context are tracked:</p>
 <ul>
 <li><strong>Status</strong> — What the agent is doing right now</li>
@@ -985,12 +1044,13 @@
 <p>The PULSE protocol flows through a pipeline from agent output to the browser:</p>
 <ol>
 <li><strong>Agent emits a PULSE tag</strong> to stdout (e.g., <code>||PULSE:STATUS Reading tests||</code>).</li>
-<li><strong>tmux <code>pipe-pane</code></strong> captures all terminal output to <code>/tmp/&lt;type&gt;_corral_&lt;name&gt;.log</code>.</li>
+<li><strong>tmux <code>pipe-pane</code></strong> captures all terminal output to <code>/tmp/&lt;type&gt;_coral_&lt;name&gt;.log</code>.</li>
 <li><strong>Log streamer</strong> reads the log file backwards, strips ANSI escape codes, rejoins lines that were split by terminal wrapping, and extracts the latest STATUS and SUMMARY values via regex.</li>
 <li><strong>Pulse detector</strong> incrementally scans the log for CONFIDENCE events and records them as activity entries.</li>
 <li><strong>Live sessions API</strong> calls both the log streamer and pulse detector on every poll cycle (every 3 seconds via WebSocket).</li>
 <li><strong>Status/Summary dedup</strong> — the store only inserts a new row when the value actually changes, so repeated identical emissions are collapsed.</li>
 <li><strong>WebSocket</strong> pushes the updated session state to all connected browsers every 3 seconds.</li>
+<li><strong>Stale detection</strong> — if no STATUS is emitted for a configurable period, the status dot turns yellow (stale), signaling the agent may be idle.</li>
 <li><strong>Dashboard renders</strong> the status in the session header "Status:" line, the summary as the "Goal:" line, and confidence events in the Activity timeline.</li>
 </ol>
 <p><img alt="Dashboard showing the full pipeline: agent output flows through tmux pipe-pane to the browser" src="../images/dashboard-full-view.png" /></p>
@@ -1027,7 +1087,7 @@
 <p><img alt="Activity filter dropdown showing Status, Goal, Confidence, and other event categories" src="../images/activity-filter-dropdown.png" /></p>
 <hr />
 <h2 id="custom-agents">Custom agents</h2>
-<p>Any process that writes <code>||PULSE:STATUS ...||</code> to stdout will work with Corral. The dashboard does not care what language or framework the agent uses — it only parses the log file.</p>
+<p>Any process that writes <code>||PULSE:STATUS ...||</code> to stdout will work with Coral. The dashboard does not care what language or framework the agent uses — it only parses the log file.</p>
 <p><strong>How the protocol reaches each agent type:</strong></p>
 <table>
 <thead>
@@ -1039,7 +1099,7 @@
 <tbody>
 <tr>
 <td><strong>Claude</strong></td>
-<td>Auto-injected via <code>--append-system-prompt</code> when Corral launches the agent</td>
+<td>Auto-injected via <code>--append-system-prompt</code> when Coral launches the agent</td>
 </tr>
 <tr>
 <td><strong>Gemini</strong></td>
@@ -1052,86 +1112,11 @@
 </tbody>
 </table>
 <p>!!! tip
-    If you're wrapping an external tool (Aider, Cursor, OpenDevin, etc.), you only need a thin shell script that emits PULSE tags at key points. The agent itself doesn't need to know about Corral.</p>
-<hr />
-<h2 id="claude-code-hooks-integration">Claude Code hooks integration</h2>
-<p>Corral has two complementary channels for tracking agent activity:</p>
-<table>
-<thead>
-<tr>
-<th>Channel</th>
-<th>Transport</th>
-<th>Scope</th>
-<th>Data</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>PULSE protocol</strong></td>
-<td>Log-based (stdout to file)</td>
-<td>All agent types</td>
-<td>Status, goal, confidence</td>
-</tr>
-<tr>
-<td><strong>Claude Code hooks</strong></td>
-<td>API-based (HTTP to Corral server)</td>
-<td>Claude only</td>
-<td>Tool use, task sync, agentic state</td>
-</tr>
-</tbody>
-</table>
-<p>The hooks provide richer, structured data — individual tool calls (Read, Edit, Bash, etc.), task creation/updates, and stop/notification events. They are auto-installed by Corral into each worktree when a Claude agent is launched.</p>
-<p>To configure hooks manually, add the following to your Claude Code settings (<code>~/.claude.json</code> or <code>~/.claude/settings.json</code>):</p>
-<pre><code class="language-json">&quot;hooks&quot;: {
-    &quot;PostToolUse&quot;: [
-      {
-        &quot;matcher&quot;: &quot;TaskCreate|TaskUpdate&quot;,
-        &quot;hooks&quot;: [
-          {
-            &quot;type&quot;: &quot;command&quot;,
-            &quot;command&quot;: &quot;corral-hook-task-sync&quot;
-          }
-        ]
-      },
-      {
-        &quot;matcher&quot;: &quot;&quot;,
-        &quot;hooks&quot;: [
-          {
-            &quot;type&quot;: &quot;command&quot;,
-            &quot;command&quot;: &quot;corral-hook-agentic-state&quot;
-          }
-        ]
-      }
-    ],
-    &quot;Stop&quot;: [
-      {
-        &quot;matcher&quot;: &quot;&quot;,
-        &quot;hooks&quot;: [
-          {
-            &quot;type&quot;: &quot;command&quot;,
-            &quot;command&quot;: &quot;corral-hook-agentic-state&quot;
-          }
-        ]
-      }
-    ],
-    &quot;Notification&quot;: [
-      {
-        &quot;matcher&quot;: &quot;&quot;,
-        &quot;hooks&quot;: [
-          {
-            &quot;type&quot;: &quot;command&quot;,
-            &quot;command&quot;: &quot;corral-hook-agentic-state&quot;
-          }
-        ]
-      }
-    ]
-}
-</code></pre>
-<p>See <a href="../live-sessions/">Live Sessions</a> for how hook-reported events appear in the Activity timeline.</p>
+    If you're wrapping an external tool (Aider, Cursor, OpenDevin, etc.), you only need a thin shell script that emits PULSE tags at key points. The agent itself doesn't need to know about Coral.</p>
 <hr />
 <h2 id="troubleshooting">Troubleshooting</h2>
 <p>!!! note "Split lines"
-    Long PULSE tags can be split across multiple lines by terminal wrapping (e.g., a 200-character status line in an 80-column terminal). Corral handles this automatically via <code>_rejoin_pulse_lines()</code>, which reassembles fragments before parsing. However, extremely long payloads that span more than 5 continuation lines are dropped to avoid false matches. Keep STATUS under 60 characters and SUMMARY under 120 characters to stay well within limits.</p>
+    Long PULSE tags can be split across multiple lines by terminal wrapping (e.g., a 200-character status line in an 80-column terminal). Coral handles this automatically via <code>_rejoin_pulse_lines()</code>, which reassembles fragments before parsing. However, extremely long payloads that span more than 5 continuation lines are dropped to avoid false matches. Keep STATUS under 60 characters and SUMMARY under 120 characters to stay well within limits.</p>
 <p><strong>Common issues:</strong></p>
 <table>
 <thead>
