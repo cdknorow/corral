@@ -205,7 +205,8 @@ function _renderSessionItem(s, groupName, isCompact, collapsed) {
     const dotClass = getDotClass(s.staleness_seconds, s.waiting_for_input, s.working, s.waiting_reason);
     const isActive = state.currentSession && state.currentSession.type === "live" && state.currentSession.session_id === s.session_id;
     const typeTag = s.agent_type && s.agent_type !== "claude" ? ` <span class="badge ${escapeHtml(s.agent_type)}">${escapeHtml(s.agent_type)}</span>` : "";
-    const branchTag = (!isCompact && s.branch) ? `<span class="sidebar-branch"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v5a3 3 0 0 0 3 3h1"/><circle cx="6" cy="3" r="1.5"/><circle cx="11" cy="11" r="1.5"/></svg> ${escapeHtml(s.branch)}</span>` : "";
+    // Branch is shown at folder level, not per agent
+    const branchTag = "";
     const waitingBadge = s.waiting_for_input
         ? (s.waiting_reason === "stop"
             ? ' <span class="badge done-badge">Done</span>'
@@ -306,8 +307,10 @@ export function renderLiveSessions(sessions) {
                 </button>
             </div>
         </div>`;
+        const groupBranch = sorted.find(s => s.branch)?.branch || "";
+        const groupBranchTag = groupBranch ? `<span class="sidebar-branch"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v5a3 3 0 0 0 3 3h1"/><circle cx="6" cy="3" r="1.5"/><circle cx="11" cy="11" r="1.5"/></svg> ${escapeHtml(groupBranch)}</span>` : "";
         html += `<li class="session-group-header" data-group-name="${escapeHtml(groupName)}" onclick="toggleGroupCollapse('${escapeHtml(groupName)}')">
-            <span class="group-chevron">${chevron}</span>${escapeHtml(groupName)}${countBadge}<span class="session-name-spacer"></span>${groupKebab}</li>`;
+            <span class="group-chevron">${chevron}</span>${escapeHtml(groupName)}${countBadge}${groupBranchTag}<span class="session-name-spacer"></span>${groupKebab}</li>`;
 
         if (collapsed) {
             // Skip rendering items when collapsed
