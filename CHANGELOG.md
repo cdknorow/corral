@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## 3.1.0 — 2026-03-18
+
+### Added
+- **Mobile-responsive layout** — Full mobile support with bottom tab navigation, pull-to-refresh, swipe navigation, tablet sidebar overlay with hamburger toggle, and compact mobile views for message board, history, and scheduler
+- **Saved agent personas** — Save custom agent configurations (name, prompt, flags) for reuse across all launch modals
+- **Team templates** — Save and load full agent team configurations; import/export as shareable JSON files with versioned format
+- **Agent preset selector** — Preset role buttons in the single-agent launch modal for quick agent setup
+- **Add Agent to Board** — Add new agents to existing teams directly from the sidebar group kebab menu
+- **Save/Share Agent Team** — Save running teams as reusable templates or export as JSON from the sidebar
+- **Message board pagination** — Load Earlier button for browsing board history
+- **Folder tags** — Sidebar session groups with folder-based tagging
+- **macOS code signing workflow** — GitHub Actions workflow for signed and notarized DMG builds (requires Apple Developer certificate)
+
+### Changed
+- **Batch polling** — Single endpoint for capture, tasks, and events; Page Visibility API pauses polling when tab is hidden
+- **Dashboard identity** — Message board identity renamed from "Developer (Dashboard)" to "Operator"
+- **Loading optimizations** — Faster initial page load and reduced API calls
+
+### Fixed
+- **PULSE:SUMMARY not displaying** — Fixed regex failing on lines with embedded OSC escape sequences; simplified log parsing to tail-based approach
+- **Protocol instruction echoes** — Filter out template text (e.g. `<your current goal>`) from PULSE event parsing
+- **Mobile agent list** — Fixed agent selection, settings tab, history view, and hamburger menu on mobile
+- **Mobile board input** — Fixed input hidden by nav bar and goal text wrapping
+- **Mobile header layout** — Back button, goal, and menu all on single line
+- **Message board rendering** — Wrapped `marked.parse()` in try/catch, increased message limit to 500
+
 ## 3.0.0 — 2026-03-17
 
 ### Added
