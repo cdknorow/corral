@@ -88,6 +88,29 @@
     padding: 0 3px;
 }
 
+/* ── Mobile Send Button (hidden on desktop) ──────────────── */
+
+.mobile-send-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-send-btn:active {
+    opacity: 0.8;
+    transform: scale(0.95);
+}
+
 /* ── Mobile Agent List (full screen) ──────────────────────── */
 
 .mobile-agent-list {
@@ -229,15 +252,55 @@
         display: none !important;
     }
 
-    /* Command pane adjustments */
+    /* Command pane: compact single-line input bar on mobile */
     .command-pane {
-        max-height: 40vh !important;
+        max-height: none !important;
         height: auto !important;
-        min-height: 60px !important;
+        min-height: 0 !important;
+        flex-shrink: 0;
+    }
+
+    /* Hide toolbar (macros, nav keys, mode buttons) on mobile */
+    .command-pane-toolbar {
+        display: none !important;
+    }
+
+    /* Compact input body: single row with send button inline */
+    .command-pane-body {
+        padding: 6px 8px !important;
+        gap: 6px;
+        align-items: flex-end;
+    }
+
+    .command-pane textarea {
+        min-height: 36px !important;
+        max-height: 80px;
+        rows: 1;
+        font-size: 16px !important; /* prevent iOS zoom on focus */
+        padding: 7px 10px;
+        border-radius: 18px;
+    }
+
+    .command-hint {
+        display: none !important;
+    }
+
+    /* Add a compact send button inside the input bar */
+    .command-pane .mobile-send-btn {
+        display: flex;
     }
 
     .command-pane-resize-handle {
         display: none !important;
+    }
+
+    /* Hide tab bar when virtual keyboard is open */
+    body.keyboard-open .mobile-tab-bar {
+        display: none !important;
+    }
+
+    body.keyboard-open .layout {
+        height: calc(100vh - 49px); /* full height minus top bar only */
     }
 
     /* Session header compact */

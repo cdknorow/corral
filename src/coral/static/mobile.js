@@ -342,6 +342,32 @@ function _initSwipeNavigation() {
     }, { passive: true });
 }
 
+// ── Virtual Keyboard Detection ────────────────────────────────────────────
+
+function _initKeyboardDetection() {
+    if (!window.visualViewport) return;
+
+    // Track the initial viewport height to detect keyboard open/close
+    let initialHeight = window.visualViewport.height;
+
+    window.visualViewport.addEventListener('resize', () => {
+        if (!isMobile()) return;
+
+        // Keyboard is open when viewport shrinks significantly (>100px)
+        const heightDiff = initialHeight - window.visualViewport.height;
+        const keyboardOpen = heightDiff > 100;
+
+        document.body.classList.toggle('keyboard-open', keyboardOpen);
+    });
+
+    // Update initial height on orientation change
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+            initialHeight = window.visualViewport.height;
+        }, 300);
+    });
+}
+
 // ── Initialize Mobile ─────────────────────────────────────────────────────
 
 export function initMobile() {
@@ -356,6 +382,9 @@ export function initMobile() {
     // Initialize touch gestures
     _initPullToRefresh();
     _initSwipeNavigation();
+
+    // Detect virtual keyboard for hiding tab bar
+    _initKeyboardDetection();
 
     // Listen for resize to toggle mobile/desktop
     window.addEventListener('resize', () => {
