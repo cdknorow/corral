@@ -277,7 +277,12 @@ def _set_schedule_store(new_store):
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Serve the coral dashboard SPA."""
-    return templates.TemplateResponse(request=request, name="index.html", context={"coral_root": os.getcwd()})
+    try:
+        from importlib.metadata import version as _pkg_version
+        coral_version = _pkg_version("agent-coral")
+    except Exception:
+        coral_version = "dev"
+    return templates.TemplateResponse(request=request, name="index.html", context={"coral_root": os.getcwd(), "coral_version": coral_version})
 
 
 @app.get("/diff", response_class=HTMLResponse)
