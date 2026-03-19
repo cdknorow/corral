@@ -12,7 +12,7 @@ import { toggleGroupCollapse, killGroup, killBoard, shareAgentTeam, saveTeamFrom
 import { syncPaneWidth, refreshCapture } from './capture.js';
 import { showLaunchModal, hideLaunchModal, launchSession, showInfoModal, hideInfoModal, copyInfoCommand, showResumeModal, hideResumeModal, resumeIntoSession, showSettingsModal, hideSettingsModal, applySettings, loadSettings, toggleFlag, showAddAgentToBoard, hideAddAgentBoardModal, launchAgentToBoard, exportPersonas, importPersonas, exportTeamTemplates, importTeamTemplates } from './modals.js';
 import { toggleBrowser, browserNavigateTo, browserNavigateUp } from './browser.js';
-import { initSidebarResize, initCommandPaneResize, initTaskBarResize, initSidebarCollapse, switchJobsSubtab, initAgenticPanelCollapse, initAgenticBlockResize, initAgenticBlockCollapse } from './sidebar.js';
+import { initSidebarResize, initCommandPaneResize, initTaskBarResize, initSidebarCollapse, switchJobsSubtab, initAgenticPanelCollapse, toggleAgenticPanel, initAgenticBlockResize, initAgenticBlockCollapse } from './sidebar.js';
 import { fitTerminal } from './xterm_renderer.js';
 import { loadSessionNotes, saveNotes, resummarize, toggleNotesEdit, cancelNotesEdit, switchHistoryTab } from './notes.js';
 import { loadSessionTags, addTagToSession, removeTagFromSession, showTagDropdown, hideTagDropdown, createTag, loadAllTags } from './tags.js';
@@ -130,6 +130,7 @@ window.testWebhook       = testWebhook;
 window.showWebhookHistory = showWebhookHistory;
 window.selectLiveJobRun = selectLiveJobRun;
 window.switchJobsSubtab = switchJobsSubtab;
+window.toggleAgenticPanel = toggleAgenticPanel;
 window.showThemeConfigurator = showThemeConfigurator;
 window.hideThemeConfigurator = hideThemeConfigurator;
 window.dismissUpdateToast = dismissUpdateToast;

@@ -6,16 +6,26 @@
 /* ── Agentic State Panel ───────────────────────────────────── */
 
 .task-bar-resize-handle {
-    width: 4px;
-    cursor: col-resize;
-    background: var(--border);
-    flex-shrink: 0;
-    transition: background 0.15s;
+    display: none;
 }
 
-.task-bar-resize-handle:hover,
-.task-bar-resize-handle.dragging {
+/* ── Panel Toggle Button ──────────────────────────────────── */
+
+.panel-toggle-btn {
+    padding: 4px 8px !important;
+    opacity: 0.6;
+    transition: all 0.15s;
+}
+
+.panel-toggle-btn:hover {
+    opacity: 1;
+}
+
+.panel-toggle-btn.active {
+    opacity: 1;
     background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
 }
 
 .agentic-state {
@@ -142,8 +152,11 @@
 /* ── Collapsible Panel ─────────────────────────────────────── */
 
 .agentic-state.collapsed {
-    width: 36px !important;
-    min-width: 36px !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    border: none;
+    padding: 0;
+    overflow: hidden;
 }
 
 .agentic-state.collapsed .agentic-block,

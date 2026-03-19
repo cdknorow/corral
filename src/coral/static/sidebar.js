@@ -298,16 +298,37 @@ export function initAgenticPanelCollapse() {
     const panel = document.getElementById('agentic-state');
     if (!panel) return;
 
-    const btn = document.getElementById('agentic-collapse-btn');
-    if (!btn) return;
-
-    // Restore state
-    const collapsed = localStorage.getItem('coral-agentic-collapsed') === 'true';
+    // Default to collapsed unless user has explicitly opened it
+    const stored = localStorage.getItem('coral-agentic-collapsed');
+    const collapsed = stored === null ? true : stored === 'true';
     if (collapsed) panel.classList.add('collapsed');
 
-    btn.addEventListener('click', () => {
-        const isCollapsed = panel.classList.toggle('collapsed');
-        localStorage.setItem('coral-agentic-collapsed', isCollapsed);
-        fitTerminal();
-    });
+    // Sync toggle button state
+    _syncPanelToggleBtn(!collapsed);
+
+    // Keep the old collapse button working too
+    const btn = document.getElementById('agentic-collapse-btn');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            const isCollapsed = panel.classList.toggle('collapsed');
+            localStorage.setItem('coral-agentic-collapsed', isCollapsed);
+            _syncPanelToggleBtn(!isCollapsed);
+            fitTerminal();
+        });
+    }
+}
+
+export function toggleAgenticPanel() {
+    const panel = document.getElementById('agentic-state');
+    if (!panel) return;
+    const isCollapsed = panel.classList.toggle('collapsed');
+    localStorage.setItem('coral-agentic-collapsed', isCollapsed);
+    _syncPanelToggleBtn(!isCollapsed);
+    fitTerminal();
+}
+
+function _syncPanelToggleBtn(isOpen) {
+    const btn = document.getElementById('panel-toggle-btn');
+    if (!btn) return;
+    btn.classList.toggle('active', isOpen);
 }
