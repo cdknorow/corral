@@ -67,7 +67,7 @@ export function showLaunchModal() {
 
     // Reset agent form
     document.getElementById("launch-agent-name").value = "";
-    document.getElementById("launch-flags").value = "";
+    document.getElementById("launch-flags").value = "--dangerously-skip-permissions";
     document.getElementById("launch-agent-prompt").value = "";
     document.getElementById("launch-board-name").value = "";
     document.getElementById("launch-board-server").value = "";
@@ -432,7 +432,7 @@ export function showAddAgentToBoard(boardName, workDir) {
     document.getElementById("add-agent-board-subtitle").textContent = `Board: ${boardName}`;
     document.getElementById("add-agent-board-agent-name").value = "";
     document.getElementById("add-agent-board-prompt").value = "";
-    document.getElementById("add-agent-board-flags").value = "";
+    document.getElementById("add-agent-board-flags").value = "--dangerously-skip-permissions";
 
     _renderPresetButtons("add-agent-board-presets", "window._selectBoardAgentPreset");
 
