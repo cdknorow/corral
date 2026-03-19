@@ -392,7 +392,7 @@ function _renderSessionItem(s, groupName, isCompact, collapsed) {
         draggable="true"
         data-session-id="${sid}"
         data-group="${escapeAttr(groupName)}"
-        onclick="selectLiveSession('${escapeAttr(s.name)}', '${escapeAttr(s.agent_type)}', '${sid}')">`;
+        onclick="selectLiveSession('${escapeAttr(s.name)}', '${escapeAttr(s.agent_type)}', '${sid}')">
         <span class="session-dot ${dotClass}"></span>
         <div class="session-info">
             <div class="session-name-row">
