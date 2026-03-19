@@ -295,9 +295,19 @@ async def diff_view(request: Request):
 
 
 def main():
+    import shutil
     import threading
     import webbrowser
     import uvicorn
+
+    if not shutil.which("tmux"):
+        print("Error: tmux is not installed. Coral requires tmux for agent management.", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Install tmux:", file=sys.stderr)
+        print("  macOS:  brew install tmux", file=sys.stderr)
+        print("  Ubuntu: sudo apt install tmux", file=sys.stderr)
+        print("  Fedora: sudo dnf install tmux", file=sys.stderr)
+        sys.exit(1)
 
     parser = argparse.ArgumentParser(description="Coral Dashboard")
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
