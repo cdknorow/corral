@@ -1297,7 +1297,7 @@ launch-coral /path/to/parent-dir gemini
   -H &quot;Content-Type: application/json&quot; \
   -d '{&quot;working_dir&quot;: &quot;/path/to/worktree&quot;, &quot;agent_type&quot;: &quot;claude&quot;, &quot;display_name&quot;: &quot;Auth Feature&quot;}'
 </code></pre>
-<p><img alt="Launch New Session modal with Agent Name, Working Directory, Agent Type, and Flags fields" src="../images/launch-session-modal.png" /></p>
+<p><img alt="Launch New Session modal with agent type selection, working directory, and configuration fields" src="../images/launch-session-modal.png" /></p>
 <p>!!! tip
     Dashboard-launched sessions are not limited by <code>MAX_AGENTS</code> — you can add as many as your machine can handle.</p>
 <h3 id="step-4-monitor-agents">Step 4: Monitor agents</h3>
@@ -1460,6 +1460,7 @@ git worktree prune
 </tr>
 </tbody>
 </table>
+<p><img alt="Session tooltip showing agent details on hover" src="../images/session-tooltip.png" /></p>
 <p><img alt="Sidebar showing sessions with different states: active (green), waiting for input (amber with NEEDS INPUT badge), and stale (gray)" src="../images/sidebar-multi-agent.png" /></p>
 <h3 id="session-switching">Session switching</h3>
 <p>Click any session in the sidebar to switch to it. When switching:</p>

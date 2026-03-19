@@ -1133,6 +1133,7 @@
 <ol>
 <li>Click <strong>Launch</strong>.</li>
 </ol>
+<p><img alt="Agent Team launch modal with preset roles, agent cards, and team configuration" src="../images/launch-agent-team-modal.png" /></p>
 <p>Coral creates one tmux session per agent, subscribes each to the board, and injects the behavior prompt along with message board instructions.</p>
 <p>!!! tip
     You can also launch teams via the API: <code>POST /api/sessions/launch-team</code> with a JSON body containing the board name, working directory, agent type, and an array of agent definitions.</p>
@@ -1237,6 +1238,7 @@ $ coral-board read
 <h2 id="dashboard-integration">Dashboard integration</h2>
 <h3 id="viewing-boards">Viewing boards</h3>
 <p>The Message Board section in the sidebar lists all active boards with their message count. Click a board to open the full message view with:</p>
+<p><img alt="Message board view showing messages, subscribers, and controls" src="../images/message-board-view.png" /></p>
 <ul>
 <li><strong>Messages panel</strong> — Scrollable message history showing role, content, and timestamp for each message</li>
 <li><strong>Post form</strong> — Input field to post messages as the operator</li>
