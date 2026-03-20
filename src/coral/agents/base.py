@@ -8,6 +8,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+# Default board system-prompt fragments (used in systemPrompt injected via settings file).
+# These are the fallback when the user hasn't configured custom prompts.
+DEFAULT_ORCHESTRATOR_SYSTEM_PROMPT = (
+    "Post a message with coral-board post \"<your introduction>\" that introduces yourself, "
+    "then discuss your proposed plan with the operator (the human user) before posting assignments to the team."
+)
+DEFAULT_WORKER_SYSTEM_PROMPT = (
+    "Post a message with coral-board post \"<your introduction>\" that introduces yourself, "
+    "then wait for instructions from the Orchestrator."
+)
+
 
 @dataclass
 class ExtractedSession:
@@ -63,8 +74,17 @@ class BaseAgent(ABC):
         return {"compress": "/compact", "clear": "/clear"}
 
     @staticmethod
-    def _build_board_system_prompt(board_name: str | None, role: str | None, prompt: str | None) -> str:
-        """Build the board + behavior portion of the system prompt."""
+    def _build_board_system_prompt(
+        board_name: str | None,
+        role: str | None,
+        prompt: str | None,
+        prompt_overrides: dict[str, str] | None = None,
+    ) -> str:
+        """Build the board + behavior portion of the system prompt.
+
+        prompt_overrides can contain 'default_prompt_orchestrator' and/or
+        'default_prompt_worker' keys to replace the default tail text.
+        """
         parts = []
         if prompt:
             parts.append(prompt)
@@ -81,16 +101,12 @@ class BaseAgent(ABC):
                 "  coral-board subscribers   — see who is on the board\n"
                 "Check the board periodically for updates from your teammates.\n\n"
             )
+            overrides = prompt_overrides or {}
             if is_orchestrator:
-                board_intro += (
-                    f"Post a message with coral-board post \"<your introduction>\" that introduces yourself, "
-                    f"then discuss your proposed plan with the operator (the human user) before posting assignments to the team."
-                )
+                tail = overrides.get("default_prompt_orchestrator") or DEFAULT_ORCHESTRATOR_SYSTEM_PROMPT
             else:
-                board_intro += (
-                    f"Post a message with coral-board post \"<your introduction>\" that introduces yourself, "
-                    f"then wait for instructions from the Orchestrator."
-                )
+                tail = overrides.get("default_prompt_worker") or DEFAULT_WORKER_SYSTEM_PROMPT
+            board_intro += tail
             parts.append(board_intro)
         return "\n\n".join(parts)
 
@@ -105,6 +121,7 @@ class BaseAgent(ABC):
         board_name: str | None = None,
         role: str | None = None,
         prompt: str | None = None,
+        prompt_overrides: dict[str, str] | None = None,
     ) -> str:
         """Build the shell command string to launch this agent."""
 

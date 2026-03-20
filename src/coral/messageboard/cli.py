@@ -36,7 +36,10 @@ from urllib.parse import quote as urlquote
 from urllib.request import Request, urlopen
 
 
-_STATE_DIR = Path.home() / ".coral"
+def _get_state_dir() -> Path:
+    """Return the Coral state directory, respecting CORAL_DATA_DIR."""
+    from coral.config import get_data_dir
+    return get_data_dir()
 
 # Set by main() when --server is passed on the command line.
 _server_override: str | None = None
@@ -73,7 +76,7 @@ def _state_file() -> Path:
     """Per-session state file so each agent gets its own state."""
     sid = _session_id()
     safe_name = sid.replace("/", "_").replace("\\", "_")
-    return _STATE_DIR / f"board_state_{safe_name}.json"
+    return _get_state_dir() / f"board_state_{safe_name}.json"
 
 
 def _load_state() -> dict | None:
@@ -88,7 +91,8 @@ def _load_state() -> dict | None:
 
 def _save_state(project: str, job_title: str) -> None:
     """Save the active project for this worktree."""
-    _STATE_DIR.mkdir(parents=True, exist_ok=True)
+    state_dir = _get_state_dir()
+    state_dir.mkdir(parents=True, exist_ok=True)
     data: dict = {
         "project": project,
         "job_title": job_title,
@@ -210,6 +214,8 @@ def cmd_join(args: argparse.Namespace) -> None:
     }
     if args.webhook:
         body["webhook_url"] = args.webhook
+    if args.receive_mode:
+        body["receive_mode"] = args.receive_mode
     result = _api("POST", f"/{urlquote(args.project, safe='')}/subscribe", body)
     _save_state(args.project, args.job_title)
 
@@ -345,6 +351,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_join.add_argument("project", help="Project name")
     p_join.add_argument("--as", dest="job_title", required=True, help="Your role/job title")
     p_join.add_argument("--webhook", help="Webhook URL for push notifications")
+    p_join.add_argument("--receive-mode", default="mentions",
+                        help="Notification mode: mentions (default), all, none, or a group-id")
     p_join.set_defaults(func=cmd_join)
 
     # leave

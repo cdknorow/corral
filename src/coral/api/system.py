@@ -52,6 +52,21 @@ async def get_settings():
     return {"settings": settings}
 
 
+@router.get("/api/settings/default-prompts")
+async def get_default_prompts():
+    """Return the hardcoded default prompt templates for Reset to Default."""
+    from coral.tools.session_manager import DEFAULT_ORCHESTRATOR_PROMPT, DEFAULT_WORKER_PROMPT
+    from coral.agents.base import DEFAULT_ORCHESTRATOR_SYSTEM_PROMPT, DEFAULT_WORKER_SYSTEM_PROMPT
+    return {
+        "default_prompt_orchestrator": DEFAULT_ORCHESTRATOR_PROMPT,
+        "default_prompt_worker": DEFAULT_WORKER_PROMPT,
+        "default_system_prompt_orchestrator": DEFAULT_ORCHESTRATOR_SYSTEM_PROMPT,
+        "default_system_prompt_worker": DEFAULT_WORKER_SYSTEM_PROMPT,
+        "team_reminder_orchestrator": "Remember to coordinate with your team and check the message board for updates",
+        "team_reminder_worker": "Remember to work with your team",
+    }
+
+
 @router.put("/api/settings")
 async def put_settings(body: dict):
     """Upsert one or more global user settings."""

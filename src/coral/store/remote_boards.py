@@ -12,6 +12,14 @@ from typing import Any
 
 import aiosqlite
 
+from coral.config import get_data_dir
+
+
+def get_db_path() -> Path:
+    return get_data_dir() / "sessions.db"
+
+
+# Kept for backward compatibility
 DB_DIR = Path.home() / ".coral"
 DB_PATH = DB_DIR / "sessions.db"
 
@@ -19,7 +27,8 @@ DB_PATH = DB_DIR / "sessions.db"
 class RemoteBoardStore:
     """Manages the remote_board_subscriptions table in the main Coral DB."""
 
-    def __init__(self, db_path: Path = DB_PATH) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
+        db_path = db_path or get_db_path()
         self._db_path = db_path
         self._conn: aiosqlite.Connection | None = None
         self._schema_ensured = False

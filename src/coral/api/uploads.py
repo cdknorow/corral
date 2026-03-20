@@ -13,6 +13,13 @@ log = logging.getLogger(__name__)
 
 router = APIRouter()
 
+from coral.config import get_data_dir
+
+
+def get_upload_dir() -> Path:
+    return get_data_dir() / "uploads"
+
+
 UPLOAD_DIR = Path.home() / ".coral" / "uploads"
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", ".tiff"}
@@ -48,7 +55,8 @@ async def upload_file(file: UploadFile = File(...)):
     if len(content) > MAX_FILE_SIZE:
         return {"error": f"File too large ({len(content)} bytes). Max: {MAX_FILE_SIZE} bytes"}
 
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    upload_dir = get_upload_dir()
+    upload_dir.mkdir(parents=True, exist_ok=True)
 
     # For clipboard screenshots (generic name like "image.png"), use a timestamp-based name.
     # For real files, keep the original name with a short UUID prefix.
@@ -61,7 +69,7 @@ async def upload_file(file: UploadFile = File(...)):
         safe_name = f"{uuid.uuid4().hex[:8]}_{Path(filename).name}"
     safe_name = safe_name.replace(" ", "_")
 
-    dest = UPLOAD_DIR / safe_name
+    dest = upload_dir / safe_name
     dest.write_bytes(content)
 
     log.info("Uploaded image: %s (%d bytes)", dest, len(content))

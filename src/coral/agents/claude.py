@@ -152,6 +152,7 @@ class ClaudeAgent(BaseAgent):
         board_name: str | None = None,
         role: str | None = None,
         prompt: str | None = None,
+        prompt_overrides: dict[str, str] | None = None,
     ) -> str:
         parts = ["claude"]
         effective_id = resume_session_id or session_id
@@ -165,7 +166,7 @@ class ClaudeAgent(BaseAgent):
         sys_parts = []
         if protocol_path and protocol_path.exists():
             sys_parts.append(protocol_path.read_text())
-        board_prompt = self._build_board_system_prompt(board_name, role, prompt)
+        board_prompt = self._build_board_system_prompt(board_name, role, prompt, prompt_overrides=prompt_overrides)
         if board_prompt:
             sys_parts.append(board_prompt)
         if sys_parts:

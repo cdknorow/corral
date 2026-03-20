@@ -5,8 +5,15 @@ from __future__ import annotations
 import aiosqlite
 from pathlib import Path
 
-from coral.config import DB_BUSY_TIMEOUT_MS
+from coral.config import DB_BUSY_TIMEOUT_MS, get_data_dir
 
+
+def get_db_path() -> Path:
+    """Return the path to the main Coral database."""
+    return get_data_dir() / "sessions.db"
+
+
+# Kept for backward compatibility — prefer get_db_path() in new code.
 DB_DIR = Path.home() / ".coral"
 DB_PATH = DB_DIR / "sessions.db"
 
@@ -14,7 +21,8 @@ DB_PATH = DB_DIR / "sessions.db"
 class DatabaseManager:
     """Manages the shared aiosqlite connection, schema creation, and migrations."""
 
-    def __init__(self, db_path: Path = DB_PATH) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
+        db_path = db_path or get_db_path()
         self._db_path = db_path
         self._schema_ensured = False
         self._conn: aiosqlite.Connection | None = None

@@ -4,6 +4,20 @@ All intervals, timeouts, and limits that affect server performance
 are collected here so they can be adjusted in one place.
 """
 
+import os
+from pathlib import Path
+
+
+def get_data_dir() -> Path:
+    """Return the Coral data directory.
+
+    Resolution: CORAL_DATA_DIR env var > ~/.coral (default).
+    This is a function (not a constant) so it reads the env var at call time,
+    after CLI flags have had a chance to set it.
+    """
+    return Path(os.environ.get("CORAL_DATA_DIR", str(Path.home() / ".coral")))
+
+
 # ── Database ─────────────────────────────────────────────────────────────
 DB_BUSY_TIMEOUT_MS = 5000          # SQLite busy_timeout (ms) before "database is locked"
 

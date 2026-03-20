@@ -82,6 +82,34 @@ export async function sendCommand() {
     }
 }
 
+const DEFAULT_TEAM_REMINDER_ORCHESTRATOR = "Remember to coordinate with your team and check the message board for updates";
+const DEFAULT_TEAM_REMINDER_WORKER = "Remember to work with your team";
+
+function _isOrchestratorSession(session) {
+    if (!session) return false;
+    const name = (session.display_name || "").toLowerCase();
+    const title = (session.board_job_title || "").toLowerCase();
+    return name.includes("orchestrator") || title.includes("orchestrator");
+}
+
+export async function sendCommandWithTeam() {
+    if (!state.currentSession || state.currentSession.type !== "live") {
+        showToast("No live session selected", true);
+        return;
+    }
+
+    const input = document.getElementById("command-input");
+    const s = state.settings || {};
+    const isOrch = _isOrchestratorSession(state.currentSession);
+    const reminder = isOrch
+        ? (s.team_reminder_orchestrator || DEFAULT_TEAM_REMINDER_ORCHESTRATOR)
+        : (s.team_reminder_worker || DEFAULT_TEAM_REMINDER_WORKER);
+
+    const current = input.value.trim();
+    input.value = current ? `${current}\n\n${reminder}` : reminder;
+    await sendCommand();
+}
+
 const DEFAULT_MACROS = [
     { label: "/compact", command: "/compact" },
     { label: "/clear", command: "/clear" },
@@ -193,6 +221,7 @@ export function renderQuickActions() {
             ${navButtons}
         </div>
         <button class="btn-nav btn-send" onclick="sendCommand()" aria-label="Send command">Send</button>
+        <button class="btn-nav btn-team-send" onclick="sendCommandWithTeam()" aria-label="Send with team reminder" data-tooltip="Appends a team collaboration reminder to your message before sending. Uses orchestrator or worker reminder based on the session role.">+Team</button>
     `;
 }
 

@@ -12,6 +12,14 @@ from typing import Any
 
 import aiosqlite
 
+from coral.config import get_data_dir
+
+
+def get_db_path() -> Path:
+    return get_data_dir() / "messageboard.db"
+
+
+# Kept for backward compatibility
 DB_DIR = Path.home() / ".coral"
 DB_PATH = DB_DIR / "messageboard.db"
 
@@ -19,7 +27,8 @@ DB_PATH = DB_DIR / "messageboard.db"
 class MessageBoardStore:
     """Self-contained store for the message board feature."""
 
-    def __init__(self, db_path: Path = DB_PATH) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
+        db_path = db_path or get_db_path()
         self._db_path = db_path
         self._conn: aiosqlite.Connection | None = None
         self._schema_ensured = False
@@ -74,6 +83,27 @@ class MessageBoardStore:
         except Exception:
             pass  # Column already exists
 
+        # Migration: add receive_mode column for notification control
+        try:
+            await conn.execute(
+                "ALTER TABLE board_subscribers ADD COLUMN receive_mode TEXT NOT NULL DEFAULT 'mentions'"
+            )
+        except Exception:
+            pass  # Column already exists
+
+        # Board groups table for group-based receive modes
+        await conn.executescript("""
+            CREATE TABLE IF NOT EXISTS board_groups (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                project    TEXT NOT NULL,
+                group_id   TEXT NOT NULL,
+                session_id TEXT NOT NULL,
+                UNIQUE(project, group_id, session_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_board_groups_project_group
+                ON board_groups(project, group_id);
+        """)
+
     # ── Subscribers ──────────────────────────────────────────────────────
 
     async def subscribe(
@@ -83,17 +113,19 @@ class MessageBoardStore:
         job_title: str,
         webhook_url: str | None = None,
         origin_server: str | None = None,
+        receive_mode: str = "mentions",
     ) -> dict[str, Any]:
         conn = await self._get_conn()
         now = datetime.now(timezone.utc).isoformat()
         await conn.execute(
-            """INSERT INTO board_subscribers (project, session_id, job_title, webhook_url, origin_server, subscribed_at)
-               VALUES (?, ?, ?, ?, ?, ?)
+            """INSERT INTO board_subscribers (project, session_id, job_title, webhook_url, origin_server, receive_mode, subscribed_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(project, session_id)
                DO UPDATE SET job_title = excluded.job_title,
                              webhook_url = excluded.webhook_url,
-                             origin_server = excluded.origin_server""",
-            (project, session_id, job_title, webhook_url, origin_server, now),
+                             origin_server = excluded.origin_server,
+                             receive_mode = excluded.receive_mode""",
+            (project, session_id, job_title, webhook_url, origin_server, receive_mode, now),
         )
         await conn.commit()
         row = await conn.execute_fetchall(
@@ -224,53 +256,85 @@ class MessageBoardStore:
         return rows[0]["cnt"] if rows else 0
 
     async def check_unread(self, project: str, session_id: str) -> int:
-        """Return count of unread messages that mention this agent.
+        """Return count of unread messages based on the subscriber's receive_mode.
 
-        Only counts messages containing ``@notify-all``, ``@<session_id>``,
-        or ``@<job_title>`` (case-insensitive).  Messages without a relevant
-        mention are silently skipped so agents aren't spammed.
+        Modes:
+        - ``none``     → always 0
+        - ``all``      → all unread messages from others
+        - ``mentions`` → only messages with @notify-all, @<session_id>, or @<job_title>
+        - anything else → treat as group-id, count only messages from group members
         """
         conn = await self._get_conn()
         sub_rows = await conn.execute_fetchall(
-            "SELECT last_read_id, job_title FROM board_subscribers WHERE project = ? AND session_id = ?",
+            "SELECT last_read_id, job_title, receive_mode FROM board_subscribers WHERE project = ? AND session_id = ?",
             (project, session_id),
         )
         if not sub_rows:
             return 0
         last_read_id = sub_rows[0]["last_read_id"]
         job_title = sub_rows[0]["job_title"]
+        receive_mode = sub_rows[0]["receive_mode"] or "mentions"
 
-        # Build mention patterns: @notify-all (and variants), @<session_id>, @<job_title>
-        patterns = [
-            "%@notify-all%",
-            "%@notify_all%",
-            "%@notifyall%",
-            "%@all%",
-            f"%@{session_id}%",
-        ]
-        if job_title:
-            patterns.append(f"%@{job_title}%")
+        if receive_mode == "none":
+            return 0
 
-        where_clauses = " OR ".join("content LIKE ? COLLATE NOCASE" for _ in patterns)
+        if receive_mode == "all":
+            count_rows = await conn.execute_fetchall(
+                """SELECT COUNT(*) as cnt FROM board_messages
+                    WHERE project = ? AND id > ? AND session_id != ?""",
+                (project, last_read_id, session_id),
+            )
+            return count_rows[0]["cnt"]
+
+        if receive_mode == "mentions":
+            # Build mention patterns: @notify-all (and variants), @<session_id>, @<job_title>
+            patterns = [
+                "%@notify-all%",
+                "%@notify_all%",
+                "%@notifyall%",
+                "%@all%",
+                f"%@{session_id}%",
+            ]
+            if job_title:
+                patterns.append(f"%@{job_title}%")
+
+            where_clauses = " OR ".join("content LIKE ? COLLATE NOCASE" for _ in patterns)
+            count_rows = await conn.execute_fetchall(
+                f"""SELECT COUNT(*) as cnt FROM board_messages
+                    WHERE project = ? AND id > ? AND session_id != ?
+                    AND ({where_clauses})""",
+                (project, last_read_id, session_id, *patterns),
+            )
+            return count_rows[0]["cnt"]
+
+        # Group-based mode: count messages from group members only
+        group_rows = await conn.execute_fetchall(
+            "SELECT session_id FROM board_groups WHERE project = ? AND group_id = ?",
+            (project, receive_mode),
+        )
+        group_member_ids = {r["session_id"] for r in group_rows}
+        if not group_member_ids:
+            return 0
+        placeholders = ",".join("?" for _ in group_member_ids)
         count_rows = await conn.execute_fetchall(
             f"""SELECT COUNT(*) as cnt FROM board_messages
                 WHERE project = ? AND id > ? AND session_id != ?
-                AND ({where_clauses})""",
-            (project, last_read_id, session_id, *patterns),
+                AND session_id IN ({placeholders})""",
+            (project, last_read_id, session_id, *group_member_ids),
         )
         return count_rows[0]["cnt"]
 
     async def get_all_unread_counts(self) -> dict[str, int]:
-        """Return unread mention counts for ALL subscribers in one pass.
+        """Return unread counts for ALL subscribers in one pass.
 
         Returns a dict keyed by session_id with unread counts.
-        Replaces N individual check_unread() calls with a single DB scan.
+        Respects each subscriber's receive_mode.
         """
         conn = await self._get_conn()
 
         # Fetch all subscribers
         sub_rows = await conn.execute_fetchall(
-            "SELECT project, session_id, job_title, last_read_id FROM board_subscribers"
+            "SELECT project, session_id, job_title, last_read_id, receive_mode FROM board_subscribers"
         )
         if not sub_rows:
             return {}
@@ -280,6 +344,16 @@ class MessageBoardStore:
         for row in sub_rows:
             r = dict(row)
             by_project.setdefault(r["project"], []).append(r)
+
+        # Pre-load all group memberships for group-based modes
+        group_rows = await conn.execute_fetchall(
+            "SELECT project, group_id, session_id FROM board_groups"
+        )
+        # groups_by_project_group[(project, group_id)] = {session_id, ...}
+        groups_by_key: dict[tuple[str, str], set[str]] = {}
+        for gr in group_rows:
+            key = (gr["project"], gr["group_id"])
+            groups_by_key.setdefault(key, set()).add(gr["session_id"])
 
         result: dict[str, int] = {}
 
@@ -300,33 +374,98 @@ class MessageBoardStore:
 
             messages = [dict(r) for r in msg_rows]
 
-            # Count mentions per subscriber in Python
+            # Count per subscriber based on their receive_mode
             for sub in subs:
                 last_read = sub["last_read_id"]
                 sid = sub["session_id"]
                 job_title = sub["job_title"] or ""
+                receive_mode = sub["receive_mode"] or "mentions"
 
-                # Build mention patterns for this subscriber
-                mention_terms = [
-                    "@notify-all", "@notify_all", "@notifyall", "@all",
-                    f"@{sid}",
-                ]
-                if job_title:
-                    mention_terms.append(f"@{job_title}")
+                if receive_mode == "none":
+                    result[sid] = 0
+                    continue
 
                 count = 0
-                for msg in messages:
-                    if msg["id"] <= last_read:
-                        continue
-                    if msg["session_id"] == sid:
-                        continue  # Skip own messages
-                    content_lower = msg["content"].lower()
-                    if any(term.lower() in content_lower for term in mention_terms):
+                if receive_mode == "all":
+                    for msg in messages:
+                        if msg["id"] <= last_read:
+                            continue
+                        if msg["session_id"] == sid:
+                            continue
                         count += 1
+                elif receive_mode == "mentions":
+                    mention_terms = [
+                        "@notify-all", "@notify_all", "@notifyall", "@all",
+                        f"@{sid}",
+                    ]
+                    if job_title:
+                        mention_terms.append(f"@{job_title}")
+
+                    for msg in messages:
+                        if msg["id"] <= last_read:
+                            continue
+                        if msg["session_id"] == sid:
+                            continue
+                        content_lower = msg["content"].lower()
+                        if any(term.lower() in content_lower for term in mention_terms):
+                            count += 1
+                else:
+                    # Group-based mode
+                    group_members = groups_by_key.get((project, receive_mode), set())
+                    for msg in messages:
+                        if msg["id"] <= last_read:
+                            continue
+                        if msg["session_id"] == sid:
+                            continue
+                        if msg["session_id"] in group_members:
+                            count += 1
 
                 result[sid] = count
 
         return result
+
+    # ── Groups ─────────────────────────────────────────────────────────
+
+    async def add_to_group(self, project: str, group_id: str, session_id: str) -> None:
+        """Add a session to a board group."""
+        conn = await self._get_conn()
+        await conn.execute(
+            """INSERT INTO board_groups (project, group_id, session_id)
+               VALUES (?, ?, ?)
+               ON CONFLICT(project, group_id, session_id) DO NOTHING""",
+            (project, group_id, session_id),
+        )
+        await conn.commit()
+
+    async def remove_from_group(self, project: str, group_id: str, session_id: str) -> bool:
+        """Remove a session from a board group. Returns True if removed."""
+        conn = await self._get_conn()
+        cursor = await conn.execute(
+            "DELETE FROM board_groups WHERE project = ? AND group_id = ? AND session_id = ?",
+            (project, group_id, session_id),
+        )
+        await conn.commit()
+        return cursor.rowcount > 0
+
+    async def list_group_members(self, project: str, group_id: str) -> list[str]:
+        """Return session_ids in a group."""
+        conn = await self._get_conn()
+        rows = await conn.execute_fetchall(
+            "SELECT session_id FROM board_groups WHERE project = ? AND group_id = ? ORDER BY session_id",
+            (project, group_id),
+        )
+        return [r["session_id"] for r in rows]
+
+    async def list_groups(self, project: str) -> list[dict[str, Any]]:
+        """Return all groups for a project with member counts."""
+        conn = await self._get_conn()
+        rows = await conn.execute_fetchall(
+            """SELECT group_id, COUNT(*) as member_count
+               FROM board_groups WHERE project = ?
+               GROUP BY group_id ORDER BY group_id""",
+            (project,),
+        )
+        return [dict(r) for r in rows]
 
     # ── Delete individual message ───────────────────────────────────────
 
@@ -373,5 +512,6 @@ class MessageBoardStore:
         conn = await self._get_conn()
         await conn.execute("DELETE FROM board_messages WHERE project = ?", (project,))
         await conn.execute("DELETE FROM board_subscribers WHERE project = ?", (project,))
+        await conn.execute("DELETE FROM board_groups WHERE project = ?", (project,))
         await conn.commit()
         return True

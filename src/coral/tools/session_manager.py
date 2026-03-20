@@ -32,6 +32,23 @@ _UUID_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Default user-message prompt fragments appended when an agent is on a board.
+# These are the fallback when the user hasn't configured custom prompts.
+DEFAULT_ORCHESTRATOR_PROMPT = (
+    'IMPORTANT: You were automatically joined to message board "{board_name}". '
+    "Do NOT run coral-board join. "
+    'Post a message with coral-board post "<your introduction>" that introduces yourself, '
+    "then discuss your proposed plan with the operator (the human user) "
+    "before posting assignments. Periodically check for new messages."
+)
+DEFAULT_WORKER_PROMPT = (
+    'IMPORTANT: You were automatically joined to message board "{board_name}". '
+    "Do NOT run coral-board join. Do not start any actions until you receive instructions "
+    "from the Orchestrator on the message board. "
+    'Post a message with coral-board post "<your introduction>" that introduces yourself, '
+    "then periodically check for new messages."
+)
+
 
 def _write_board_state(tmux_session_name: str, project: str, job_title: str,
                        server_url: str | None = None) -> None:
@@ -40,7 +57,8 @@ def _write_board_state(tmux_session_name: str, project: str, job_title: str,
     This pre-configures the agent's coral-board CLI so it auto-routes
     to the correct server without needing --server on every command.
     """
-    state_dir = Path.home() / ".coral"
+    from coral.config import get_data_dir
+    state_dir = get_data_dir()
     state_dir.mkdir(parents=True, exist_ok=True)
     safe_name = tmux_session_name.replace("/", "_").replace("\\", "_")
     state_file = state_dir / f"board_state_{safe_name}.json"
@@ -52,33 +70,6 @@ def _write_board_state(tmux_session_name: str, project: str, job_title: str,
     if server_url:
         data["server_url"] = server_url.rstrip("/")
     state_file.write_text(_json_mod.dumps(data))
-
-
-def _build_board_prompt(prompt: str, board_name: str | None, role: str) -> str:
-    """Build a prompt string with board instructions appended if applicable."""
-    if not board_name:
-        return prompt
-    is_orchestrator = role and "orchestrator" in role.lower()
-    board_text = (
-        f"\n\nYou are part of an Agent Team and can communicate with your teammates using the coral-board CLI. "
-        f"You have already been subscribed to message board \"{board_name}\". "
-        f"Your role is: {role}. "
-        f"Use the coral-board CLI to communicate:\n"
-        f"  coral-board read          — read new messages from teammates\n"
-        f"  coral-board post \"msg\"    — post a message to the board\n"
-        f"  coral-board read --last 5 — see the 5 most recent messages\n"
-        f"  coral-board subscribers   — see who is on the board\n"
-        f"Check the board periodically for updates from your teammates.\n\n"
-    )
-    if is_orchestrator:
-        board_text += (
-            "Introduce yourself by posting to the message board, then discuss your proposed plan "
-            "with the operator (the human user) before posting assignments to the team."
-        )
-    else:
-        board_text += "Introduce yourself by posting to the message board, then wait for instructions from the Orchestrator."
-    return prompt + board_text
-
 
 async def setup_board_and_prompt(
     session_id: str,
@@ -103,7 +94,15 @@ async def setup_board_and_prompt(
         try:
             from coral.messageboard.store import MessageBoardStore
             board_store = MessageBoardStore()
-            await board_store.subscribe(board_name, session_name, role)
+            # Preserve existing receive_mode on re-subscribe (e.g. restart);
+            # only set the default if this is a new subscription.
+            existing = await board_store.get_subscription(session_name)
+            if existing and existing.get("receive_mode"):
+                receive_mode = existing["receive_mode"]
+            else:
+                is_orchestrator = role and "orchestrator" in role.lower()
+                receive_mode = "all" if is_orchestrator else "mentions"
+            await board_store.subscribe(board_name, session_name, role, receive_mode=receive_mode)
         except Exception:
             log.warning("Failed to subscribe session %s to board %s", session_id[:8], board_name)
         try:
@@ -117,22 +116,18 @@ async def setup_board_and_prompt(
     # immediately — this is the last thing the agent sees before it starts.
     if prompt and board_name:
         is_orchestrator = role and "orchestrator" in role.lower()
+        # Check user settings for custom prompt overrides
+        try:
+            from coral.store.sessions import SessionStore
+            _settings_store = SessionStore()
+            user_settings = await _settings_store.get_settings()
+        except Exception:
+            user_settings = {}
         if is_orchestrator:
-            prompt += (
-                f"\n\nIMPORTANT: You were automatically joined to message board \"{board_name}\". "
-                "Do NOT run coral-board join. "
-                "Post a message with coral-board post \"<your introduction>\" that introduces yourself, "
-                "then discuss your proposed plan with the operator (the human user) "
-                "before posting assignments. Periodically check for new messages."
-            )
+            template = user_settings.get("default_prompt_orchestrator") or DEFAULT_ORCHESTRATOR_PROMPT
         else:
-            prompt += (
-                f"\n\nIMPORTANT: You were automatically joined to message board \"{board_name}\". "
-                "Do NOT run coral-board join. Do not start any actions until you receive instructions "
-                "from the Orchestrator on the message board. "
-                "Post a message with coral-board post \"<your introduction>\" that introduces yourself, "
-                "then periodically check for new messages."
-            )
+            template = user_settings.get("default_prompt_worker") or DEFAULT_WORKER_PROMPT
+        prompt += "\n\n" + template.replace("{board_name}", board_name)
     if prompt:
         from coral.tools.tmux_manager import send_to_tmux, capture_pane
 
@@ -705,6 +700,20 @@ async def restart_session(
             except Exception:
                 pass
 
+        # Load user prompt overrides for board system prompts
+        _prompt_overrides = None
+        if stored_board:
+            try:
+                from coral.store.sessions import SessionStore
+                _ps = SessionStore()
+                _us = await _ps.get_settings()
+                _prompt_overrides = {
+                    k: v for k, v in _us.items()
+                    if k in ("default_prompt_orchestrator", "default_prompt_worker")
+                } or None
+            except Exception:
+                pass
+
         cmd = agent_impl.build_launch_command(
             new_session_id, protocol_path,
             resume_session_id=resume_session_id,
@@ -713,6 +722,7 @@ async def restart_session(
             board_name=stored_board,
             role=old_display_name_for_cmd or effective_type,
             prompt=stored_prompt,
+            prompt_overrides=_prompt_overrides,
         )
 
         rc, _, stderr = await run_cmd(
@@ -837,6 +847,20 @@ async def launch_claude_session(working_dir: str, agent_type: str = "claude", di
             script_dir = Path(__file__).parent.parent
             protocol_path = script_dir / "PROTOCOL.md"
 
+            # Load user prompt overrides for board system prompts
+            _prompt_overrides = None
+            if board_name:
+                try:
+                    from coral.store.sessions import SessionStore
+                    _ps = SessionStore()
+                    _us = await _ps.get_settings()
+                    _prompt_overrides = {
+                        k: v for k, v in _us.items()
+                        if k in ("default_prompt_orchestrator", "default_prompt_worker")
+                    } or None
+                except Exception:
+                    pass
+
             cmd = agent_impl.build_launch_command(
                 session_id, protocol_path,
                 resume_session_id=resume_session_id,
@@ -845,6 +869,7 @@ async def launch_claude_session(working_dir: str, agent_type: str = "claude", di
                 board_name=board_name,
                 role=display_name or agent_type,
                 prompt=prompt,
+                prompt_overrides=_prompt_overrides,
             )
 
             await asyncio.create_subprocess_exec(

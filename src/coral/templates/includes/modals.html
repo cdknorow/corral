@@ -370,12 +370,62 @@
                 </dt>
                 <dd><input type="checkbox" id="settings-check-updates"></dd>
             </dl>
+            <button class="btn btn-primary" onclick="hideSettingsModal(); showDefaultPromptsModal()" style="width:100%;margin-top:12px">
+                <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:6px">edit_note</span>
+                Edit Default Prompts
+            </button>
             <div style="text-align:center;margin-top:12px;color:var(--text-muted, #666);font-size:12px">
                 Coral v{{ coral_version }}
             </div>
             <div class="modal-actions">
                 <button class="btn" onclick="hideSettingsModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="applySettings()">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Default Prompts Modal -->
+    <div id="default-prompts-modal" class="modal" style="display:none">
+        <div class="modal-content" style="width:600px">
+            <h3>Edit Default Prompts</h3>
+            <p style="color:var(--text-secondary);font-size:12px;margin:0 0 12px">
+                Customize the board instructions injected when agents launch. Use <code>{board_name}</code> as a placeholder.
+            </p>
+            <div style="margin-bottom:16px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                    <label style="font-weight:600;font-size:13px">Orchestrator Prompt</label>
+                    <button class="btn" style="font-size:11px;padding:2px 8px" onclick="resetDefaultPrompt('orchestrator')">Reset to Default</button>
+                </div>
+                <textarea id="settings-prompt-orchestrator" class="settings-input" rows="5" style="resize:vertical;font-family:monospace;font-size:12px"></textarea>
+            </div>
+            <div style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                    <label style="font-weight:600;font-size:13px">Worker Prompt</label>
+                    <button class="btn" style="font-size:11px;padding:2px 8px" onclick="resetDefaultPrompt('worker')">Reset to Default</button>
+                </div>
+                <textarea id="settings-prompt-worker" class="settings-input" rows="5" style="resize:vertical;font-family:monospace;font-size:12px"></textarea>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border-color, #333);margin:16px 0">
+            <p style="color:var(--text-secondary);font-size:12px;margin:0 0 12px">
+                Team reminder text appended when using the +Team send button.
+            </p>
+            <div style="margin-bottom:16px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                    <label style="font-weight:600;font-size:13px">Team Reminder (Orchestrator)</label>
+                    <button class="btn" style="font-size:11px;padding:2px 8px" onclick="resetDefaultPrompt('team_orchestrator')">Reset to Default</button>
+                </div>
+                <textarea id="settings-team-reminder-orchestrator" class="settings-input" rows="2" style="resize:vertical;font-family:monospace;font-size:12px"></textarea>
+            </div>
+            <div style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                    <label style="font-weight:600;font-size:13px">Team Reminder (Worker)</label>
+                    <button class="btn" style="font-size:11px;padding:2px 8px" onclick="resetDefaultPrompt('team_worker')">Reset to Default</button>
+                </div>
+                <textarea id="settings-team-reminder-worker" class="settings-input" rows="2" style="resize:vertical;font-family:monospace;font-size:12px"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="hideDefaultPromptsModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveDefaultPrompts()">Save</button>
             </div>
         </div>
     </div>

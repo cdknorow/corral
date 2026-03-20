@@ -19,7 +19,7 @@ import coral.messageboard.cli as cli_module
 @pytest.fixture(autouse=True)
 def isolate_state(tmp_path, monkeypatch):
     """Isolate each test from real state and env."""
-    monkeypatch.setattr(cli_module, "_STATE_DIR", tmp_path)
+    monkeypatch.setattr(cli_module, "_get_state_dir", lambda: tmp_path)
     monkeypatch.setattr(cli_module, "_server_override", None)
     monkeypatch.delenv("CORAL_URL", raising=False)
     # Use a stable session ID so state files are predictable

@@ -16,6 +16,13 @@ log = logging.getLogger(__name__)
 
 router = APIRouter()
 
+from coral.config import get_data_dir
+
+
+def get_themes_dir() -> Path:
+    return get_data_dir() / "themes"
+
+
 THEMES_DIR = Path.home() / ".coral" / "themes"
 BUNDLED_DIR = get_package_dir() / "bundled_themes"
 
@@ -23,7 +30,7 @@ DEFAULT_THEME = "GhostV3"
 
 
 def _ensure_dir():
-    THEMES_DIR.mkdir(parents=True, exist_ok=True)
+    get_themes_dir().mkdir(parents=True, exist_ok=True)
 
 
 def seed_bundled_themes():
@@ -32,7 +39,7 @@ def seed_bundled_themes():
     if not BUNDLED_DIR.is_dir():
         return
     for src in BUNDLED_DIR.glob("*.json"):
-        dest = THEMES_DIR / src.name
+        dest = get_themes_dir() / src.name
         if not dest.exists():
             shutil.copy2(src, dest)
             log.info("Seeded bundled theme: %s", src.stem)
@@ -43,7 +50,7 @@ def _theme_path(name: str) -> Path:
     safe = "".join(c for c in name if c.isalnum() or c in "-_ ").strip()
     if not safe:
         raise ValueError("Invalid theme name")
-    return THEMES_DIR / f"{safe}.json"
+    return get_themes_dir() / f"{safe}.json"
 
 
 # ── Default variable definitions (used to populate the editor) ────────────
@@ -157,7 +164,7 @@ async def list_themes():
     """List all saved custom themes."""
     _ensure_dir()
     themes = []
-    for f in sorted(THEMES_DIR.glob("*.json")):
+    for f in sorted(get_themes_dir().glob("*.json")):
         try:
             data = json.loads(f.read_text())
             themes.append({
@@ -236,7 +243,7 @@ async def import_theme(file: UploadFile = File(...)):
         "base": data.get("base", "dark"),
         "variables": data.get("variables", {}),
     }
-    path = THEMES_DIR / f"{safe_name}.json"
+    path = get_themes_dir() / f"{safe_name}.json"
     path.write_text(json.dumps(theme_data, indent=2))
     return {"ok": True, "name": safe_name}
 

@@ -11,7 +11,7 @@ import functools
 from pathlib import Path
 from typing import Any
 
-from coral.store.connection import DatabaseManager, DB_PATH
+from coral.store.connection import DatabaseManager, DB_PATH, get_db_path
 from coral.store.sessions import SessionStore
 from coral.store.git import GitStore
 from coral.store.tasks import TaskStore
@@ -38,7 +38,8 @@ class CoralStore(DatabaseManager):
         "_webhooks": WebhookStore,
     }
 
-    def __init__(self, db_path: Path = DB_PATH) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
+        db_path = db_path or get_db_path()
         super().__init__(db_path)
         self._sessions = SessionStore(db_path)
         self._git = GitStore(db_path)

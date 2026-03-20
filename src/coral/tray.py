@@ -18,6 +18,13 @@ import threading
 import webbrowser
 from pathlib import Path
 
+from coral.config import get_data_dir
+
+
+def get_pid_file() -> Path:
+    return get_data_dir() / "tray.pid"
+
+
 PID_FILE = Path.home() / ".coral" / "tray.pid"
 PYPI_URL = "https://pypi.org/pypi/agent-coral/json"
 GITHUB_RELEASES = "https://github.com/cdknorow/coral/releases"
@@ -66,24 +73,26 @@ def _find_icon() -> str | None:
 
 def _write_pid() -> None:
     """Write current PID to the pid file."""
-    PID_FILE.parent.mkdir(parents=True, exist_ok=True)
-    PID_FILE.write_text(str(os.getpid()))
+    pid_file = get_pid_file()
+    pid_file.parent.mkdir(parents=True, exist_ok=True)
+    pid_file.write_text(str(os.getpid()))
 
 
 def _remove_pid() -> None:
     """Remove the pid file on exit."""
     try:
-        PID_FILE.unlink(missing_ok=True)
+        get_pid_file().unlink(missing_ok=True)
     except OSError:
         pass
 
 
 def _is_running() -> int | None:
     """Return the PID of an already-running tray process, or None."""
-    if not PID_FILE.exists():
+    pid_file = get_pid_file()
+    if not pid_file.exists():
         return None
     try:
-        pid = int(PID_FILE.read_text().strip())
+        pid = int(pid_file.read_text().strip())
         # Check if process is alive
         os.kill(pid, 0)
         return pid
@@ -333,7 +342,7 @@ def main() -> None:
            "--host", args.host, "--port", str(args.port),
            "--home", home_dir]
 
-    log_dir = Path.home() / ".coral"
+    log_dir = get_data_dir()
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / "tray.log"
 

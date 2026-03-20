@@ -48,10 +48,10 @@ _WAL_COMPACT_THRESHOLD = 1_000_000
 async def _compact_databases() -> None:
     """Checkpoint and vacuum SQLite databases if their WAL files are too large."""
     import aiosqlite
-    from coral.store.connection import DB_PATH
-    from coral.messageboard.store import DB_PATH as BOARD_DB_PATH
+    from coral.store.connection import get_db_path
+    from coral.messageboard.store import get_db_path as get_board_db_path
 
-    for db_path in [DB_PATH, BOARD_DB_PATH]:
+    for db_path in [get_db_path(), get_board_db_path()]:
         wal_path = Path(f"{db_path}-wal")
         if not wal_path.exists():
             continue
@@ -314,7 +314,13 @@ def main():
     parser.add_argument("--port", type=int, default=8420, help="Port to bind to (default: 8420)")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
     parser.add_argument("--no-browser", action="store_true", help="Don't open the browser on startup")
+    parser.add_argument("--data-dir", type=str, default=None,
+        help="Directory for Coral data (databases, uploads, themes). Default: ~/.coral. Env: CORAL_DATA_DIR")
     args = parser.parse_args()
+
+    # Set data dir env var before any store/DB initialization
+    if args.data_dir:
+        os.environ["CORAL_DATA_DIR"] = str(Path(args.data_dir).expanduser().resolve())
 
     if not args.no_browser:
         url = f"http://localhost:{args.port}"

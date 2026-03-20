@@ -237,6 +237,25 @@
     color: #fff !important;
 }
 
+.btn-team-send {
+    background: rgba(88, 166, 255, 0.15) !important;
+    color: var(--accent) !important;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--accent) !important;
+    border-bottom: none !important;
+    flex-shrink: 0;
+    font-size: 12px;
+    margin-right: 4px;
+    transition: all 0.15s;
+}
+
+.btn-team-send:hover {
+    background: rgba(88, 166, 255, 0.3) !important;
+    transform: translateY(-1px);
+}
+
 /* ── Badges ────────────────────────────────────────────────── */
 
 .badge {

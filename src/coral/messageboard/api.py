@@ -29,6 +29,7 @@ class SubscribeRequest(BaseModel):
     session_id: str
     job_title: str
     webhook_url: str | None = None
+    receive_mode: str = "mentions"
 
 
 class UnsubscribeRequest(BaseModel):
@@ -60,7 +61,8 @@ async def subscribe(project: str, body: SubscribeRequest):
         if url_error:
             raise HTTPException(status_code=400, detail=f"Invalid webhook_url: {url_error}")
     return await store.subscribe(
-        project, body.session_id, body.job_title, body.webhook_url
+        project, body.session_id, body.job_title, body.webhook_url,
+        receive_mode=body.receive_mode,
     )
 
 
@@ -135,6 +137,34 @@ async def get_paused(project: str):
 async def delete_project(project: str):
     _paused_projects.discard(project)
     await store.delete_project(project)
+    return {"ok": True}
+
+
+# ── Group management ─────────────────────────────────────────────────────
+
+class GroupMemberRequest(BaseModel):
+    session_id: str
+
+
+@router.get("/{project}/groups")
+async def list_groups(project: str):
+    return await store.list_groups(project)
+
+
+@router.get("/{project}/groups/{group_id}/members")
+async def list_group_members(project: str, group_id: str):
+    return await store.list_group_members(project, group_id)
+
+
+@router.post("/{project}/groups/{group_id}/members")
+async def add_group_member(project: str, group_id: str, body: GroupMemberRequest):
+    await store.add_to_group(project, group_id, body.session_id)
+    return {"ok": True}
+
+
+@router.delete("/{project}/groups/{group_id}/members/{session_id}")
+async def remove_group_member(project: str, group_id: str, session_id: str):
+    await store.remove_from_group(project, group_id, session_id)
     return {"ok": True}
 
 

@@ -106,6 +106,63 @@ async function _saveSessionOrder(orderedIds) {
     }
 }
 
+// ── Group ordering ───────────────────────────────────────────────────
+
+function _getGroupOrder() {
+    try {
+        return JSON.parse(state.settings.group_order || "[]");
+    } catch { return []; }
+}
+
+function _sortGroups(groupEntries) {
+    const order = _getGroupOrder();
+    if (!order.length) return groupEntries;
+    const posMap = {};
+    order.forEach((name, i) => { posMap[name] = i; });
+    return [...groupEntries].sort((a, b) => {
+        const pa = posMap[a[0]] ?? 9999;
+        const pb = posMap[b[0]] ?? 9999;
+        return pa - pb;
+    });
+}
+
+async function _saveGroupOrder(orderedNames) {
+    state.settings.group_order = JSON.stringify(orderedNames);
+    try {
+        await fetch("/api/settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ group_order: state.settings.group_order }),
+        });
+    } catch (e) {
+        console.error("Failed to save group order:", e);
+    }
+}
+
+function _getCurrentGroupNames() {
+    // Get current group names from the rendered sidebar
+    const headers = document.querySelectorAll('.session-group-header[data-group-name]');
+    return Array.from(headers).map(el => el.dataset.groupName);
+}
+
+export async function moveGroupUp(groupName) {
+    const names = _getCurrentGroupNames();
+    const idx = names.indexOf(groupName);
+    if (idx <= 0) return;
+    [names[idx - 1], names[idx]] = [names[idx], names[idx - 1]];
+    await _saveGroupOrder(names);
+    renderLiveSessions(state.liveSessions || []);
+}
+
+export async function moveGroupDown(groupName) {
+    const names = _getCurrentGroupNames();
+    const idx = names.indexOf(groupName);
+    if (idx < 0 || idx >= names.length - 1) return;
+    [names[idx], names[idx + 1]] = [names[idx + 1], names[idx]];
+    await _saveGroupOrder(names);
+    renderLiveSessions(state.liveSessions || []);
+}
+
 // ── Group collapse state ─────────────────────────────────────────────
 function _getCollapsedGroups() {
     try { return JSON.parse(localStorage.getItem('coral_collapsed_groups') || '[]'); }
@@ -433,7 +490,8 @@ export function renderLiveSessions(sessions) {
     }
 
     let html = "";
-    for (const [groupName, groupSessions] of Object.entries(groups)) {
+    const sortedGroups = _sortGroups(Object.entries(groups));
+    for (const [groupName, groupSessions] of sortedGroups) {
         const sorted = _sortByOrder(groupSessions);
         const isMulti = sorted.length > 1;
         const countBadge = isMulti ? ` <span class="session-group-count">${sorted.length}</span>` : "";
@@ -445,6 +503,14 @@ export function renderLiveSessions(sessions) {
                 <button class="overflow-menu-item" onclick="event.stopPropagation(); closeSidebarKebabs(); showFolderTagDropdown('${escapeAttr(groupName)}', this.closest('.session-group-header'))">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5V3a1 1 0 0 1 1-1h5.5l5.5 5.5-5.5 5.5L2 8.5z"/><circle cx="5.5" cy="5.5" r="1" fill="currentColor" stroke="none"/></svg>
                     Manage Tags
+                </button>
+                <button class="overflow-menu-item" onclick="event.stopPropagation(); closeSidebarKebabs(); moveGroupUp('${escapeAttr(groupName)}')">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10"/><path d="M4 7l4-4 4 4"/></svg>
+                    Move Up
+                </button>
+                <button class="overflow-menu-item" onclick="event.stopPropagation(); closeSidebarKebabs(); moveGroupDown('${escapeAttr(groupName)}')">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3"/><path d="M4 9l4 4 4-4"/></svg>
+                    Move Down
                 </button>
                 <button class="overflow-menu-item overflow-menu-danger" onclick="event.stopPropagation(); closeSidebarKebabs(); killGroup('${escapeAttr(groupName)}')">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
