@@ -256,6 +256,11 @@
     transform: translateY(-1px);
 }
 
+.btn-team-send[data-tooltip]:hover::after {
+    left: auto;
+    right: 0;
+}
+
 /* ── Badges ────────────────────────────────────────────────── */
 
 .badge {
