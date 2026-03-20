@@ -393,6 +393,11 @@
     flex-shrink: 0;
 }
 
+.orch-icon {
+    vertical-align: -1px;
+    flex-shrink: 0;
+}
+
 .session-group-count {
     font-size: 10px;
     font-weight: 500;
