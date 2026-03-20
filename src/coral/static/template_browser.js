@@ -83,7 +83,8 @@ export async function showTemplateBrowser(type, onSelect) {
     const searchInput = modal.querySelector('.template-browser-search');
 
     // Load categories
-    const categories = await fetchCategories(type);
+    const rawData = await fetchCategories(type);
+    const categories = rawData.categories || rawData.commands || rawData || [];
     if (!categories.length) {
         catPanel.innerHTML = '<div class="template-browser-empty">No categories found</div>';
         return;
@@ -116,7 +117,8 @@ export async function showTemplateBrowser(type, onSelect) {
         listPanel.innerHTML = '<div class="template-browser-loading">Loading...</div>';
         previewPanel.innerHTML = '<div class="template-browser-empty">Select a template to preview</div>';
 
-        const templates = await fetchTemplatesInCategory(type, catName);
+        const rawTemplates = await fetchTemplatesInCategory(type, catName);
+        const templates = rawTemplates.agents || rawTemplates.commands || rawTemplates || [];
         renderTemplateList(templates);
     }
 
