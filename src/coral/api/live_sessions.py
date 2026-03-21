@@ -226,8 +226,11 @@ async def _build_session_list(include_commands: bool = False) -> list[dict]:
 
         # Only write events when status/summary actually changed (dedup is inside but still costs a DB read)
         if log_info["status"] or log_info["summary"]:
-            await _track_status_summary_events(name, log_info["status"], log_info["summary"], session_id=sid)
-            await scan_log_for_pulse_events(store, name, agent["log_path"], session_id=sid)
+            try:
+                await _track_status_summary_events(name, log_info["status"], log_info["summary"], session_id=sid)
+                await scan_log_for_pulse_events(store, name, agent["log_path"], session_id=sid)
+            except Exception:
+                log.debug("Failed to track events for %s (DB busy?)", name)
 
     # Include sleeping sessions from DB that have no tmux session
     # (their tmux was killed when the team was put to sleep).
@@ -1092,6 +1095,122 @@ async def wake_team(board_name: str):
     _paused_projects.discard(board_name)
 
     return {"ok": True, "sleeping": False, "sessions_relaunched": relaunched, "board_paused": False}
+
+
+@router.post("/api/sessions/live/sleep-all")
+async def sleep_all():
+    """Put all agents to sleep."""
+    all_sessions = await store.get_all_live_sessions()
+    active = [s for s in all_sessions if not s.get("is_sleeping")]
+    if not active:
+        return {"ok": True, "sessions_affected": 0}
+
+    # Group by board for board-level pause
+    boards = set()
+    from coral.tools.utils import run_cmd
+    from coral.tools.tmux_manager import _find_pane
+    from coral.messageboard.api import _paused_projects
+
+    killed = 0
+    for sess in active:
+        sid = sess["session_id"]
+        await store.set_session_sleeping(sid, sleeping=True)
+        board = sess.get("board_name")
+        if board:
+            boards.add(board)
+        try:
+            pane = await _find_pane(
+                sess["agent_name"], sess.get("agent_type"), session_id=sid,
+            )
+            if pane:
+                await run_cmd("tmux", "kill-session", "-t", pane["session_name"])
+                killed += 1
+        except Exception:
+            log.debug("Failed to kill tmux for session %s during sleep-all", sid[:8])
+
+    for board in boards:
+        _paused_projects.add(board)
+
+    return {"ok": True, "sessions_affected": len(active), "sessions_killed": killed}
+
+
+@router.post("/api/sessions/live/wake-all")
+async def wake_all():
+    """Wake all sleeping agents."""
+    from coral.tools.session_manager import _resume_single_session
+    from coral.messageboard.api import _paused_projects
+
+    all_sessions = await store.get_all_live_sessions()
+    sleeping = [s for s in all_sessions if s.get("is_sleeping")]
+    if not sleeping:
+        return {"ok": True, "sessions_relaunched": 0}
+
+    boards = set()
+    relaunched = 0
+    for sess in sleeping:
+        try:
+            wake_rec = {**sess, "is_sleeping": False}
+            await _resume_single_session(store, wake_rec, log)
+            relaunched += 1
+        except Exception:
+            log.exception("Failed to wake session %s", sess["session_id"][:8])
+        await store.set_session_sleeping(sess["session_id"], sleeping=False)
+        board = sess.get("board_name")
+        if board:
+            boards.add(board)
+
+    for board in boards:
+        _paused_projects.discard(board)
+
+    return {"ok": True, "sessions_relaunched": relaunched}
+
+
+@router.post("/api/sessions/live/{session_id}/sleep")
+async def sleep_session(session_id: str):
+    """Put a single agent to sleep."""
+    all_sessions = await store.get_all_live_sessions()
+    sess = next((s for s in all_sessions if s["session_id"] == session_id), None)
+    if not sess:
+        return {"ok": False, "error": "Session not found"}
+
+    await store.set_session_sleeping(session_id, sleeping=True)
+
+    # Kill tmux session to free resources
+    from coral.tools.utils import run_cmd
+    from coral.tools.tmux_manager import _find_pane
+    try:
+        pane = await _find_pane(
+            sess["agent_name"], sess.get("agent_type"), session_id=session_id,
+        )
+        if pane:
+            await run_cmd("tmux", "kill-session", "-t", pane["session_name"])
+    except Exception:
+        log.debug("Failed to kill tmux for session %s during sleep", session_id[:8])
+
+    return {"ok": True, "sleeping": True}
+
+
+@router.post("/api/sessions/live/{session_id}/wake")
+async def wake_session(session_id: str):
+    """Wake a single sleeping agent."""
+    from coral.tools.session_manager import _resume_single_session
+
+    all_sessions = await store.get_all_live_sessions()
+    sess = next((s for s in all_sessions if s["session_id"] == session_id), None)
+    if not sess:
+        return {"ok": False, "error": "Session not found"}
+    if not sess.get("is_sleeping"):
+        return {"ok": False, "error": "Session is not sleeping"}
+
+    try:
+        wake_rec = {**sess, "is_sleeping": False}
+        await _resume_single_session(store, wake_rec, log)
+    except Exception:
+        log.exception("Failed to wake session %s", session_id[:8])
+        return {"ok": False, "error": "Failed to relaunch session"}
+
+    await store.set_session_sleeping(session_id, sleeping=False)
+    return {"ok": True, "sleeping": False}
 
 
 # ── WebSocket Endpoints ─────────────────────────────────────────────────────

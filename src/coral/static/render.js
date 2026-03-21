@@ -314,6 +314,57 @@ export async function killBoard(boardName) {
     );
 }
 
+export async function sleepAllAgents() {
+    if (!confirm('Put all agents to sleep?')) return;
+    try {
+        const resp = await fetch('/api/sessions/live/sleep-all', { method: 'POST' });
+        const data = await resp.json();
+        if (data.ok) {
+            for (const s of state.liveSessions) s.sleeping = true;
+            renderLiveSessions(state.liveSessions);
+            showToast(`All agents are now sleeping (${data.sessions_affected} affected)`);
+        }
+    } catch (e) {
+        showToast('Failed to sleep all agents', true);
+    }
+}
+
+export async function wakeAllAgents() {
+    if (!confirm('Wake all sleeping agents?')) return;
+    try {
+        const resp = await fetch('/api/sessions/live/wake-all', { method: 'POST' });
+        const data = await resp.json();
+        if (data.ok) {
+            for (const s of state.liveSessions) s.sleeping = false;
+            renderLiveSessions(state.liveSessions);
+            showToast(`All agents are awake (${data.sessions_relaunched} relaunched)`);
+        }
+    } catch (e) {
+        showToast('Failed to wake agents', true);
+    }
+}
+
+export async function toggleAgentSleep(name, agentType, sessionId, action) {
+    if (action === 'sleep' && !confirm(`Put "${name}" to sleep?`)) return;
+    try {
+        const resp = await fetch(`/api/sessions/live/${encodeURIComponent(sessionId)}/${action}`, {
+            method: 'POST',
+        });
+        const data = await resp.json();
+        if (!data.ok) {
+            showToast(data.error || 'Failed to toggle sleep', true);
+            return;
+        }
+        const sleeping = !!data.sleeping;
+        const s = state.liveSessions.find(s => s.session_id === sessionId);
+        if (s) s.sleeping = sleeping;
+        renderLiveSessions(state.liveSessions);
+        showToast(sleeping ? `"${name}" is now sleeping` : `"${name}" is awake`);
+    } catch (e) {
+        showToast('Failed to toggle agent sleep', true);
+    }
+}
+
 export async function toggleTeamSleep(boardName, action) {
     if (action === 'sleep' && !confirm(`Put all agents on "${boardName}" to sleep?`)) return;
     try {
@@ -461,6 +512,10 @@ function _renderSessionItem(s, groupName, isCompact, collapsed) {
             <button class="overflow-menu-item" onclick="event.stopPropagation(); closeSidebarKebabs(); showInfoDirect('${escapeAttr(s.name)}', '${escapeAttr(s.agent_type)}', '${sid}')">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7" x2="8" y2="11"/><circle cx="8" cy="5" r="0.5" fill="currentColor" stroke="none"/></svg>
                 Session Info
+            </button>
+            <button class="overflow-menu-item" onclick="event.stopPropagation(); closeSidebarKebabs(); toggleAgentSleep('${escapeAttr(s.name)}', '${escapeAttr(s.agent_type)}', '${sid}', '${s.sleeping ? 'wake' : 'sleep'}')">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 1 0 0 10 5 5 0 0 1 0-10z"/></svg>
+                ${s.sleeping ? 'Wake' : 'Sleep'}
             </button>
             <hr class="overflow-menu-divider">
             <button class="overflow-menu-item overflow-menu-danger" onclick="event.stopPropagation(); closeSidebarKebabs(); killSessionDirect('${escapeAttr(s.name)}', '${escapeAttr(s.agent_type)}', '${sid}')">

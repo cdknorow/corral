@@ -19,7 +19,7 @@ def get_data_dir() -> Path:
 
 
 # ── Database ─────────────────────────────────────────────────────────────
-DB_BUSY_TIMEOUT_MS = 5000          # SQLite busy_timeout (ms) before "database is locked"
+DB_BUSY_TIMEOUT_MS = 30000         # SQLite busy_timeout (ms) before "database is locked"
 
 # ── Startup ──────────────────────────────────────────────────────────────
 DEFERRED_STARTUP_DELAY_S = 2       # Seconds before resuming sessions after server bind
