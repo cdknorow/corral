@@ -231,7 +231,7 @@
     opacity: 1;
 }
 .session-list li.sleeping .sidebar-kebab-btn {
-    opacity: 0.5;
+    opacity: 1 !important;
 }
 
 .sidebar-kebab-menu {
@@ -270,7 +270,7 @@
     opacity: 0.6;
 }
 .session-board-card.team-sleeping .group-kebab .sidebar-kebab-btn {
-    opacity: 0.5;
+    opacity: 1 !important;
 }
 
 .board-card-folder-footer {
