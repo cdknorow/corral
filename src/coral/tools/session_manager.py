@@ -434,7 +434,7 @@ async def _resume_single_session(store, rec, log) -> None:
             try:
                 from coral.messageboard.store import MessageBoardStore
                 board_store = MessageBoardStore()
-                old_session_name = rec.get("agent_name", "")
+                old_session_name = f"{agent_type}-{sid}"
                 if old_session_name and old_session_name != new_session_name:
                     await board_store.transfer_subscription(board_name, old_session_name, new_session_name)
             except Exception:
