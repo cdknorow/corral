@@ -399,15 +399,31 @@ async def _resume_single_session(store, rec, log) -> None:
         log.info("Skipping sleeping session %s (%s)", sid[:8], agent_type)
         return
 
-    log.info(
-        "Resuming session %s (%s) in %s",
-        sid[:8], agent_type, working_dir,
-    )
-
     # Use resume_from_id if available (tracks the original Claude
     # session across multiple Coral restarts), otherwise fall back
     # to the session_id itself (first restart after initial launch).
     resume_id = rec.get("resume_from_id") or sid
+
+    # Check if the Claude CLI session transcript exists.  If it
+    # doesn't, the session can't be resumed — mark it as sleeping
+    # so the user can wake it manually later rather than crashing
+    # at startup trying to launch dozens of dead sessions at once.
+    if agent_type != "terminal":
+        from coral.agents import get_agent
+        agent_impl = get_agent(agent_type)
+        transcript = agent_impl.resolve_transcript_path(resume_id, working_dir)
+        if transcript is None:
+            log.info(
+                "No transcript for session %s (%s) — marking as sleeping",
+                sid[:8], agent_type,
+            )
+            await store.set_session_sleeping(sid, sleeping=True)
+            return
+
+    log.info(
+        "Resuming session %s (%s) in %s",
+        sid[:8], agent_type, working_dir,
+    )
 
     result = await launch_claude_session(
         working_dir, agent_type, display_name=display_name,

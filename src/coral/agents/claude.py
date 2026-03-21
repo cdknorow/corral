@@ -480,7 +480,8 @@ class ClaudeAgent(BaseAgent):
     def resolve_transcript_path(self, session_id: str, working_directory: str = "") -> Path | None:
         """Find the JSONL transcript file for a Claude session."""
         if working_directory:
-            encoded = working_directory.replace("/", "-")
+            # Claude CLI encodes project paths by replacing both / and _ with -
+            encoded = working_directory.replace("/", "-").replace("_", "-")
             candidate = HISTORY_PATH / encoded / f"{session_id}.jsonl"
             if candidate.exists():
                 return candidate

@@ -401,10 +401,12 @@ async def get_live_chat(
     if not session_id:
         return {"messages": [], "total": 0}
     agent_type = await store.get_agent_type_for_session(session_id)
+    # Resumed sessions write transcripts under the original session ID
+    transcript_id = await store.get_transcript_session_id(session_id)
     new_msgs, total = await asyncio.to_thread(
-        jsonl_reader.read_new_messages, session_id, working_directory or "", agent_type
+        jsonl_reader.read_new_messages, transcript_id, working_directory or "", agent_type
     )
-    return {"messages": jsonl_reader._cache[session_id].messages[after:], "total": total}
+    return {"messages": jsonl_reader._cache[transcript_id].messages[after:], "total": total}
 
 
 @router.get("/api/sessions/live/{name}/info")

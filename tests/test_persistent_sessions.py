@@ -1,11 +1,27 @@
 """Tests for persistent live sessions (resume on restart)."""
 
 import os
+from pathlib import Path
 import pytest
 import pytest_asyncio
 from unittest.mock import AsyncMock, patch, MagicMock
 
 from coral.store import CoralStore as SessionStore
+
+
+@pytest.fixture(autouse=True)
+def _mock_transcript_check():
+    """Make resolve_transcript_path always find a transcript so resume tests
+    don't get short-circuited by the 'no transcript → mark sleeping' guard."""
+    _fake = Path("/tmp/fake-transcript.jsonl")
+    with patch(
+        "coral.agents.claude.ClaudeAgent.resolve_transcript_path",
+        return_value=_fake,
+    ), patch(
+        "coral.agents.base.BaseAgent.resolve_transcript_path",
+        return_value=_fake,
+    ):
+        yield
 
 
 @pytest_asyncio.fixture
@@ -754,6 +770,28 @@ async def test_replace_live_session_carries_sleeping(store):
     sessions = await store.get_all_live_sessions()
     assert len(sessions) == 1
     assert sessions[0]["session_id"] == "new-sid"
+    assert sessions[0]["is_sleeping"] is True
+
+
+@pytest.mark.asyncio
+async def test_resume_no_transcript_marks_sleeping(store, tmp_path):
+    """Sessions without a JSONL transcript should be marked sleeping, not launched."""
+    work_dir = str(tmp_path)
+    await store.register_live_session("sid-no-transcript", "claude", "wt1", work_dir)
+
+    with patch("coral.tools.session_manager.discover_coral_agents", AsyncMock(return_value=[])), \
+         patch("coral.tools.session_manager.launch_claude_session", AsyncMock()) as mock_launch, \
+         patch("coral.agents.claude.ClaudeAgent.resolve_transcript_path", return_value=None):
+        from coral.tools.session_manager import resume_persistent_sessions
+        await resume_persistent_sessions(store)
+
+    # Should NOT have tried to launch
+    mock_launch.assert_not_called()
+
+    # Session should be marked as sleeping in DB
+    sessions = await store.get_all_live_sessions()
+    assert len(sessions) == 1
+    assert sessions[0]["session_id"] == "sid-no-transcript"
     assert sessions[0]["is_sleeping"] is True
 
 

@@ -681,6 +681,23 @@ class SessionStore(DatabaseManager):
         )).fetchone()
         return row["agent_type"] if row else "claude"
 
+    async def get_transcript_session_id(self, session_id: str) -> str:
+        """Return the effective session ID for JSONL transcript lookup.
+
+        When a session was resumed, the Claude CLI writes its transcript
+        under the original (resume_from_id) session ID, not the new tmux
+        session ID.  This method returns resume_from_id when available,
+        falling back to session_id.
+        """
+        conn = await self._get_conn()
+        row = await (await conn.execute(
+            "SELECT resume_from_id FROM live_sessions WHERE session_id = ?",
+            (session_id,),
+        )).fetchone()
+        if row and row["resume_from_id"]:
+            return row["resume_from_id"]
+        return session_id
+
     async def get_all_live_sessions(self) -> list[dict[str, Any]]:
         import json as _json
         conn = await self._get_conn()
